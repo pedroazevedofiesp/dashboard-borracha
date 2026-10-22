@@ -1,0 +1,576 @@
+/* Hanken Grotesk: alternativa gratuita à Moderat (grotesca neutra, mesma
+   família de proporções), hospedada localmente, fonte variável 400-800. */
+@font-face {
+  font-family: "Hanken Grotesk";
+  src: url("../assets/fonts/HankenGrotesk-Variable.woff2") format("woff2-variations"), url("../assets/fonts/HankenGrotesk-Variable.woff2") format("woff2");
+  font-weight: 400 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: light;
+  --surface-1:      #fdffff;
+  --surface-2:      #f2f4f7; /* Cinza Névoa */
+  --surface-card:   #ffffff;
+  --text-primary:   #1e2329;
+  --text-secondary: #34495e;
+  --text-muted:     #8d99ae;
+  --gridline:       #f2f4f7; /* Cinza Névoa */
+  --baseline:       #c7cdd5;
+  --border:         #e7e9ec;
+  --good:           #2e6e49;
+  --bad:            #8b040d;
+
+  --accent:         #e30615; /* vermelho institucional — CTA, aba ativa, destaques */
+  --accent-dark:    #8b040d; /* vermelho escuro — séries negativas, links */
+  --navy:           #1e2329; /* header, tooltip, texto forte */
+
+  --series-1: #1e2329; /* charcoal   - produção / linha principal */
+  --series-2: #34495e; /* slate      - emprego */
+  --series-3: #e30615; /* vermelho   - financeiro / destaque */
+  --series-4: #2e6e49; /* verde      - comércio exterior (export) */
+  --series-5: #6b5ca5; /* violeta    - energia */
+  --series-6: #8b040d; /* marrom-vermelho - comércio exterior (import) / negativo */
+  --series-7: #b46a3d; /* terracota */
+  --series-8: #c98500; /* âmbar      - bndes / gargalos */
+
+  --status-good: #2e6e49;
+  --status-warning: #c98500;
+  --status-serious: #b46a3d;
+  --status-critical: #8b040d;
+
+  --radius: 8px;
+  --radius-sm: 4px;
+  --shadow-card: none;
+  --sidebar-w: 232px;
+  --topbar-h: 56px;
+}
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0;
+  background: var(--surface-1);
+  color: var(--text-primary);
+  font-family: "Hanken Grotesk", Arial, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+body { overflow-x: hidden; }
+
+a { color: var(--accent-dark); }
+a:hover { color: var(--accent); }
+
+/* ---------- App shell: topbar + sidebar (estilo portal executivo) ---------- */
+.app-shell { display: flex; min-height: 100vh; }
+
+.sidebar {
+  width: var(--sidebar-w);
+  flex-shrink: 0;
+  background: var(--surface-1);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.sidebar-brand img { height: 40px; width: auto; display: block; }
+
+.sidebar-section-label {
+  padding: 16px 20px 6px;
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.sidebar-nav { padding: 6px 12px; display: flex; flex-direction: column; gap: 1px; }
+.sidebar-nav:first-of-type { padding-top: 10px; }
+.sidebar-nav button {
+  display: flex; align-items: center; gap: 10px;
+  background: none; border: none; border-left: 2px solid transparent; width: 100%; text-align: left;
+  font: inherit; font-size: 0.85rem; font-weight: 600;
+  color: var(--text-secondary);
+  padding: 8px 10px; border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  cursor: pointer; transition: background .12s, color .12s, border-color .12s;
+}
+.sidebar-nav button:hover { background: var(--surface-2); color: var(--text-primary); }
+.sidebar-nav button.active { background: var(--surface-2); color: var(--text-primary); border-left-color: var(--accent); }
+
+.sidebar-nav-sections { padding-top: 2px; }
+.sidebar-nav-sections button { font-size: 0.78rem; font-weight: 500; padding: 6px 10px; color: var(--text-secondary); }
+.sidebar-nav-sections button.active { background: var(--surface-2); color: var(--text-primary); border-left-color: var(--baseline); font-weight: 600; }
+
+.sidebar-nav-foot { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; }
+
+.sidebar-credit {
+  margin-top: auto;
+  padding: 14px 20px 18px;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border);
+}
+.sidebar-credit strong { color: var(--text-secondary); }
+
+.main-col { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+/* ---------- Top bar: faixa institucional (sem conteúdo; marcas ficam na sidebar, em branco) ---------- */
+.site-header {
+  background: var(--accent);
+  height: var(--topbar-h);
+  position: sticky; top: 0; z-index: 25;
+}
+.header-media { display: none; }
+
+/* ---------- View tabs (removidas do topo — navegação agora na sidebar) ---------- */
+.view-tabs { display: none; }
+
+/* ---------- Filter row ---------- */
+.filter-row {
+  position: sticky;
+  top: var(--topbar-h);
+  z-index: 20;
+  background: var(--surface-1);
+  border-bottom: 1px solid var(--border);
+}
+.filter-row-inner {
+  padding: 10px 32px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 32px;
+}
+.filter-group { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.filter-group label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.filter-group select {
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-1);
+  color: var(--text-primary);
+}
+.filter-group select:disabled { opacity: .5; cursor: not-allowed; }
+.period-dash { color: var(--text-muted); font-size: 0.8rem; }
+
+/* ---------- Multi-select (dropdown com checkboxes) ---------- */
+.multiselect { position: relative; }
+.multiselect-btn {
+  font: inherit; font-size: 0.8rem; padding: 5px 28px 5px 8px;
+  border-radius: var(--radius-sm); border: 1px solid var(--border);
+  background: var(--surface-1) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238d99ae' stroke-width='1.5' fill='none'/%3E%3C/svg%3E") no-repeat right 10px center;
+  color: var(--text-primary); cursor: pointer; min-width: 120px; text-align: left;
+}
+.multiselect-btn:hover { border-color: var(--text-muted); }
+.multiselect-panel {
+  position: absolute; top: calc(100% + 4px); left: 0; z-index: 30;
+  background: var(--surface-card); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  box-shadow: 0 4px 16px rgba(0,0,0,.12);
+  min-width: 240px; max-height: 320px; overflow-y: auto; padding: 6px;
+}
+.multiselect-option {
+  display: flex; align-items: center; gap: 8px; padding: 5px 8px;
+  font-size: 0.8rem; color: var(--text-primary); border-radius: var(--radius-sm); cursor: pointer;
+}
+.multiselect-option:hover { background: var(--surface-2); }
+.multiselect-option input { margin: 0; flex-shrink: 0; }
+
+/* ---------- Filtro por bloco (Produção/Emprego/CAGED/Comex): cada seção
+   tem cobertura de dado diferente, um único filtro global no topo não dava
+   pra representar isso direito. Linha compacta, discreta, não é mais uma
+   barra fixa de topo. ---------- */
+.block-filter {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px 16px;
+  font-size: 0.72rem; color: var(--text-muted);
+  padding: 10px 0 18px; margin: -8px 0 24px;
+  border-bottom: 1px solid var(--border);
+}
+.block-filter-item { display: flex; align-items: center; gap: 6px; }
+.block-filter select {
+  font: inherit; font-size: 0.72rem; padding: 3px 6px;
+  border-radius: var(--radius-sm); border: 1px solid var(--border);
+  background: var(--surface-1); color: var(--text-secondary);
+}
+.block-filter .multiselect-btn {
+  font-size: 0.72rem; padding: 3px 24px 3px 8px; min-width: 90px;
+}
+.block-filter .multiselect-option { font-size: 0.76rem; }
+.block-filter-clear {
+  font: inherit; font-size: 0.72rem; color: var(--accent-dark);
+  background: none; border: none; cursor: pointer; padding: 0;
+  text-decoration: underline; text-underline-offset: 2px;
+}
+.block-filter-clear:hover { color: var(--accent); }
+
+/* ---------- Toolbar de tabela (export CSV) ---------- */
+.table-export-btn {
+  background: none; border: 1px solid var(--border); color: var(--text-secondary);
+  font: inherit; font-size: 0.78rem; padding: 6px 14px; cursor: pointer; border-radius: var(--radius-sm);
+}
+.table-export-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ---------- Download de dados da seção (Excel) ---------- */
+.section-download {
+  margin-left: auto;
+  font: inherit; font-size: 0.78rem; color: var(--text-secondary);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 6px 14px; text-decoration: none; white-space: nowrap;
+}
+.section-download:hover { border-color: var(--accent); color: var(--accent); }
+.filter-note {
+  font-size: 0.73rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.wrap {
+  padding: 32px 32px 80px;
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---------- Sector summary: menu de navegação para cada dado ---------- */
+.sector-summary { margin-bottom: 8px; }
+.sector-section-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 24px; margin-bottom: 36px; }
+@media (max-width: 900px) { .sector-section-list { grid-template-columns: repeat(2, 1fr); } }
+.sector-section-row {
+  display: flex; align-items: baseline; gap: 14px; width: 100%;
+  background: none; border: none; border-bottom: 1px solid var(--border);
+  padding: 16px 2px; cursor: pointer; font: inherit; text-align: left;
+  transition: background .12s;
+}
+.sector-section-row:hover { background: var(--surface-2); }
+.sector-section-row .ssr-num { font-size: 0.76rem; font-weight: 700; color: var(--accent); width: 20px; flex-shrink: 0; }
+.sector-section-row .ssr-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.sector-section-row .ssr-title { font-size: 0.86rem; font-weight: 700; color: var(--text-primary); }
+.sector-section-row .ssr-sub { font-size: 0.74rem; color: var(--text-muted); line-height: 1.4; }
+.sector-section-row .ssr-arrow { color: var(--text-muted); font-size: 0.9rem; flex-shrink: 0; transition: transform .12s, color .12s; }
+.sector-section-row:hover .ssr-arrow { color: var(--accent); transform: translateY(2px); }
+
+/* ---------- Painel Executivo (Início): resumo simples + menu de navegação,
+   pensado pra quem entra pela primeira vez e não quer o detalhamento
+   completo de cara. Reaproveita os tokens de .section/.exhibit, sem cor
+   nova. ---------- */
+.exec-header { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+.exec-header h1 { font-size: 1.5rem; font-weight: 700; margin: 0; color: var(--text-primary); }
+.exec-header p { margin: 4px 0 0; font-size: 0.85rem; color: var(--text-secondary); }
+
+.exec-seg-toggle { display: flex; gap: 6px; }
+.exec-seg-btn {
+  font: inherit; font-size: 0.78rem; font-weight: 600; cursor: pointer;
+  padding: 7px 16px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: var(--surface-1); color: var(--text-secondary);
+}
+.exec-seg-btn:hover { border-color: var(--accent); color: var(--accent); }
+.exec-seg-btn.active { background: var(--text-primary); border-color: var(--text-primary); color: #fff; }
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 36px;
+}
+@media (max-width: 900px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 480px) { .kpi-grid { grid-template-columns: 1fr; } }
+
+.kpi-tile {
+  display: flex; flex-direction: column; gap: 6px;
+  text-align: left; font: inherit; cursor: pointer;
+  background: var(--surface-card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 18px 18px 16px;
+  transition: border-color .12s, box-shadow .12s;
+}
+.kpi-tile:hover { border-color: var(--accent); }
+.kpi-tile:disabled, .kpi-tile.no-click { cursor: default; }
+.kpi-tile:disabled:hover, .kpi-tile.no-click:hover { border-color: var(--border); }
+.kpi-label { font-size: 0.72rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.kpi-value { font-size: 1.65rem; font-weight: 700; color: var(--text-primary); font-variant-numeric: tabular-nums; line-height: 1.15; }
+.kpi-value .kpi-unit { font-size: 0.95rem; font-weight: 600; color: var(--text-secondary); margin-left: 4px; }
+.kpi-sub { font-size: 0.75rem; color: var(--text-secondary); }
+.kpi-note { font-size: 0.68rem; color: var(--text-muted); font-style: italic; }
+.kpi-trend { font-size: 0.78rem; font-weight: 650; }
+.kpi-trend-up { color: var(--good); }
+.kpi-trend-down { color: var(--bad); }
+.kpi-trend-flat { color: var(--text-muted); }
+
+/* Linha "Fonte · Período · Atualizado em" — mesma classe usada no rodapé
+   dos KPI tiles e anexada a cada .section-note existente (ver
+   renderCaptionMeta em main.js). */
+.caption-meta { font-size: 0.68rem; color: var(--text-muted); margin-top: 2px; }
+.caption-meta .cm-sep { margin: 0 5px; }
+
+.exec-menu-title { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin: 40px 0 4px; }
+
+/* ---------- Sections ---------- */
+.section {
+  background: var(--surface-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: 28px 28px 32px;
+  margin-top: 24px;
+}
+.section:first-of-type { margin-top: 0; }
+
+.section-header {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.section-header .section-num { font-size: 0.81rem; color: var(--accent); font-weight: 700; flex-shrink: 0; }
+.section-header h2 { font-size: 1.3rem; font-weight: 700; margin: 0; color: var(--text-primary); flex-shrink: 0; }
+.section-note { font-size: 0.75rem; color: var(--text-muted); font-style: italic; margin: 0 0 28px; line-height: 1.5; }
+.dataview-sources { font-size: 0.75rem; color: var(--text-muted); font-style: italic; margin: 8px 0 0; padding-top: 16px; border-top: 1px solid var(--border); }
+
+.exhibit-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  column-gap: 28px;
+  row-gap: 44px;
+}
+.exhibit-grid.single { grid-template-columns: 1fr; }
+@media (max-width: 640px) { .exhibit-grid { grid-template-columns: 1fr; } }
+
+.exhibit-block + .exhibit-grid,
+.exhibit-grid + .exhibit-block,
+.exhibit-block + .exhibit-block {
+  margin-top: 44px;
+}
+.exhibit-block { grid-column: 1 / -1; }
+
+/* Exhibit: caption (título+subtítulo) e gráfico ficam na mesma ordem no DOM
+   (gráfico, caption) mas são reordenados visualmente via flex — evita editar
+   cada um dos ~36 blocos no HTML. */
+.exhibit, .exhibit-block {
+  display: flex;
+  flex-direction: column;
+}
+.exhibit .exhibit-caption, .exhibit-block .exhibit-caption { order: 0; margin-bottom: 14px; }
+.exhibit > div:not(.exhibit-caption),
+.exhibit-block > div:not(.exhibit-caption) { order: 1; }
+.exhibit .filter-note { order: 2; margin-top: 8px; }
+
+.exhibit-title { font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin-bottom: 2px; }
+.exhibit-sub { font-size: 0.76rem; color: var(--text-muted); }
+
+.empty-note {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-style: italic;
+  padding: 30px 4px;
+  text-align: center;
+}
+
+.legend {
+  display: flex; flex-wrap: wrap; gap: 12px 16px;
+  margin-top: 6px; font-size: 0.74rem; color: var(--text-secondary);
+}
+.legend-item { display: flex; align-items: center; gap: 6px; }
+.legend-swatch { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+
+/* Donut: SVG é quadrado (viewBox 1:1) e não pode herdar o width:100% de
+   .chart-svg, senão estica até a largura do container (grave em blocos
+   full-width). Layout donut + legenda lado a lado, usando o espaço extra. */
+.donut-chart-wrap { display: flex; align-items: center; gap: 32px; flex-wrap: wrap; }
+.donut-chart-wrap .chart-svg.donut-svg { width: 260px; height: 260px; flex-shrink: 0; }
+.donut-chart-wrap .legend { margin-top: 0; flex: 1; min-width: 200px; }
+
+/* chart svg */
+.chart-svg { display: block; width: 100%; height: auto; overflow: visible; }
+
+/* Estudos especiais: essas 4 leituras usam .exhibit-block (largura total),
+   diferente do resto do painel (onde full-width é só pra tabela). O SVG do
+   gráfico mantém a proporção de design (600 de largura x altura definida em
+   JS) e estica a altura junto quando o container é muito largo, ficando
+   desproporcional. Trava a largura pra manter a proporção pretendida. */
+#ee-chart-exposicao-china, #ee-chart-bndes-percapita,
+#ee-chart-produtividade, #ee-chart-producao-emprego { max-width: 860px; width: 100%; margin: 0 auto; }
+.chart-svg .axis-label { fill: var(--text-muted); font-size: 10px; }
+.chart-svg .hbar-label { fill: var(--text-secondary); font-size: 9.5px; }
+.chart-svg .hbar-val { fill: var(--text-primary); font-size: 9.5px; font-variant-numeric: tabular-nums; }
+.chart-svg .gridline { stroke: var(--gridline); stroke-width: 1; }
+.chart-svg .baseline { stroke: var(--baseline); stroke-width: 1; }
+.chart-svg .hit-area { fill: transparent; }
+.chart-svg .hit-area:hover, .chart-svg .hit-area:focus { outline: none; }
+.chart-svg .bar-mark { transition: opacity .1s; }
+.chart-svg .bar-mark:hover { opacity: 0.75; }
+
+.chart-tooltip {
+  position: fixed;
+  z-index: 100;
+  pointer-events: none;
+  background: var(--navy);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 4px 16px rgba(30,35,41,0.35);
+  padding: 10px 12px;
+  font-size: 0.78rem;
+  color: #fdffff;
+  max-width: 250px;
+  opacity: 0;
+  transition: opacity .08s;
+}
+.chart-tooltip.visible { opacity: 1; }
+.chart-tooltip .tt-title {
+  font-weight: 700; color: #fdffff;
+  margin-bottom: 5px; font-variant-numeric: tabular-nums; font-size: 0.75rem;
+}
+.chart-tooltip .tt-row { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.chart-tooltip .tt-row + .tt-row { margin-top: 2px; }
+.chart-tooltip .tt-key { width: 9px; height: 9px; border-radius: 2px; flex-shrink: 0; }
+.chart-tooltip .tt-val { font-weight: 700; color: #fdffff; margin-left: auto; padding-left: 10px; font-variant-numeric: tabular-nums; }
+
+/* ---------- Data table (BNDES, DECOM) ---------- */
+.data-table-wrap { overflow-x: auto; }
+table.data-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.8rem;
+}
+table.data-table th, table.data-table td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+  white-space: nowrap;
+}
+table.data-table th {
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  user-select: none;
+}
+table.data-table td { color: var(--text-secondary); }
+table.data-table tbody tr:hover { background: var(--surface-2); }
+
+.table-more-btn {
+  margin-top: 12px;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.78rem;
+  padding: 7px 14px;
+  cursor: pointer;
+}
+.table-more-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ---------- Gargalos ---------- */
+.gargalos-list .gargalo-row {
+  display: flex; gap: 22px; padding: 26px 0; border-top: 1px solid var(--border);
+}
+.gargalos-list .gargalo-row:first-child { border-top: none; padding-top: 0; }
+.gargalo-row .gargalo-num {
+  font-size: 1.3rem; font-weight: 700; color: var(--baseline); flex-shrink: 0; width: 32px;
+}
+.gargalo-row h3 { margin: 0 0 8px; font-size: 0.95rem; font-weight: 600; color: var(--text-primary); }
+.gargalo-row p { margin: 0 0 10px; font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6; }
+.gargalo-evidence { font-size: 0.78rem; color: var(--text-muted); line-height: 1.55; }
+.gargalo-evidence strong { color: var(--text-primary); }
+
+.decom-highlight { font-size: 0.85rem; color: var(--text-secondary); margin: 0 0 16px; }
+.decom-highlight strong { color: var(--text-primary); font-size: 1.15rem; font-weight: 700; }
+
+/* ---------- PD&I / Referências (páginas de aba, não mais accordion) ---------- */
+#pdi-view, #referencias-view { padding: 40px 0 60px; }
+.pdi-intro { color: var(--text-secondary); font-size: 0.85rem; line-height: 1.65; }
+#pdi-view h4, #referencias-view h4 {
+  font-size: 0.75rem; margin: 24px 0 12px; color: var(--text-primary);
+  text-transform: uppercase; letter-spacing: 0.06em;
+}
+.pdi-note { color: var(--text-secondary); font-size: 0.81rem; line-height: 1.65; margin: 0 0 8px; }
+.pdi-list { margin: 0 0 12px; padding-left: 20px; color: var(--text-secondary); font-size: 0.81rem; line-height: 1.65; }
+.pdi-list li { margin-bottom: 6px; }
+.pdi-list li:last-child { margin-bottom: 0; }
+
+/* PD&I (case de fundição): texto corrido pra ler, não rodapé/legenda como em
+   Referências, que usa as mesmas classes — por isso o aumento é escopado
+   aqui, não na regra genérica acima. */
+#pdi-view .pdi-intro { font-size: 0.95rem; line-height: 1.75; }
+#pdi-fundicao .section-note { font-size: 0.88rem; line-height: 1.7; }
+#pdi-view .pdi-note { font-size: 0.92rem; line-height: 1.75; margin-bottom: 18px; }
+#pdi-view .pdi-list { font-size: 0.92rem; line-height: 1.75; margin-bottom: 20px; }
+#pdi-view .pdi-list li { margin-bottom: 10px; }
+.pdi-cta {
+  margin: 32px 0 8px;
+  padding: 20px 24px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  background: var(--surface-2);
+}
+.pdi-cta h4 { margin-top: 0; }
+.pdi-cta .pdi-note { margin-bottom: 0; }
+#pdi-fundicao .exhibit-grid { margin-bottom: 28px; }
+.pdi-table-wrap { overflow-x: auto; }
+table.pdi-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.79rem;
+}
+table.pdi-table th, table.pdi-table td {
+  text-align: left;
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+table.pdi-table th {
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+table.pdi-table td { color: var(--text-secondary); }
+table.pdi-table td.mono { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* ---------- Footer ---------- */
+.site-footer {
+  margin-top: 24px;
+  padding: 18px 4px 0;
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  line-height: 1.6;
+}
+@media (max-width: 900px) {
+  .app-shell { flex-direction: column; }
+  .sidebar { position: static; height: auto; width: 100%; }
+}
+
+/* ---------- Ranked list (top países etc) ---------- */
+.rank-list { list-style: none; margin: 0; padding: 0; }
+#rank-ei-custo-estados, #rank-ei-composicao,
+#rank-emprego-uf, #rank-caged-saldo-uf, #rank-comex-uf, #rank-bndes-uf { max-height: 320px; overflow-y: auto; }
+.rank-list li {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 0;
+  font-size: 0.82rem;
+}
+.rank-list .rank-name {
+  flex: 1; min-width: 0; color: var(--text-secondary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.rank-list .rank-bar-wrap { flex: 2; background: var(--gridline); height: 8px; overflow: hidden; }
+.rank-list .rank-bar { height: 100%; background: var(--series-1); }
+.rank-list .rank-val { font-weight: 650; min-width: 84px; text-align: right; font-variant-numeric: tabular-nums; }
+.rank-list li.rank-clickable { cursor: pointer; border-radius: var(--radius-sm); }
+.rank-list li.rank-clickable:hover { background: var(--surface-2); }

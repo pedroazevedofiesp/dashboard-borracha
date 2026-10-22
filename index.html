@@ -1,0 +1,964 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel do Setor de Fundição (CNAE 2451/2452)</title>
+<meta name="description" content="Painel executivo do setor de fundição no Brasil: produção, emprego, financeiro, comércio exterior, energia, BNDES e DECOM.">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="app-shell">
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <img src="assets/logos/logo-sifesp.png" alt="SIFESP">
+  </div>
+
+  <nav class="sidebar-nav" id="view-tabs" role="tablist" aria-label="Navegação principal">
+    <button type="button" data-view="home" class="active" role="tab" aria-selected="true">Início</button>
+  </nav>
+
+  <div class="sidebar-section-label">Setor</div>
+  <nav class="sidebar-nav sidebar-nav-sector" id="sector-tabs" role="tablist" aria-label="Setor">
+    <button type="button" data-view="2451" role="tab" aria-selected="false">Ferro e aço (2451)</button>
+    <button type="button" data-view="2452" role="tab" aria-selected="false">Não ferrosos (2452)</button>
+  </nav>
+
+  <div class="sidebar-section-label" id="section-nav-label">Nesta seção</div>
+  <nav class="sidebar-nav sidebar-nav-sections" id="section-nav">
+    <button type="button" data-target="block-producao">01 · Produção física</button>
+    <button type="button" data-target="block-financeiro">02 · Financeiro</button>
+    <button type="button" data-target="block-emprego">03 · Emprego formal</button>
+    <button type="button" data-target="block-caged">04 · CAGED</button>
+    <button type="button" data-target="block-comex">05 · Comércio exterior</button>
+    <button type="button" data-target="block-bndes">06 · BNDES</button>
+    <button type="button" data-target="block-decom">07 · DECOM</button>
+    <button type="button" data-target="block-estudos-especiais">08 · Estudos especiais</button>
+    <button type="button" data-target="block-gargalos">Gargalos do setor</button>
+  </nav>
+
+  <nav class="sidebar-nav sidebar-nav-foot" id="foot-tabs-top" role="tablist" aria-label="Outras seções">
+    <button type="button" data-view="energia-industrial" role="tab" aria-selected="false">Energia Industrial</button>
+    <button type="button" data-view="pdi" role="tab" aria-selected="false">PD&amp;I</button>
+  </nav>
+
+  <div class="sidebar-section-label" id="pdi-section-nav-label">Nesta seção</div>
+  <nav class="sidebar-nav sidebar-nav-sections" id="pdi-section-nav">
+    <button type="button" data-target="pdi-fundicao">01 · Fundição</button>
+  </nav>
+
+  <nav class="sidebar-nav sidebar-nav-foot" id="foot-tabs-bottom" role="tablist" aria-label="Mais seções">
+    <button type="button" data-view="relatorios" role="tab" aria-selected="false">Relatórios</button>
+    <button type="button" data-view="referencias" role="tab" aria-selected="false">Referências</button>
+  </nav>
+
+  <div class="sidebar-credit"><strong>FIESP . CIESP</strong></div>
+</aside>
+
+<div class="main-col">
+<header class="site-header"></header>
+
+<div class="wrap">
+
+<div id="home-view">
+  <div class="exec-header">
+    <div>
+      <h1>Painel Executivo</h1>
+      <p>Os principais indicadores do setor, por segmento. O detalhamento completo de cada um está disponível na navegação ao final desta página.</p>
+    </div>
+    <div class="exec-seg-toggle" id="exec-seg-toggle" role="tablist" aria-label="Segmento do Painel Executivo">
+      <button type="button" class="exec-seg-btn" data-seg="2451" role="tab">Fundição de Ferro e Aço</button>
+      <button type="button" class="exec-seg-btn" data-seg="2452" role="tab">Fundição de Não Ferrosos</button>
+    </div>
+  </div>
+
+  <div class="kpi-grid" id="exec-kpi-grid"></div>
+
+  <div class="section" id="exec-charts-section">
+    <div class="section-header"><h2>O setor em 4 perguntas</h2></div>
+    <div class="exhibit-grid">
+      <div class="exhibit">
+        <div id="exec-chart-crescimento"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">1. O setor está crescendo ou diminuindo?</div>
+          <div class="exhibit-sub">Produção, faturamento e empregos, indexados (base 100 no primeiro ano)</div>
+        </div>
+      </div>
+      <div class="exhibit">
+        <div id="exec-chart-comex"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">2. As importações estão crescendo?</div>
+          <div class="exhibit-sub">Exportação x importação, R$ milhões de 2023</div>
+        </div>
+      </div>
+      <div class="exhibit">
+        <div id="exec-chart-paises-imp"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">3. De onde está vindo a concorrência?</div>
+          <div class="exhibit-sub" id="exec-chart-paises-imp-sub">Principais países de origem das importações</div>
+        </div>
+      </div>
+      <div class="exhibit">
+        <div id="exec-chart-margem"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">4. Como está a competitividade e produtividade?</div>
+          <div class="exhibit-sub">Margem operacional (%) e produtividade (VTI por trabalhador), grupo Fundição</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="exec-menu-title">Navegar pelo painel</div>
+  <div class="sector-section-list" id="exec-nav-menu"></div>
+</div><!-- /#home-view -->
+
+<div id="data-view" hidden>
+
+  <div class="sector-summary" id="sector-summary">
+    <div class="sector-section-list" id="sector-section-list"></div>
+  </div>
+
+  <!-- ============ 01. PRODUÇÃO FÍSICA ============ -->
+  <section class="section" id="block-producao">
+    <div class="section-header">
+      <span class="section-num">01</span>
+      <h2>Produção física</h2>
+      <a class="section-download" id="download-producao" href="data/downloads/Producao_Fisica_2451.xlsx" download>⬇ Baixar dados (Excel)</a>
+    </div>
+    <p class="section-note" id="producao-section-note">Dado nacional (IBGE/PIM-PF e Instituto Aço Brasil), sem abertura por estado.</p>
+    <div class="caption-meta" id="section-caption-producao"></div>
+    <div class="block-filter">
+      <div class="block-filter-item">
+        <span>Período</span>
+        <select id="producao-lo-select"></select>
+        <span class="period-dash">–</span>
+        <select id="producao-hi-select"></select>
+      </div>
+      <button type="button" class="block-filter-clear" id="producao-clear">Limpar</button>
+    </div>
+    <div class="exhibit-grid">
+      <div class="exhibit">
+        <div id="chart-producao-acogusa"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title" id="producao-acogusa-title">Aço bruto, ferro-gusa e laminados</div>
+          <div class="exhibit-sub" id="producao-acogusa-sub">Toneladas por mês, Instituto Aço Brasil. Ferro-gusa só a partir de fev/09</div>
+        </div>
+      </div>
+      <div class="exhibit">
+        <div id="chart-producao-dessaz"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title" id="producao-dessaz-title">Aço bruto: mês a mês vs. sem efeito sazonal</div>
+          <div class="exhibit-sub" id="producao-dessaz-sub">Toneladas / mês. "Sem efeito sazonal" remove variações que se repetem todo ano (ex: férias, fim de ano), pra comparar mês a mês sem esse ruído</div>
+        </div>
+      </div>
+      <div class="exhibit">
+        <div id="chart-producao-indice"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Índice de produção da metalurgia</div>
+          <div class="exhibit-sub">Base 100, recessões (CODACE/FGV) sombreadas. Indústria de metalurgia como um todo (IBGE), não é exclusivo de ferro/aço ou não ferrosos</div>
+        </div>
+      </div>
+      <div class="exhibit" id="producao-razao-wrap">
+        <div id="chart-producao-razao"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Razão laminados / aço bruto</div>
+          <div class="exhibit-sub">%, mensal</div>
+        </div>
+      </div>
+    </div>
+    <div class="exhibit-block">
+      <div id="table-producao"></div>
+      <div class="exhibit-caption">
+        <div class="exhibit-title" id="producao-table-title">Produção física mensal, série completa</div>
+        <div class="exhibit-sub" id="producao-table-sub">Instituto Aço Brasil, mais recente primeiro, clique no cabeçalho para ordenar</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 02. FINANCEIRO ============ -->
+  <section class="section" id="block-financeiro">
+    <div class="section-header">
+      <span class="section-num">02</span>
+      <h2>Financeiro</h2>
+      <a class="section-download" href="data/downloads/Financeiro.xlsx" download>⬇ Baixar dados (Excel)</a>
+    </div>
+    <p class="section-note">Fonte: IBGE/PIA-Empresa, 2007–2024, sempre em série completa (sem filtro de período). A base "Fundição" (24.5) reúne 2451+2452 sem abertura entre eles; "Metalurgia" (24) é o grupo mais amplo.</p>
+    <div class="caption-meta" id="section-caption-financeiro"></div>
+    <div class="exhibit-grid">
+      <div class="exhibit">
+        <div id="chart-financeiro-vbpi-vti"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">VBPI x VTI</div>
+          <div class="exhibit-sub">Grupo Fundição (24.5), R$ mil, eixos independentes</div>
+        </div>
+      </div>
+      <div class="exhibit">
+        <div id="chart-financeiro-participacao"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Participação da Fundição na Metalurgia</div>
+          <div class="exhibit-sub">% da receita líquida de 24.5 dentro de 24</div>
+        </div>
+      </div>
+      <div class="exhibit">
+        <div id="chart-financeiro-produtividade"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Produtividade</div>
+          <div class="exhibit-sub">VTI / pessoal ocupado (R$ mil por trabalhador)</div>
+        </div>
+      </div>
+      <div class="exhibit">
+        <div id="chart-financeiro-receita-custos"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Receita líquida x custos totais</div>
+          <div class="exhibit-sub">Grupo Fundição (24.5), anual</div>
+        </div>
+      </div>
+      <div class="exhibit">
+        <div id="chart-financeiro-waterfall"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title" id="financeiro-waterfall-title">Decomposição de custos</div>
+          <div class="exhibit-sub">Matérias-primas + pessoal + outros = custo total</div>
+        </div>
+      </div>
+    </div>
+    <div class="exhibit-block">
+      <div id="table-financeiro"></div>
+      <div class="exhibit-caption">
+        <div class="exhibit-title">Indicadores financeiros anuais, Fundição (24.5)</div>
+        <div class="exhibit-sub">2007–2024, valores correntes, clique no cabeçalho para ordenar</div>
+      </div>
+    </div>
+    <div class="exhibit-block">
+      <div id="table-financeiro-por-cnae"></div>
+      <div class="exhibit-caption">
+        <div class="exhibit-title">Ferro e aço (2451) x Não ferrosos (2452)</div>
+        <div class="exhibit-sub">2024, valores correntes — primeira vez com essa abertura por classe (demais anos só têm o grupo 24.5 combinado)</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 03. EMPREGO FORMAL (RAIS) ============ -->
+  <section class="section" id="block-emprego">
+    <div class="section-header">
+      <span class="section-num">03</span>
+      <h2>Emprego formal (RAIS)</h2>
+      <a class="section-download" id="download-emprego" href="data/downloads/Emprego_2451.xlsx" download>⬇ Baixar dados (Excel)</a>
+    </div>
+    <p class="section-note">A partir de 2022 a metodologia de coleta mudou (base eSocial); perfis detalhados (escolaridade, ocupação, tempo de emprego) têm quebra de série entre 2021 e 2022. Clique numa barra do ranking por UF para adicionar aquele estado ao filtro abaixo.</p>
+    <div class="caption-meta" id="section-caption-emprego"></div>
+    <div class="block-filter">
+      <div class="block-filter-item">
+        <span>Período</span>
+        <select id="emprego-lo-select"></select>
+        <span class="period-dash">–</span>
+        <select id="emprego-hi-select"></select>
+      </div>
+      <div class="block-filter-item">
+        <span>Estados</span>
+        <div class="multiselect" id="emprego-uf-multiselect">
+          <button type="button" class="multiselect-btn" id="emprego-uf-btn" aria-haspopup="listbox" aria-expanded="false"></button>
+          <div class="multiselect-panel" id="emprego-uf-panel" hidden></div>
+        </div>
+      </div>
+      <button type="button" class="block-filter-clear" id="emprego-clear">Limpar</button>
+    </div>
+    <div class="exhibit-grid">
+      <div class="exhibit">
+        <div id="chart-emprego-rais"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Vínculos empregatícios por ano</div>
+          <div class="exhibit-sub">RAIS, 2006 a 2025</div>
+        </div>
+      </div>
+      <div class="exhibit">
+        <div id="rank-emprego-uf"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Ranking de vínculos por UF</div>
+          <div class="exhibit-sub" id="emprego-uf-sub">Ano mais recente</div>
+        </div>
+      </div>
+      <div class="exhibit">
+        <div id="chart-emprego-razao"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Tamanho médio do estabelecimento</div>
+          <div class="exhibit-sub">Vínculos por estabelecimento</div>
+        </div>
+      </div>
+      <div class="exhibit">
+        <div id="rank-emprego-escolaridade"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Escolaridade, retrato</div>
+          <div class="exhibit-sub" id="emprego-escolaridade-sub">Retrato do último ano</div>
+        </div>
+      </div>
+      <div class="exhibit">
+        <div id="rank-emprego-ocupacao"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Principais ocupações</div>
+          <div class="exhibit-sub" id="emprego-ocupacao-sub">Retrato do último ano</div>
+        </div>
+      </div>
+      <div class="exhibit">
+        <div id="chart-emprego-tempo"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Tempo de emprego</div>
+          <div class="exhibit-sub">Curta duração (&lt;12m) x longa duração (≥12m)</div>
+        </div>
+      </div>
+      <div class="exhibit">
+        <div id="chart-emprego-remuneracao"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Remuneração média: nominal x real</div>
+          <div class="exhibit-sub">Real deflacionado pelo IPCA (dezembro de cada ano)</div>
+        </div>
+      </div>
+      <div class="exhibit">
+        <div id="chart-emprego-tamanho"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Composição por faixa de tamanho</div>
+          <div class="exhibit-sub">Vínculos por porte de estabelecimento, ao longo do tempo</div>
+        </div>
+      </div>
+      <div class="exhibit">
+        <div id="chart-emprego-escolaridade-evolucao"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Escolaridade, evolução</div>
+          <div class="exhibit-sub">Composição ao longo do tempo</div>
+        </div>
+      </div>
+      <div class="exhibit">
+        <div id="chart-emprego-ocupacao-donut"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Top ocupações vs. outras</div>
+          <div class="exhibit-sub">Participação no total de vínculos</div>
+        </div>
+      </div>
+    </div>
+    <div class="exhibit-block">
+      <div id="table-emprego-uf"></div>
+      <div class="exhibit-caption">
+        <div class="exhibit-title">Vínculos por UF, todos os estados</div>
+        <div class="exhibit-sub" id="emprego-uf-table-sub">Ano mais recente</div>
+      </div>
+    </div>
+    <div class="exhibit-block">
+      <div id="table-emprego-ocupacao-detalhada"></div>
+      <div class="exhibit-caption">
+        <div class="exhibit-title">Ocupações detalhadas, retrato do último ano</div>
+        <div class="exhibit-sub" id="emprego-ocupacao-detalhada-sub">RAIS, sem agrupamento (mais granular que o ranking acima), clique no cabeçalho para ordenar</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 04. CAGED ============ -->
+  <section class="section" id="block-caged">
+    <div class="section-header">
+      <span class="section-num">04</span>
+      <h2>CAGED: dinâmica de curto prazo</h2>
+      <a class="section-download" id="download-caged" href="data/downloads/CAGED_2451.xlsx" download>⬇ Baixar dados (Excel)</a>
+    </div>
+    <p class="section-note" id="caged-coverage-note">Dado mês a mês (admissões e desligamentos) — mais detalhado no tempo do que a RAIS, que só fecha uma vez por ano.</p>
+    <div class="caption-meta" id="section-caption-caged"></div>
+    <div class="block-filter">
+      <div class="block-filter-item">
+        <span>Período</span>
+        <select id="caged-lo-select"></select>
+        <span class="period-dash">–</span>
+        <select id="caged-hi-select"></select>
+      </div>
+      <div class="block-filter-item">
+        <span>Estados</span>
+        <div class="multiselect" id="caged-uf-multiselect">
+          <button type="button" class="multiselect-btn" id="caged-uf-btn" aria-haspopup="listbox" aria-expanded="false"></button>
+          <div class="multiselect-panel" id="caged-uf-panel" hidden></div>
+        </div>
+      </div>
+      <button type="button" class="block-filter-clear" id="caged-clear">Limpar</button>
+    </div>
+    <div class="exhibit-grid">
+      <div class="exhibit">
+        <div id="chart-caged-saldo"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Saldo líquido mensal</div>
+          <div class="exhibit-sub">Admissões − desligamentos</div>
+        </div>
+      </div>
+      <div class="exhibit">
+        <div id="chart-caged-movimentacao"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Admissões x desligamentos</div>
+          <div class="exhibit-sub">Valores absolutos por mês</div>
+        </div>
+      </div>
+      <div class="exhibit">
+        <div id="chart-caged-tipo"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Composição dos desligamentos</div>
+          <div class="exhibit-sub">Por tipo de movimentação, período todo</div>
+        </div>
+      </div>
+      <div class="exhibit">
+        <div id="chart-caged-massa-salarial"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Massa salarial mensal</div>
+          <div class="exhibit-sub">Soma dos salários de admitidos/desligados no mês, até dez/2019</div>
+        </div>
+        <p class="filter-note">Série descontinuada em dez/2019: a partir de jan/2020 esse campo cai ~98% na fonte e não se recupera — provável efeito da transição pro novo CAGED (eSocial), não uma queda real na massa salarial do setor. O saldo de contratações ao lado, da mesma fonte, não mostra essa quebra.</p>
+      </div>
+      <div class="exhibit">
+        <div id="chart-caged-massa-salarial-novo"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Massa salarial mensal (novo CAGED)</div>
+          <div class="exhibit-sub">A partir de jan/2020, escala própria — não comparável ao gráfico anterior</div>
+        </div>
+        <p class="filter-note">Mesma métrica, metodologia diferente da fonte (novo CAGED/eSocial) e ~2 ordens de grandeza menor. Mostrado em escala própria só pra não deixar esse período sem nenhum retrato.</p>
+      </div>
+      <div class="exhibit">
+        <div id="rank-caged-saldo-uf"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Saldo acumulado por UF</div>
+          <div class="exhibit-sub">Somado no período coberto pelo CAGED</div>
+        </div>
+      </div>
+    </div>
+    <div class="exhibit-block">
+      <div id="table-caged-uf"></div>
+      <div class="exhibit-caption">
+        <div class="exhibit-title">Saldo líquido acumulado por UF, todos os estados</div>
+        <div class="exhibit-sub">Somado no período selecionado no filtro acima</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 05. COMÉRCIO EXTERIOR ============ -->
+  <section class="section" id="block-comex">
+    <div class="section-header">
+      <span class="section-num">05</span>
+      <h2>Comércio exterior</h2>
+      <a class="section-download" id="download-comex" href="data/downloads/Comercio_Exterior_2451.xlsx" download>⬇ Baixar dados (Excel)</a>
+    </div>
+    <p class="section-note">O gráfico de exportação x importação segue o estado escolhido abaixo (ou clique numa barra do ranking por UF para trocar).</p>
+    <div class="caption-meta" id="section-caption-comex"></div>
+    <p class="filter-note" id="comex-metodologia-note" style="display:none"></p>
+    <div class="block-filter">
+      <div class="block-filter-item">
+        <span>Período</span>
+        <select id="comex-lo-select"></select>
+        <span class="period-dash">–</span>
+        <select id="comex-hi-select"></select>
+      </div>
+      <div class="block-filter-item">
+        <span>Estado</span>
+        <select id="comex-uf-select"></select>
+      </div>
+      <button type="button" class="block-filter-clear" id="comex-clear">Limpar</button>
+    </div>
+    <div class="exhibit-grid">
+      <div class="exhibit">
+        <div id="chart-comex-balanca"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Balança comercial</div>
+          <div class="exhibit-sub" id="comex-balanca-sub">Exportação, importação e saldo, em milhões de R$ de 2023, Brasil</div>
+        </div>
+      </div>
+      <div class="exhibit">
+        <div id="chart-comex-brasil"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Exportação x importação</div>
+          <div class="exhibit-sub" id="comex-foco-sub">US$ FOB por ano, estado em foco</div>
+        </div>
+        <p class="filter-note" id="comex-uf-note"></p>
+      </div>
+      <div class="exhibit">
+        <div id="chart-comex-brasil-kg"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Exportação x importação</div>
+          <div class="exhibit-sub">Brasil, quilograma líquido por ano</div>
+        </div>
+      </div>
+      <div class="exhibit">
+        <div id="chart-comex-participacao-mundial"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Participação do Brasil no mundo</div>
+          <div class="exhibit-sub">% das exportações mundiais do setor (Comtrade)</div>
+        </div>
+      </div>
+      <div class="exhibit">
+        <div id="chart-comex-mundo"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Brasil no comércio mundial</div>
+          <div class="exhibit-sub">Contexto global (Comtrade), eixos independentes (Brasil em milhões, mundo em bilhões)</div>
+        </div>
+      </div>
+      <div class="exhibit">
+        <div id="chart-comex-top-paises-tempo"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Top destinos de exportação</div>
+          <div class="exhibit-sub">Participação por país ao longo do tempo</div>
+        </div>
+      </div>
+      <div class="exhibit">
+        <div id="chart-comex-top-paises-imp-tempo"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Top origens de importação</div>
+          <div class="exhibit-sub">Participação por país ao longo do tempo</div>
+        </div>
+      </div>
+      <div class="exhibit">
+        <div id="rank-comex-paises"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Principais destinos de exportação</div>
+          <div class="exhibit-sub" id="comex-paises-sub">Para onde o Brasil mais exporta, último ano completo</div>
+        </div>
+      </div>
+      <div class="exhibit">
+        <div id="rank-comex-paises-imp"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Principais origens de importação</div>
+          <div class="exhibit-sub" id="comex-paises-imp-sub">De onde o Brasil mais importa, último ano completo</div>
+        </div>
+      </div>
+      <div class="exhibit">
+        <div id="rank-comex-uf"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Ranking de exportação por UF</div>
+          <div class="exhibit-sub" id="comex-uf-rank-sub">UF de origem do produto, último ano completo. Clique numa barra para trocar o foco.</div>
+        </div>
+      </div>
+    </div>
+    <div class="exhibit-block">
+      <div id="table-comex-paises"></div>
+      <div class="exhibit-caption">
+        <div class="exhibit-title">Exportação e importação por país parceiro</div>
+        <div class="exhibit-sub" id="comex-paises-table-sub">Ano mais recente</div>
+      </div>
+    </div>
+    <div class="exhibit-block">
+      <div id="table-comex-uf"></div>
+      <div class="exhibit-caption">
+        <div class="exhibit-title">Exportação e importação por UF de origem do produto</div>
+        <div class="exhibit-sub" id="comex-uf-table-sub">Ano mais recente</div>
+      </div>
+    </div>
+    <div class="exhibit-block" id="comex-ncm-wrap">
+      <h4 style="font-size:0.75rem;margin:12px 0 4px;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.06em;">Produtos e preço médio</h4>
+      <p class="section-note" style="margin-bottom:16px;" id="comex-ncm-note">Preço médio = valor exportado ou importado dividido pelo peso líquido, por código NCM.</p>
+    </div>
+    <div class="exhibit-grid">
+      <div class="exhibit">
+        <div id="table-comex-ncm-exp"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Principais produtos exportados</div>
+          <div class="exhibit-sub" id="comex-ncm-exp-sub">Por código NCM, ano mais recente completo</div>
+        </div>
+      </div>
+      <div class="exhibit">
+        <div id="table-comex-ncm-imp"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Principais produtos importados</div>
+          <div class="exhibit-sub" id="comex-ncm-imp-sub">Por código NCM, ano mais recente completo</div>
+        </div>
+      </div>
+      <div class="exhibit">
+        <div id="chart-comex-preco-medio"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Preço médio ao longo do tempo</div>
+          <div class="exhibit-sub">US$ por quilo, exportação x importação</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 06. BNDES ============ -->
+  <section class="section" id="block-bndes">
+    <div class="section-header">
+      <span class="section-num">06</span>
+      <h2>BNDES</h2>
+      <a class="section-download" id="download-bndes" href="data/downloads/BNDES_2451.xlsx" download>⬇ Baixar dados (Excel)</a>
+    </div>
+    <p class="section-note">Desembolsos já são específicos do segmento selecionado (2451/2452). Sempre em série completa (2002-2026), sem filtro de período ou estado — o BNDES não desembolsa o mesmo valor em todo estado, então o ranking por UF abaixo já mostra o retrato real, sem precisar recortar por período.</p>
+    <div class="caption-meta" id="section-caption-bndes"></div>
+    <div class="exhibit-grid">
+      <div class="exhibit">
+        <div id="chart-bndes-ano"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Desembolsos do BNDES</div>
+          <div class="exhibit-sub">Total nacional por ano</div>
+        </div>
+      </div>
+      <div class="exhibit">
+        <div id="rank-bndes-uf"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Ranking por estado</div>
+          <div class="exhibit-sub">Acumulado no período todo</div>
+        </div>
+      </div>
+      <div class="exhibit">
+        <div id="chart-bndes-porte"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Desembolso por porte ao longo do tempo</div>
+          <div class="exhibit-sub">Composição anual: grande, média, pequena, micro</div>
+        </div>
+      </div>
+      <div class="exhibit">
+        <div id="chart-bndes-concentracao"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Concentração por porte</div>
+          <div class="exhibit-sub" id="bndes-concentracao-sub">Acumulado no período todo</div>
+        </div>
+      </div>
+    </div>
+    <div class="exhibit-block">
+      <div id="table-bndes"></div>
+      <div class="exhibit-caption">
+        <div class="exhibit-title">Desembolsos por ano, porte e instrumento</div>
+        <div class="exhibit-sub">Clique no cabeçalho para ordenar, mostrando os maiores primeiro</div>
+      </div>
+    </div>
+    <div class="exhibit-block">
+      <div id="table-bndes-uf"></div>
+      <div class="exhibit-caption">
+        <div class="exhibit-title">Desembolsos por UF, todos os estados</div>
+        <div class="exhibit-sub">Acumulado no período todo</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 07. DECOM ============ -->
+  <section class="section" id="block-decom">
+    <div class="section-header">
+      <span class="section-num">07</span>
+      <h2>DECOM</h2>
+      <a class="section-download" href="data/downloads/DECOM_2451.xlsx" download>⬇ Baixar dados (Excel)</a>
+    </div>
+    <p class="section-note">Fonte: DECOM/GECEX. Base específica de ferro e aço (2451); não há processos catalogados para não ferrosos (2452) nesta fonte.</p>
+    <div class="caption-meta" id="section-caption-decom"></div>
+    <div class="exhibit-block" id="decom-wrap">
+      <div id="table-decom"></div>
+      <div class="exhibit-caption">
+        <div class="exhibit-title">Processos de defesa comercial</div>
+        <div class="exhibit-sub">NCM, país, status e resolução de referência</div>
+      </div>
+      <p class="decom-highlight" id="decom-highlight"></p>
+    </div>
+    <p class="filter-note" id="decom-not-available" style="display:none">Não há medidas de defesa comercial específicas para não ferrosos (2452) nesta base; a tabela acima é de ferro e aço (2451).</p>
+  </section>
+
+  <!-- ============ 08. ESTUDOS ESPECIAIS ============ -->
+  <section class="section" id="block-estudos-especiais">
+    <div class="section-header">
+      <span class="section-num">08</span>
+      <h2>Estudos especiais</h2>
+    </div>
+    <p class="section-note">Panorama do setor, com os mesmos dados usados no restante deste painel (RAIS, Comex, BNDES, PIA/IBGE).</p>
+    <div class="caption-meta" id="section-caption-estudos-especiais"></div>
+
+    <div class="pdi-cta">
+      <h4>Panorama do setor</h4>
+      <p class="pdi-note" id="ee-sumario-texto"></p>
+      <ul class="pdi-list" id="ee-sumario-bullets"></ul>
+    </div>
+
+    <h4>Exposição à concorrência chinesa</h4>
+    <p class="pdi-note" id="ee-analise-china"></p>
+    <div class="exhibit-block">
+      <div id="ee-chart-exposicao-china"></div>
+      <div class="exhibit-caption">
+        <div class="exhibit-title">Exposição ao choque de importação chinesa, por estado</div>
+        <div class="exhibit-sub">Peso do estado no emprego do setor x variação da participação chinesa nas importações, do primeiro ao último ano disponível</div>
+      </div>
+    </div>
+    <p class="pdi-note" id="ee-evidence-china"></p>
+
+    <h4>Crédito, investimento e emprego</h4>
+    <p class="pdi-note" id="ee-analise-bndes"></p>
+    <div class="exhibit-block">
+      <div id="ee-chart-bndes-percapita"></div>
+      <div class="exhibit-caption">
+        <div class="exhibit-title">Desembolso do BNDES por vínculo, por estado</div>
+        <div class="exhibit-sub">Acumulado 2002-2026 dividido pelos vínculos do ano mais recente, só estados com desembolso registrado</div>
+      </div>
+    </div>
+    <p class="pdi-note" id="ee-evidence-bndes"></p>
+
+    <h4>Estrutura do setor: porte e exportação</h4>
+    <p class="pdi-note" id="ee-analise-melitz"></p>
+    <div class="exhibit-grid">
+      <div class="exhibit">
+        <div id="ee-chart-porte"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Estabelecimentos por porte</div>
+          <div class="exhibit-sub">Ano mais recente disponível na RAIS</div>
+        </div>
+      </div>
+      <div class="exhibit">
+        <div id="ee-chart-export-uf"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Quem exporta: estados com maior valor exportado</div>
+          <div class="exhibit-sub">US$ FOB, ano mais recente, só estados com exportação registrada</div>
+        </div>
+      </div>
+    </div>
+    <p class="pdi-note" id="ee-evidence-melitz"></p>
+
+    <h4>Produtividade</h4>
+    <p class="pdi-note" id="ee-analise-produtividade"></p>
+    <div class="exhibit-block">
+      <div id="ee-chart-produtividade"></div>
+      <div class="exhibit-caption">
+        <div class="exhibit-title">Produtividade da Fundição (24.5) ao longo do tempo</div>
+        <div class="exhibit-sub">VTI por pessoal ocupado, PIA/IBGE. Fundição combina 2451+2452 nesta fonte.</div>
+      </div>
+    </div>
+    <p class="pdi-note" id="ee-evidence-produtividade"></p>
+
+    <h4>Produção e emprego no longo prazo</h4>
+    <p class="pdi-note" id="ee-analise-rodrik"></p>
+    <div class="exhibit-block">
+      <div id="ee-chart-producao-emprego"></div>
+      <div class="exhibit-caption">
+        <div class="exhibit-title">Produção e emprego, indexados (base 100)</div>
+        <div class="exhibit-sub">Emprego do setor (RAIS) x produção física da metalurgia (IBGE, nível de divisão, não exclusiva de 2451/2452)</div>
+      </div>
+    </div>
+    <p class="pdi-note" id="ee-evidence-rodrik"></p>
+  </section>
+
+  <!-- ============ GARGALOS ============ -->
+  <section class="section" id="block-gargalos">
+    <div class="section-header">
+      <h2>Gargalos do setor</h2>
+    </div>
+    <div class="gargalos-list" id="gargalos-grid"></div>
+  </section>
+
+  <p class="dataview-sources">Dados consolidados de fontes públicas (IBGE, RAIS/CAGED, MDIC/Comex Stat, UN Comtrade, BNDES, DECOM/GECEX).</p>
+
+</div><!-- /#data-view -->
+
+<!-- ============ ENERGIA INDUSTRIAL ============ -->
+<div id="energia-industrial-view" hidden>
+  <div class="filter-row" id="ei-filter-row">
+    <div class="filter-row-inner">
+      <div class="filter-group">
+        <label id="ei-uf-label">Estados</label>
+        <div class="multiselect" id="ei-uf-multiselect">
+          <button type="button" class="multiselect-btn" id="ei-uf-btn" aria-haspopup="listbox" aria-expanded="false"></button>
+          <div class="multiselect-panel" id="ei-uf-panel" hidden></div>
+        </div>
+      </div>
+      <div class="filter-group">
+        <label id="ei-cnae-label">Setores (CNAE)</label>
+        <div class="multiselect" id="ei-cnae-multiselect">
+          <button type="button" class="multiselect-btn" id="ei-cnae-btn" aria-haspopup="listbox" aria-expanded="false"></button>
+          <div class="multiselect-panel" id="ei-cnae-panel" hidden></div>
+        </div>
+      </div>
+      <div class="filter-group">
+        <label for="ei-period-lo-select">Período</label>
+        <select id="ei-period-lo-select"></select>
+        <span class="period-dash">–</span>
+        <select id="ei-period-hi-select"></select>
+      </div>
+      <div class="filter-group">
+        <button type="button" class="table-export-btn" id="ei-clear-filters">Limpar filtros</button>
+      </div>
+    </div>
+  </div>
+  <section class="section">
+    <div class="section-header">
+      <h2>Energia Industrial: consumo e custo de energia na indústria de transformação</h2>
+      <a class="section-download" href="data/downloads/Energia_Industrial.xlsx" download>⬇ Baixar dados (Excel)</a>
+    </div>
+    <p class="section-note">27 estados + Brasil, 24 divisões da indústria de transformação (CNAE 10 a 33), jan/2012 a abr/2026. Estados e setores são multi-seleção; clique numa barra do ranking ou da composição para adicionar aquele item ao filtro correspondente. Custo em R$ constantes (deflacionado por IPCA). Consumo: EPE. Custo de energia: MME/ANEEL, Informativo Tarifário do Setor Elétrico. Classificação: IBGE/CONCLA (CNAE). Metodologia completa na aba Referências.</p>
+    <div class="exhibit-grid">
+      <div class="exhibit">
+        <div id="chart-ei-consumo"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Consumo de energia ao longo do tempo</div>
+          <div class="exhibit-sub" id="ei-consumo-sub">MWh por mês, por estado selecionado</div>
+        </div>
+      </div>
+      <div class="exhibit">
+        <div id="rank-ei-custo-estados"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title" id="ei-ranking-custo-title">Ranking de estados por custo de energia</div>
+          <div class="exhibit-sub" id="ei-ranking-custo-sub">R$/MWh, do mais barato ao mais caro, SP em destaque</div>
+        </div>
+      </div>
+      <div class="exhibit">
+        <div id="rank-ei-composicao"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title" id="ei-composicao-title">Participação do setor no consumo industrial</div>
+          <div class="exhibit-sub" id="ei-composicao-sub">%, por estado, SP em destaque</div>
+        </div>
+      </div>
+      <div class="exhibit">
+        <div id="chart-ei-custo-tempo"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Custo de energia ao longo do tempo</div>
+          <div class="exhibit-sub" id="ei-custo-tempo-sub">R$/MWh, por estado selecionado</div>
+        </div>
+      </div>
+    </div>
+    <div class="exhibit-block">
+      <div id="table-ei-dados"></div>
+      <div class="exhibit-caption">
+        <div class="exhibit-title">Dados filtrados</div>
+        <div class="exhibit-sub">UF, setor, mês, consumo, custo, gasto e participação. Clique no cabeçalho para ordenar.</div>
+      </div>
+    </div>
+  </section>
+</div><!-- /#energia-industrial-view -->
+
+<!-- ============ PD&I ============ -->
+<div id="pdi-view" hidden>
+  <div class="section-header">
+    <h2>Pesquisa, Desenvolvimento &amp; Inovação</h2>
+  </div>
+  <p class="pdi-intro">Casos setoriais construídos em cima dos dados já tratados neste painel, para apoiar conversas de venda de projetos de PD&amp;I com empresas do setor. Hoje cobre fundição (CNAE 2451 e 2452); a estrutura fica pronta para receber outros setores conforme o painel crescer.</p>
+
+  <section class="section" id="pdi-fundicao">
+    <div class="section-header">
+      <span class="section-num">01</span>
+      <h2>Fundição · CNAE 2451 e 2452</h2>
+    </div>
+    <p class="section-note">Os números abaixo vêm das mesmas bases usadas no restante do painel (Comex Stat, Comtrade, RAIS, CAGED, PIA/IBGE, BNDES e Energia Industrial). É um roteiro para conversar com o dono de uma fundição, não um relatório definitivo sobre a empresa dele.</p>
+
+    <h4>O que está mudando lá fora</h4>
+    <p class="pdi-note">Ferro e aço (2451) e não ferrosos (2452) estão vivendo momentos diferentes. O 2451 cresceu na exportação até 2022 e desde então perdeu força; é também o mais exposto à concorrência chinesa, que responde por 30% a 40% do que o Brasil importa nessa categoria. Já o 2452 vem de uma recuperação lenta e constante desde 2016, com a China pesando bem menos nas importações (entre 14% e 15%). Nos dois casos, a fatia do Brasil no comércio mundial de peças fundidas é pequena, e no não ferroso ela vem caindo ano após ano.</p>
+    <div class="exhibit-grid">
+      <div class="exhibit">
+        <div id="pdi-chart-china"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Importação vinda da China</div>
+          <div class="exhibit-sub">% do total importado, por CNAE, Comex Stat</div>
+        </div>
+      </div>
+      <div class="exhibit">
+        <div id="pdi-chart-exportacao"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Exportação: ferro e aço x não ferrosos</div>
+          <div class="exhibit-sub">US$ FOB por ano, Comex Stat (2026 é ano parcial)</div>
+        </div>
+      </div>
+      <div class="exhibit">
+        <div id="pdi-chart-mundial"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Participação do Brasil no comércio mundial</div>
+          <div class="exhibit-sub">% das exportações mundiais de fundidos, Comtrade</div>
+        </div>
+      </div>
+    </div>
+
+    <h4>Onde a pressão aperta por dentro</h4>
+    <p class="pdi-note">Quatro sinais internos merecem atenção de quem toca uma fundição hoje. O custo da energia na metalurgia paulista (tarifa média real da classe Industrial na região Sudeste) subiu cerca de 19% em termos reais (já descontada a inflação) entre o ponto mais baixo, em 2014, e a média de 2023 a 2025 — bem menos dramático do que os mais de 100% de alta nominal do período, que é em boa parte efeito de inflação acumulada. A escolaridade da mão de obra segue concentrada no ensino médio, com quase 30% dos vínculos ainda no fundamental, o que limita a velocidade de adoção de processos mais técnicos. O saldo de contratações do setor, que ainda era positivo em 2022, passou a ser negativo nos três anos seguintes, ou seja, o setor está fechando mais vagas do que abrindo. E a margem operacional da fundição, embora tenha melhorado em 2023, segue oscilando entre 4% e 13% ao longo da década, um sinal de fragilidade estrutural mais do que de folga.</p>
+    <div class="exhibit-grid">
+      <div class="exhibit">
+        <div id="pdi-chart-energia"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Custo da energia na metalurgia (SP)</div>
+          <div class="exhibit-sub" id="pdi-chart-energia-sub">R$/MWh, média anual, Energia Industrial</div>
+        </div>
+      </div>
+      <div class="exhibit">
+        <div id="pdi-chart-escolaridade"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Escolaridade da mão de obra</div>
+          <div class="exhibit-sub">% dos vínculos, fundição (2451+2452), RAIS</div>
+        </div>
+      </div>
+      <div class="exhibit">
+        <div id="pdi-chart-saldo"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Saldo de contratações por ano</div>
+          <div class="exhibit-sub">Admissões menos desligamentos, fundição (2451+2452), CAGED</div>
+        </div>
+      </div>
+      <div class="exhibit">
+        <div id="pdi-chart-margem"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Margem operacional</div>
+          <div class="exhibit-sub">% da receita líquida, Fundição 24.5, PIA/IBGE</div>
+        </div>
+      </div>
+    </div>
+
+    <h4>O caminho de quem cresce</h4>
+    <p class="pdi-note">Existe crédito disponível e relativamente barato para inovação (Nova Indústria Brasil, FINEP, EMBRAPII, além do próprio BNDES), mas ele está concentrado em poucas mãos: a maior parte do desembolso do BNDES para o setor vai para empresas de grande porte, e um pequeno grupo de estados concentra a maior parte do total. O gargalo não costuma ser falta de linha de crédito, e sim não ter um projeto técnico maduro o suficiente para captar esse recurso. É exatamente esse projeto que o CIESP ajuda a desenhar.</p>
+    <div class="exhibit-grid">
+      <div class="exhibit">
+        <div id="pdi-chart-bndes"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Desembolso do BNDES por porte</div>
+          <div class="exhibit-sub">Acumulado 2002-2026, fundição (2451+2452)</div>
+        </div>
+      </div>
+      <div class="exhibit">
+        <div id="pdi-chart-funil"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title">Onde um projeto de PD&amp;I costuma gerar ganho</div>
+          <div class="exhibit-sub">Modelo ilustrativo, não é a projeção de nenhuma empresa específica</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pdi-cta">
+      <h4>Como o CIESP entra</h4>
+      <p class="pdi-note">Três frentes de projeto tendem a se pagar mais rápido e mostrar resultado mais cedo no caixa da fundição.</p>
+      <ul class="pdi-list">
+        <li>Eficiência energética nos fornos elétricos e a indução, medindo consumo e ajustando o processo.</li>
+        <li>Redução de refugo e do tempo de try-out de moldes novos, incluindo impressão 3D de areia para lotes pequenos, que tira semanas do ciclo de desenvolvimento.</li>
+        <li>Qualificação técnica para operar processos mais automatizados, reduzindo a dependência do operador que só ele sabe ajustar o forno.</li>
+      </ul>
+      <p class="pdi-note">Nos três casos, quem convence o dono da fundição é o número da própria empresa dele comparado ao setor, não um discurso genérico sobre inovação.</p>
+    </div>
+  </section>
+</div><!-- /#pdi-view -->
+
+<!-- ============ RELATÓRIOS ============ -->
+<div id="relatorios-view" hidden>
+  <div class="section-header">
+    <h2>Relatórios</h2>
+  </div>
+  <p class="pdi-intro">Em construção.</p>
+</div><!-- /#relatorios-view -->
+
+<!-- ============ REFERÊNCIAS ============ -->
+<div id="referencias-view" hidden>
+  <div class="section-header">
+    <h2>Referências: fontes e metodologia</h2>
+  </div>
+  <p class="pdi-intro">Esta seção documenta a origem de cada indicador, o período coberto e limitações técnicas relevantes. Cada fonte é marcada com o(s) setor(es) a que se aplica, para manter a rastreabilidade conforme novos setores forem adicionados ao painel.</p>
+  <h4>Fontes por bloco</h4>
+  <div class="pdi-table-wrap">
+    <table class="pdi-table" id="referencias-table">
+      <thead><tr><th>Setor</th><th>Bloco</th><th>Base de dados</th><th>Cobertura</th><th>Observação técnica</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <h4>Limitações gerais</h4>
+  <p class="pdi-note">• RAIS: a partir de 2022 a metodologia de coleta mudou (base eSocial); os perfis detalhados (escolaridade, ocupação, tempo de emprego, massa salarial) têm uma quebra de série entre 2021 e 2022, por isso são tratados como retrato do último ano quando não há série completa.</p>
+  <p class="pdi-note">• CAGED: cobre a janela indicada dinamicamente acima (calculada a partir dos dados carregados), com granularidade mensal por UF/CNAE.</p>
+  <p class="pdi-note">• Comtrade (comércio mundial): classificação por código HS como proxy do CNAE, já que o Comtrade não reporta por CNAE. Usado apenas para contexto (Brasil x Mundo), não como número oficial de comércio exterior do Brasil; para isso, ver Comex (MDIC).</p>
+  <p class="pdi-note">• Dados financeiros (PIA/IBGE): a base "Fundição 24.5" reúne 2451 e 2452 sem abertura entre eles; é usada nos dois segmentos com a mesma ressalva.</p>
+  <p class="pdi-note">• DECOM: base específica de ferro e aço (2451); não há processos catalogados para não ferrosos (2452) nesta fonte.</p>
+  <p class="pdi-note">• Produção física: a série de ferro-gusa só existe a partir de fev/2009 na fonte (Instituto Aço Brasil); antes disso, só aço bruto e laminados têm dado. Semiacabados só existe a partir de 1986.</p>
+  <p class="pdi-note">• Energia Industrial — custo: o R$/MWh é a <strong>tarifa média realmente faturada</strong> da classe Industrial (não uma estimativa de modelo), publicada anualmente pelo Ministério de Minas e Energia com dados da ANEEL — MME, <em>Informativo Tarifário do Setor Elétrico</em> (edições 2023-2025) e <em>Informativo Gestão do Setor Elétrico</em> (edições 2017-2022), Tabela "Tarifa Média Faturada por Classe de Consumo e Região", disponíveis em gov.br/mme/pt-br/assuntos/secretarias/secretaria-nacional-energia-eletrica/publicacoes/informativo-setor-eletrico. É aberta por região (Norte, Nordeste, Centro-Oeste, Sudeste, Sul), não por estado nem por divisão CNAE — todo estado da mesma região e toda divisão CNAE compartilham o mesmo valor no mesmo mês. Anos sem edição publicada com essa tabela (2012-2016, 2018, 2020-2021, 2026) são interpolados linearmente entre os anos com dado real mais próximos, ou extrapolados pela variação do IPCA fora desse intervalo — nesses anos o valor é uma aproximação, não o dado publicado. A conta real de uma empresa específica ainda pode divergir dessa média (depende do subgrupo tarifário, do mercado livre ou cativo, e da bandeira tarifária do mês). Consumo (MWh): EPE, <em>Consumo Mensal de Energia Elétrica por Classe</em> (epe.gov.br/pt/publicacoes-dados-abertos/publicacoes/consumo-de-energia-eletrica).</p>
+  <p class="pdi-note">• Deflação: onde indicado como "R$ constantes" ou "R$ de [ano]", o valor nominal foi multiplicado por um fator = IPCA médio do ano-base ÷ IPCA médio do ano da observação (série do IPCA: IBGE, Sistema Nacional de Índices de Preços ao Consumidor). Onde a série original é em US$ (comércio exterior), o fator inclui também a taxa de câmbio (PTAX venda, Banco Central) média do ano antes da correção pelo IPCA. É a mesma fórmula em todos os blocos deflacionados do painel (Energia Industrial; remuneração real, bloco Emprego formal).</p>
+  <p class="pdi-note">• Todos os valores monetários estão em valores correntes (nominais), exceto onde explicitamente indicado como deflacionado (remuneração real no bloco Emprego formal; custo de energia no bloco Energia Industrial).</p>
+</div><!-- /#referencias-view -->
+
+<footer class="site-footer">
+  <p id="footer-generated">Painel elaborado em parceria com FIESP e CIESP.</p>
+</footer>
+
+</div>
+</div>
+</div>
+
+<script src="js/charts.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

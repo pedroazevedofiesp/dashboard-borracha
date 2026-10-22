@@ -1,0 +1,67 @@
+name: Build data and deploy Pages
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - '3_Dados_Tratados_CSV/**'
+      - 'build_data.py'
+      - 'build_downloads.py'
+      - 'requirements.txt'
+      - 'index.html'
+      - 'css/**'
+      - 'js/**'
+      - 'assets/**'
+      - '.github/workflows/build.yml'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - run: pytest
+
+      - run: python build_data.py
+
+      - run: python build_downloads.py
+
+      - name: Stage static site (sem CSVs brutos nem código do pipeline)
+        run: |
+          mkdir _site
+          cp -r index.html css js assets data _site/
+
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

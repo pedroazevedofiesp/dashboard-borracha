@@ -1,0 +1,240 @@
+"ano";"categoria";"frequencia";"is_total";"periodo_metodologico";"cnae_subclasse"
+2025;"Total";48980;TRUE;"2022-atual";2219
+2025;"5ª Completo Fundamental";852;FALSE;"2022-atual";2219
+2025;"6ª a 9ª Fundamental";2187;FALSE;"2022-atual";2219
+2025;"Analfabeto";101;FALSE;"2022-atual";2219
+2025;"Até 5ª Incompleto";636;FALSE;"2022-atual";2219
+2025;"Doutorado";17;FALSE;"2022-atual";2219
+2025;"Fundamental Completo";3771;FALSE;"2022-atual";2219
+2025;"Mestrado";30;FALSE;"2022-atual";2219
+2025;"Médio Completo";30447;FALSE;"2022-atual";2219
+2025;"Médio Incompleto";3563;FALSE;"2022-atual";2219
+2025;"Superior Completo";5936;FALSE;"2022-atual";2219
+2025;"Superior Incompleto";1440;FALSE;"2022-atual";2219
+2024;"Total";49852;TRUE;"2022-atual";2219
+2024;"5ª Completo Fundamental";850;FALSE;"2022-atual";2219
+2024;"6ª a 9ª Fundamental";2291;FALSE;"2022-atual";2219
+2024;"Analfabeto";112;FALSE;"2022-atual";2219
+2024;"Até 5ª Incompleto";645;FALSE;"2022-atual";2219
+2024;"Doutorado";18;FALSE;"2022-atual";2219
+2024;"Fundamental Completo";4035;FALSE;"2022-atual";2219
+2024;"Mestrado";38;FALSE;"2022-atual";2219
+2024;"Médio Completo";30468;FALSE;"2022-atual";2219
+2024;"Médio Incompleto";3792;FALSE;"2022-atual";2219
+2024;"Superior Completo";6144;FALSE;"2022-atual";2219
+2024;"Superior Incompleto";1459;FALSE;"2022-atual";2219
+2023;"Total";47460;TRUE;"2022-atual";2219
+2023;"5ª Completo Fundamental";838;FALSE;"2022-atual";2219
+2023;"6ª a 9ª Fundamental";2259;FALSE;"2022-atual";2219
+2023;"Analfabeto";78;FALSE;"2022-atual";2219
+2023;"Até 5ª Incompleto";673;FALSE;"2022-atual";2219
+2023;"Doutorado";19;FALSE;"2022-atual";2219
+2023;"Fundamental Completo";4055;FALSE;"2022-atual";2219
+2023;"Mestrado";37;FALSE;"2022-atual";2219
+2023;"Médio Completo";28584;FALSE;"2022-atual";2219
+2023;"Médio Incompleto";3489;FALSE;"2022-atual";2219
+2023;"Superior Completo";6027;FALSE;"2022-atual";2219
+2023;"Superior Incompleto";1401;FALSE;"2022-atual";2219
+2022;"Total";47217;TRUE;"2022-atual";2219
+2022;"5ª Completo Fundamental";915;FALSE;"2022-atual";2219
+2022;"6ª a 9ª Fundamental";2429;FALSE;"2022-atual";2219
+2022;"Analfabeto";64;FALSE;"2022-atual";2219
+2022;"Até 5ª Incompleto";707;FALSE;"2022-atual";2219
+2022;"Doutorado";16;FALSE;"2022-atual";2219
+2022;"Fundamental Completo";4191;FALSE;"2022-atual";2219
+2022;"Mestrado";26;FALSE;"2022-atual";2219
+2022;"Médio Completo";28479;FALSE;"2022-atual";2219
+2022;"Médio Incompleto";3681;FALSE;"2022-atual";2219
+2022;"Superior Completo";5123;FALSE;"2022-atual";2219
+2022;"Superior Incompleto";1586;FALSE;"2022-atual";2219
+2021;"Total";45806;TRUE;"2006-2021";2219
+2021;"5ª Completo Fundamental";951;FALSE;"2006-2021";2219
+2021;"6ª a 9ª Fundamental";2577;FALSE;"2006-2021";2219
+2021;"Analfabeto";47;FALSE;"2006-2021";2219
+2021;"Até 5ª Incompleto";732;FALSE;"2006-2021";2219
+2021;"Doutorado";7;FALSE;"2006-2021";2219
+2021;"Fundamental Completo";4266;FALSE;"2006-2021";2219
+2021;"Mestrado";28;FALSE;"2006-2021";2219
+2021;"Médio Completo";27484;FALSE;"2006-2021";2219
+2021;"Médio Incompleto";3760;FALSE;"2006-2021";2219
+2021;"Superior Completo";4472;FALSE;"2006-2021";2219
+2021;"Superior Incompleto";1482;FALSE;"2006-2021";2219
+2020;"Total";43923;TRUE;"2006-2021";2219
+2020;"5ª Completo Fundamental";951;FALSE;"2006-2021";2219
+2020;"6ª a 9ª Fundamental";2496;FALSE;"2006-2021";2219
+2020;"Analfabeto";60;FALSE;"2006-2021";2219
+2020;"Até 5ª Incompleto";717;FALSE;"2006-2021";2219
+2020;"Doutorado";7;FALSE;"2006-2021";2219
+2020;"Fundamental Completo";4320;FALSE;"2006-2021";2219
+2020;"Mestrado";23;FALSE;"2006-2021";2219
+2020;"Médio Completo";25974;FALSE;"2006-2021";2219
+2020;"Médio Incompleto";3459;FALSE;"2006-2021";2219
+2020;"Superior Completo";4339;FALSE;"2006-2021";2219
+2020;"Superior Incompleto";1577;FALSE;"2006-2021";2219
+2019;"Total";44359;TRUE;"2006-2021";2219
+2019;"5ª Completo Fundamental";1006;FALSE;"2006-2021";2219
+2019;"6ª a 9ª Fundamental";2638;FALSE;"2006-2021";2219
+2019;"Analfabeto";49;FALSE;"2006-2021";2219
+2019;"Até 5ª Incompleto";756;FALSE;"2006-2021";2219
+2019;"Doutorado";9;FALSE;"2006-2021";2219
+2019;"Fundamental Completo";4463;FALSE;"2006-2021";2219
+2019;"Mestrado";29;FALSE;"2006-2021";2219
+2019;"Médio Completo";25859;FALSE;"2006-2021";2219
+2019;"Médio Incompleto";3443;FALSE;"2006-2021";2219
+2019;"Superior Completo";4448;FALSE;"2006-2021";2219
+2019;"Superior Incompleto";1659;FALSE;"2006-2021";2219
+2018;"Total";45901;TRUE;"2006-2021";2219
+2018;"5ª Completo Fundamental";1121;FALSE;"2006-2021";2219
+2018;"6ª a 9ª Fundamental";2769;FALSE;"2006-2021";2219
+2018;"Analfabeto";30;FALSE;"2006-2021";2219
+2018;"Até 5ª Incompleto";746;FALSE;"2006-2021";2219
+2018;"Doutorado";7;FALSE;"2006-2021";2219
+2018;"Fundamental Completo";4778;FALSE;"2006-2021";2219
+2018;"Mestrado";45;FALSE;"2006-2021";2219
+2018;"Médio Completo";26552;FALSE;"2006-2021";2219
+2018;"Médio Incompleto";3546;FALSE;"2006-2021";2219
+2018;"Superior Completo";4658;FALSE;"2006-2021";2219
+2018;"Superior Incompleto";1649;FALSE;"2006-2021";2219
+2017;"Total";47323;TRUE;"2006-2021";2219
+2017;"5ª Completo Fundamental";1322;FALSE;"2006-2021";2219
+2017;"6ª a 9ª Fundamental";3202;FALSE;"2006-2021";2219
+2017;"Analfabeto";37;FALSE;"2006-2021";2219
+2017;"Até 5ª Incompleto";844;FALSE;"2006-2021";2219
+2017;"Doutorado";4;FALSE;"2006-2021";2219
+2017;"Fundamental Completo";5049;FALSE;"2006-2021";2219
+2017;"Mestrado";64;FALSE;"2006-2021";2219
+2017;"Médio Completo";26929;FALSE;"2006-2021";2219
+2017;"Médio Incompleto";3969;FALSE;"2006-2021";2219
+2017;"Superior Completo";4301;FALSE;"2006-2021";2219
+2017;"Superior Incompleto";1602;FALSE;"2006-2021";2219
+2016;"Total";45161;TRUE;"2006-2021";2219
+2016;"5ª Completo Fundamental";1326;FALSE;"2006-2021";2219
+2016;"6ª a 9ª Fundamental";3135;FALSE;"2006-2021";2219
+2016;"Analfabeto";40;FALSE;"2006-2021";2219
+2016;"Até 5ª Incompleto";826;FALSE;"2006-2021";2219
+2016;"Doutorado";23;FALSE;"2006-2021";2219
+2016;"Fundamental Completo";5176;FALSE;"2006-2021";2219
+2016;"Mestrado";84;FALSE;"2006-2021";2219
+2016;"Médio Completo";25090;FALSE;"2006-2021";2219
+2016;"Médio Incompleto";3938;FALSE;"2006-2021";2219
+2016;"Superior Completo";3972;FALSE;"2006-2021";2219
+2016;"Superior Incompleto";1551;FALSE;"2006-2021";2219
+2015;"Total";46536;TRUE;"2006-2021";2219
+2015;"5ª Completo Fundamental";1409;FALSE;"2006-2021";2219
+2015;"6ª a 9ª Fundamental";3206;FALSE;"2006-2021";2219
+2015;"Analfabeto";46;FALSE;"2006-2021";2219
+2015;"Até 5ª Incompleto";928;FALSE;"2006-2021";2219
+2015;"Doutorado";21;FALSE;"2006-2021";2219
+2015;"Fundamental Completo";5605;FALSE;"2006-2021";2219
+2015;"Mestrado";78;FALSE;"2006-2021";2219
+2015;"Médio Completo";25780;FALSE;"2006-2021";2219
+2015;"Médio Incompleto";4052;FALSE;"2006-2021";2219
+2015;"Superior Completo";3770;FALSE;"2006-2021";2219
+2015;"Superior Incompleto";1641;FALSE;"2006-2021";2219
+2014;"Total";52954;TRUE;"2006-2021";2219
+2014;"5ª Completo Fundamental";1634;FALSE;"2006-2021";2219
+2014;"6ª a 9ª Fundamental";4226;FALSE;"2006-2021";2219
+2014;"Analfabeto";50;FALSE;"2006-2021";2219
+2014;"Até 5ª Incompleto";1136;FALSE;"2006-2021";2219
+2014;"Doutorado";19;FALSE;"2006-2021";2219
+2014;"Fundamental Completo";6802;FALSE;"2006-2021";2219
+2014;"Mestrado";87;FALSE;"2006-2021";2219
+2014;"Médio Completo";28300;FALSE;"2006-2021";2219
+2014;"Médio Incompleto";4987;FALSE;"2006-2021";2219
+2014;"Superior Completo";3942;FALSE;"2006-2021";2219
+2014;"Superior Incompleto";1771;FALSE;"2006-2021";2219
+2013;"Total";54989;TRUE;"2006-2021";2219
+2013;"5ª Completo Fundamental";1751;FALSE;"2006-2021";2219
+2013;"6ª a 9ª Fundamental";4317;FALSE;"2006-2021";2219
+2013;"Analfabeto";61;FALSE;"2006-2021";2219
+2013;"Até 5ª Incompleto";1250;FALSE;"2006-2021";2219
+2013;"Doutorado";8;FALSE;"2006-2021";2219
+2013;"Fundamental Completo";7564;FALSE;"2006-2021";2219
+2013;"Mestrado";83;FALSE;"2006-2021";2219
+2013;"Médio Completo";29150;FALSE;"2006-2021";2219
+2013;"Médio Incompleto";5251;FALSE;"2006-2021";2219
+2013;"Superior Completo";3752;FALSE;"2006-2021";2219
+2013;"Superior Incompleto";1802;FALSE;"2006-2021";2219
+2012;"Total";56291;TRUE;"2006-2021";2219
+2012;"5ª Completo Fundamental";2181;FALSE;"2006-2021";2219
+2012;"6ª a 9ª Fundamental";4505;FALSE;"2006-2021";2219
+2012;"Analfabeto";65;FALSE;"2006-2021";2219
+2012;"Até 5ª Incompleto";1343;FALSE;"2006-2021";2219
+2012;"Doutorado";4;FALSE;"2006-2021";2219
+2012;"Fundamental Completo";8392;FALSE;"2006-2021";2219
+2012;"Mestrado";15;FALSE;"2006-2021";2219
+2012;"Médio Completo";28803;FALSE;"2006-2021";2219
+2012;"Médio Incompleto";5520;FALSE;"2006-2021";2219
+2012;"Superior Completo";3483;FALSE;"2006-2021";2219
+2012;"Superior Incompleto";1980;FALSE;"2006-2021";2219
+2011;"Total";57264;TRUE;"2006-2021";2219
+2011;"5ª Completo Fundamental";2490;FALSE;"2006-2021";2219
+2011;"6ª a 9ª Fundamental";4846;FALSE;"2006-2021";2219
+2011;"Analfabeto";65;FALSE;"2006-2021";2219
+2011;"Até 5ª Incompleto";1391;FALSE;"2006-2021";2219
+2011;"Doutorado";3;FALSE;"2006-2021";2219
+2011;"Fundamental Completo";8305;FALSE;"2006-2021";2219
+2011;"Mestrado";21;FALSE;"2006-2021";2219
+2011;"Médio Completo";29080;FALSE;"2006-2021";2219
+2011;"Médio Incompleto";5674;FALSE;"2006-2021";2219
+2011;"Superior Completo";3348;FALSE;"2006-2021";2219
+2011;"Superior Incompleto";2041;FALSE;"2006-2021";2219
+2010;"Total";57655;TRUE;"2006-2021";2219
+2010;"5ª Completo Fundamental";2673;FALSE;"2006-2021";2219
+2010;"6ª a 9ª Fundamental";5108;FALSE;"2006-2021";2219
+2010;"Analfabeto";78;FALSE;"2006-2021";2219
+2010;"Até 5ª Incompleto";1430;FALSE;"2006-2021";2219
+2010;"Doutorado";4;FALSE;"2006-2021";2219
+2010;"Fundamental Completo";8601;FALSE;"2006-2021";2219
+2010;"Mestrado";17;FALSE;"2006-2021";2219
+2010;"Médio Completo";28785;FALSE;"2006-2021";2219
+2010;"Médio Incompleto";5663;FALSE;"2006-2021";2219
+2010;"Superior Completo";3175;FALSE;"2006-2021";2219
+2010;"Superior Incompleto";2121;FALSE;"2006-2021";2219
+2009;"Total";51551;TRUE;"2006-2021";2219
+2009;"5ª Completo Fundamental";2517;FALSE;"2006-2021";2219
+2009;"6ª a 9ª Fundamental";4991;FALSE;"2006-2021";2219
+2009;"Analfabeto";82;FALSE;"2006-2021";2219
+2009;"Até 5ª Incompleto";1420;FALSE;"2006-2021";2219
+2009;"Doutorado";5;FALSE;"2006-2021";2219
+2009;"Fundamental Completo";8466;FALSE;"2006-2021";2219
+2009;"Mestrado";20;FALSE;"2006-2021";2219
+2009;"Médio Completo";24318;FALSE;"2006-2021";2219
+2009;"Médio Incompleto";5036;FALSE;"2006-2021";2219
+2009;"Superior Completo";2714;FALSE;"2006-2021";2219
+2009;"Superior Incompleto";1982;FALSE;"2006-2021";2219
+2008;"Total";55749;TRUE;"2006-2021";2219
+2008;"5ª Completo Fundamental";2960;FALSE;"2006-2021";2219
+2008;"6ª a 9ª Fundamental";5916;FALSE;"2006-2021";2219
+2008;"Analfabeto";95;FALSE;"2006-2021";2219
+2008;"Até 5ª Incompleto";1280;FALSE;"2006-2021";2219
+2008;"Doutorado";1;FALSE;"2006-2021";2219
+2008;"Fundamental Completo";9546;FALSE;"2006-2021";2219
+2008;"Mestrado";21;FALSE;"2006-2021";2219
+2008;"Médio Completo";25411;FALSE;"2006-2021";2219
+2008;"Médio Incompleto";5623;FALSE;"2006-2021";2219
+2008;"Superior Completo";2912;FALSE;"2006-2021";2219
+2008;"Superior Incompleto";1984;FALSE;"2006-2021";2219
+2007;"Total";56678;TRUE;"2006-2021";2219
+2007;"5ª Completo Fundamental";3216;FALSE;"2006-2021";2219
+2007;"6ª a 9ª Fundamental";6237;FALSE;"2006-2021";2219
+2007;"Analfabeto";119;FALSE;"2006-2021";2219
+2007;"Até 5ª Incompleto";1406;FALSE;"2006-2021";2219
+2007;"Doutorado";1;FALSE;"2006-2021";2219
+2007;"Fundamental Completo";10385;FALSE;"2006-2021";2219
+2007;"Mestrado";5;FALSE;"2006-2021";2219
+2007;"Médio Completo";24404;FALSE;"2006-2021";2219
+2007;"Médio Incompleto";6193;FALSE;"2006-2021";2219
+2007;"Superior Completo";2777;FALSE;"2006-2021";2219
+2007;"Superior Incompleto";1935;FALSE;"2006-2021";2219
+2006;"Total";50617;TRUE;"2006-2021";2219
+2006;"5ª Completo Fundamental";3542;FALSE;"2006-2021";2219
+2006;"6ª a 9ª Fundamental";6269;FALSE;"2006-2021";2219
+2006;"Analfabeto";91;FALSE;"2006-2021";2219
+2006;"Até 5ª Incompleto";1471;FALSE;"2006-2021";2219
+2006;"Fundamental Completo";9805;FALSE;"2006-2021";2219
+2006;"Mestrado";7;FALSE;"2006-2021";2219
+2006;"Médio Completo";19655;FALSE;"2006-2021";2219
+2006;"Médio Incompleto";5895;FALSE;"2006-2021";2219
+2006;"Superior Completo";2283;FALSE;"2006-2021";2219
+2006;"Superior Incompleto";1599;FALSE;"2006-2021";2219

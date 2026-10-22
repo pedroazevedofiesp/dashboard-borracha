@@ -1,0 +1,17 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# OS / editor cruft
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Pasta de preparação de dados (scripts R, planilhas brutas, chaves de API e
+# login de consulta) — nunca deve subir pro repositório público do site.
+Setor Siderúrgico/
