@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Painel do Setor de Fundição (CNAE 2451/2452)</title>
-<meta name="description" content="Painel executivo do setor de fundição no Brasil: produção, emprego, financeiro, comércio exterior, energia, BNDES e DECOM.">
+<title>Painel do Setor de Borracha</title>
+<meta name="description" content="Painel do setor de borracha no Brasil (CNAEs 2212 e 2219): produção, emprego, financeiro, comércio exterior, energia e BNDES.">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -12,7 +12,7 @@
 <div class="app-shell">
 <aside class="sidebar">
   <div class="sidebar-brand">
-    <img src="assets/logos/logo-sifesp.png" alt="SIFESP">
+    <img src="assets/logos/fiesp-logo-trim.png" alt="FIESP">
   </div>
 
   <nav class="sidebar-nav" id="view-tabs" role="tablist" aria-label="Navegação principal">
@@ -20,32 +20,15 @@
   </nav>
 
   <div class="sidebar-section-label">Setor</div>
-  <nav class="sidebar-nav sidebar-nav-sector" id="sector-tabs" role="tablist" aria-label="Setor">
-    <button type="button" data-view="2451" role="tab" aria-selected="false">Ferro e aço (2451)</button>
-    <button type="button" data-view="2452" role="tab" aria-selected="false">Não ferrosos (2452)</button>
-  </nav>
+  <!-- Botões gerados por js/main.js a partir de config_painel.json (meta.config.cnaes) -->
+  <nav class="sidebar-nav sidebar-nav-sector" id="sector-tabs" role="tablist" aria-label="Setor"></nav>
 
   <div class="sidebar-section-label" id="section-nav-label">Nesta seção</div>
-  <nav class="sidebar-nav sidebar-nav-sections" id="section-nav">
-    <button type="button" data-target="block-producao">01 · Produção física</button>
-    <button type="button" data-target="block-financeiro">02 · Financeiro</button>
-    <button type="button" data-target="block-emprego">03 · Emprego formal</button>
-    <button type="button" data-target="block-caged">04 · CAGED</button>
-    <button type="button" data-target="block-comex">05 · Comércio exterior</button>
-    <button type="button" data-target="block-bndes">06 · BNDES</button>
-    <button type="button" data-target="block-decom">07 · DECOM</button>
-    <button type="button" data-target="block-estudos-especiais">08 · Estudos especiais</button>
-    <button type="button" data-target="block-gargalos">Gargalos do setor</button>
-  </nav>
+  <!-- Gerado por js/main.js a partir de SECTION_META (só seções com dado) -->
+  <nav class="sidebar-nav sidebar-nav-sections" id="section-nav"></nav>
 
   <nav class="sidebar-nav sidebar-nav-foot" id="foot-tabs-top" role="tablist" aria-label="Outras seções">
     <button type="button" data-view="energia-industrial" role="tab" aria-selected="false">Energia Industrial</button>
-    <button type="button" data-view="pdi" role="tab" aria-selected="false">PD&amp;I</button>
-  </nav>
-
-  <div class="sidebar-section-label" id="pdi-section-nav-label">Nesta seção</div>
-  <nav class="sidebar-nav sidebar-nav-sections" id="pdi-section-nav">
-    <button type="button" data-target="pdi-fundicao">01 · Fundição</button>
   </nav>
 
   <nav class="sidebar-nav sidebar-nav-foot" id="foot-tabs-bottom" role="tablist" aria-label="Mais seções">
@@ -67,10 +50,8 @@
       <h1>Painel Executivo</h1>
       <p>Os principais indicadores do setor, por segmento. O detalhamento completo de cada um está disponível na navegação ao final desta página.</p>
     </div>
-    <div class="exec-seg-toggle" id="exec-seg-toggle" role="tablist" aria-label="Segmento do Painel Executivo">
-      <button type="button" class="exec-seg-btn" data-seg="2451" role="tab">Fundição de Ferro e Aço</button>
-      <button type="button" class="exec-seg-btn" data-seg="2452" role="tab">Fundição de Não Ferrosos</button>
-    </div>
+    <!-- Botões gerados por js/main.js a partir de config_painel.json (rotulo_exec) -->
+    <div class="exec-seg-toggle" id="exec-seg-toggle" role="tablist" aria-label="Segmento do Painel Executivo"></div>
   </div>
 
   <div class="kpi-grid" id="exec-kpi-grid"></div>
@@ -89,7 +70,7 @@
         <div id="exec-chart-comex"></div>
         <div class="exhibit-caption">
           <div class="exhibit-title">2. As importações estão crescendo?</div>
-          <div class="exhibit-sub">Exportação x importação, R$ milhões de 2023</div>
+          <div class="exhibit-sub" id="exec-chart-comex-sub">Exportação x importação, R$ milhões de 2023</div>
         </div>
       </div>
       <div class="exhibit">
@@ -103,7 +84,7 @@
         <div id="exec-chart-margem"></div>
         <div class="exhibit-caption">
           <div class="exhibit-title">4. Como está a competitividade e produtividade?</div>
-          <div class="exhibit-sub">Margem operacional (%) e produtividade (VTI por trabalhador), grupo Fundição</div>
+          <div class="exhibit-sub" id="exec-chart-margem-sub">Margem operacional (%) e produtividade (VTI por trabalhador), grupo CNAE do setor</div>
         </div>
       </div>
     </div>
@@ -124,9 +105,9 @@
     <div class="section-header">
       <span class="section-num">01</span>
       <h2>Produção física</h2>
-      <a class="section-download" id="download-producao" href="data/downloads/Producao_Fisica_2451.xlsx" download>⬇ Baixar dados (Excel)</a>
+      <a class="section-download" href="data/downloads/Producao_Fisica.xlsx" download>⬇ Baixar dados (Excel)</a>
     </div>
-    <p class="section-note" id="producao-section-note">Dado nacional (IBGE/PIM-PF e Instituto Aço Brasil), sem abertura por estado.</p>
+    <p class="section-note" id="producao-section-note"></p>
     <div class="caption-meta" id="section-caption-producao"></div>
     <div class="block-filter">
       <div class="block-filter-item">
@@ -139,39 +120,32 @@
     </div>
     <div class="exhibit-grid">
       <div class="exhibit">
-        <div id="chart-producao-acogusa"></div>
-        <div class="exhibit-caption">
-          <div class="exhibit-title" id="producao-acogusa-title">Aço bruto, ferro-gusa e laminados</div>
-          <div class="exhibit-sub" id="producao-acogusa-sub">Toneladas por mês, Instituto Aço Brasil. Ferro-gusa só a partir de fev/09</div>
-        </div>
-      </div>
-      <div class="exhibit">
         <div id="chart-producao-dessaz"></div>
         <div class="exhibit-caption">
-          <div class="exhibit-title" id="producao-dessaz-title">Aço bruto: mês a mês vs. sem efeito sazonal</div>
-          <div class="exhibit-sub" id="producao-dessaz-sub">Toneladas / mês. "Sem efeito sazonal" remove variações que se repetem todo ano (ex: férias, fim de ano), pra comparar mês a mês sem esse ruído</div>
+          <div class="exhibit-title">Índice de produção: mês a mês vs. sem efeito sazonal</div>
+          <div class="exhibit-sub">Base 100 (média de 2022). "Sem efeito sazonal" remove variações que se repetem todo ano (ex: férias, fim de ano), pra comparar mês a mês sem esse ruído</div>
         </div>
       </div>
       <div class="exhibit">
         <div id="chart-producao-indice"></div>
         <div class="exhibit-caption">
-          <div class="exhibit-title">Índice de produção da metalurgia</div>
-          <div class="exhibit-sub">Base 100, recessões (CODACE/FGV) sombreadas. Indústria de metalurgia como um todo (IBGE), não é exclusivo de ferro/aço ou não ferrosos</div>
+          <div class="exhibit-title">Índice sem efeito sazonal e recessões</div>
+          <div class="exhibit-sub">Base 100, recessões (CODACE/FGV) sombreadas</div>
         </div>
       </div>
-      <div class="exhibit" id="producao-razao-wrap">
-        <div id="chart-producao-razao"></div>
+      <div class="exhibit">
+        <div id="chart-producao-variacao"></div>
         <div class="exhibit-caption">
-          <div class="exhibit-title">Razão laminados / aço bruto</div>
-          <div class="exhibit-sub">%, mensal</div>
+          <div class="exhibit-title">Variação em 12 meses</div>
+          <div class="exhibit-sub">%, índice do mês contra o mesmo mês do ano anterior</div>
         </div>
       </div>
     </div>
     <div class="exhibit-block">
       <div id="table-producao"></div>
       <div class="exhibit-caption">
-        <div class="exhibit-title" id="producao-table-title">Produção física mensal, série completa</div>
-        <div class="exhibit-sub" id="producao-table-sub">Instituto Aço Brasil, mais recente primeiro, clique no cabeçalho para ordenar</div>
+        <div class="exhibit-title">Índice de produção mensal, série completa</div>
+        <div class="exhibit-sub">IBGE/PIM-PF, mais recente primeiro, clique no cabeçalho para ordenar</div>
       </div>
     </div>
   </section>
@@ -183,21 +157,14 @@
       <h2>Financeiro</h2>
       <a class="section-download" href="data/downloads/Financeiro.xlsx" download>⬇ Baixar dados (Excel)</a>
     </div>
-    <p class="section-note">Fonte: IBGE/PIA-Empresa, 2007–2024, sempre em série completa (sem filtro de período). A base "Fundição" (24.5) reúne 2451+2452 sem abertura entre eles; "Metalurgia" (24) é o grupo mais amplo.</p>
+    <p class="section-note" id="financeiro-section-note"></p>
     <div class="caption-meta" id="section-caption-financeiro"></div>
     <div class="exhibit-grid">
       <div class="exhibit">
         <div id="chart-financeiro-vbpi-vti"></div>
         <div class="exhibit-caption">
           <div class="exhibit-title">VBPI x VTI</div>
-          <div class="exhibit-sub">Grupo Fundição (24.5), R$ mil, eixos independentes</div>
-        </div>
-      </div>
-      <div class="exhibit">
-        <div id="chart-financeiro-participacao"></div>
-        <div class="exhibit-caption">
-          <div class="exhibit-title">Participação da Fundição na Metalurgia</div>
-          <div class="exhibit-sub">% da receita líquida de 24.5 dentro de 24</div>
+          <div class="exhibit-sub" data-grupo-texto="Grupo {grupo}, R$, eixos independentes"></div>
         </div>
       </div>
       <div class="exhibit">
@@ -211,7 +178,7 @@
         <div id="chart-financeiro-receita-custos"></div>
         <div class="exhibit-caption">
           <div class="exhibit-title">Receita líquida x custos totais</div>
-          <div class="exhibit-sub">Grupo Fundição (24.5), anual</div>
+          <div class="exhibit-sub" data-grupo-texto="Grupo {grupo}, anual"></div>
         </div>
       </div>
       <div class="exhibit">
@@ -225,15 +192,15 @@
     <div class="exhibit-block">
       <div id="table-financeiro"></div>
       <div class="exhibit-caption">
-        <div class="exhibit-title">Indicadores financeiros anuais, Fundição (24.5)</div>
-        <div class="exhibit-sub">2007–2024, valores correntes, clique no cabeçalho para ordenar</div>
+        <div class="exhibit-title" data-grupo-texto="Indicadores financeiros anuais, grupo {grupo}"></div>
+        <div class="exhibit-sub" id="financeiro-table-sub"></div>
       </div>
     </div>
     <div class="exhibit-block">
       <div id="table-financeiro-por-cnae"></div>
       <div class="exhibit-caption">
-        <div class="exhibit-title">Ferro e aço (2451) x Não ferrosos (2452)</div>
-        <div class="exhibit-sub">2024, valores correntes — primeira vez com essa abertura por classe (demais anos só têm o grupo 24.5 combinado)</div>
+        <div class="exhibit-title" id="financeiro-por-cnae-title"></div>
+        <div class="exhibit-sub" data-grupo-texto="2024, valores correntes — primeira vez com essa abertura por classe (demais anos só têm o grupo {grupo} combinado)"></div>
       </div>
     </div>
   </section>
@@ -243,7 +210,7 @@
     <div class="section-header">
       <span class="section-num">03</span>
       <h2>Emprego formal (RAIS)</h2>
-      <a class="section-download" id="download-emprego" href="data/downloads/Emprego_2451.xlsx" download>⬇ Baixar dados (Excel)</a>
+      <a class="section-download" id="download-emprego" href="data/downloads/Emprego.xlsx" download>⬇ Baixar dados (Excel)</a>
     </div>
     <p class="section-note">A partir de 2022 a metodologia de coleta mudou (base eSocial); perfis detalhados (escolaridade, ocupação, tempo de emprego) têm quebra de série entre 2021 e 2022. Clique numa barra do ranking por UF para adicionar aquele estado ao filtro abaixo.</p>
     <div class="caption-meta" id="section-caption-emprego"></div>
@@ -356,7 +323,7 @@
     <div class="section-header">
       <span class="section-num">04</span>
       <h2>CAGED: dinâmica de curto prazo</h2>
-      <a class="section-download" id="download-caged" href="data/downloads/CAGED_2451.xlsx" download>⬇ Baixar dados (Excel)</a>
+      <a class="section-download" id="download-caged" href="data/downloads/CAGED.xlsx" download>⬇ Baixar dados (Excel)</a>
     </div>
     <p class="section-note" id="caged-coverage-note">Dado mês a mês (admissões e desligamentos) — mais detalhado no tempo do que a RAIS, que só fecha uma vez por ano.</p>
     <div class="caption-meta" id="section-caption-caged"></div>
@@ -402,17 +369,9 @@
         <div id="chart-caged-massa-salarial"></div>
         <div class="exhibit-caption">
           <div class="exhibit-title">Massa salarial mensal</div>
-          <div class="exhibit-sub">Soma dos salários de admitidos/desligados no mês, até dez/2019</div>
+          <div class="exhibit-sub">Soma dos salários de admitidos e desligados no mês, R$ correntes</div>
         </div>
-        <p class="filter-note">Série descontinuada em dez/2019: a partir de jan/2020 esse campo cai ~98% na fonte e não se recupera — provável efeito da transição pro novo CAGED (eSocial), não uma queda real na massa salarial do setor. O saldo de contratações ao lado, da mesma fonte, não mostra essa quebra.</p>
-      </div>
-      <div class="exhibit">
-        <div id="chart-caged-massa-salarial-novo"></div>
-        <div class="exhibit-caption">
-          <div class="exhibit-title">Massa salarial mensal (novo CAGED)</div>
-          <div class="exhibit-sub">A partir de jan/2020, escala própria — não comparável ao gráfico anterior</div>
-        </div>
-        <p class="filter-note">Mesma métrica, metodologia diferente da fonte (novo CAGED/eSocial) e ~2 ordens de grandeza menor. Mostrado em escala própria só pra não deixar esse período sem nenhum retrato.</p>
+        <p class="filter-note">Até dez/2019, CAGED antigo; a partir de jan/2020, novo CAGED (eSocial). Registros com salário acima de 15 vezes a mediana do segmento no ano ficam fora (erros de digitação da fonte).</p>
       </div>
       <div class="exhibit">
         <div id="rank-caged-saldo-uf"></div>
@@ -436,10 +395,11 @@
     <div class="section-header">
       <span class="section-num">05</span>
       <h2>Comércio exterior</h2>
-      <a class="section-download" id="download-comex" href="data/downloads/Comercio_Exterior_2451.xlsx" download>⬇ Baixar dados (Excel)</a>
+      <a class="section-download" id="download-comex" href="data/downloads/Comercio_Exterior.xlsx" download>⬇ Baixar dados (Excel)</a>
     </div>
     <p class="section-note">O gráfico de exportação x importação segue o estado escolhido abaixo (ou clique numa barra do ranking por UF para trocar).</p>
     <div class="caption-meta" id="section-caption-comex"></div>
+    <p class="decom-highlight" id="comex-residual-note" style="display:none"></p>
     <p class="filter-note" id="comex-metodologia-note" style="display:none"></p>
     <div class="block-filter">
       <div class="block-filter-item">
@@ -575,9 +535,9 @@
     <div class="section-header">
       <span class="section-num">06</span>
       <h2>BNDES</h2>
-      <a class="section-download" id="download-bndes" href="data/downloads/BNDES_2451.xlsx" download>⬇ Baixar dados (Excel)</a>
+      <a class="section-download" id="download-bndes" href="data/downloads/BNDES.xlsx" download>⬇ Baixar dados (Excel)</a>
     </div>
-    <p class="section-note">Desembolsos já são específicos do segmento selecionado (2451/2452). Sempre em série completa (2002-2026), sem filtro de período ou estado — o BNDES não desembolsa o mesmo valor em todo estado, então o ranking por UF abaixo já mostra o retrato real, sem precisar recortar por período.</p>
+    <p class="section-note" id="bndes-section-note"></p>
     <div class="caption-meta" id="section-caption-bndes"></div>
     <div class="exhibit-grid">
       <div class="exhibit">
@@ -625,14 +585,15 @@
     </div>
   </section>
 
-  <!-- ============ 07. DECOM ============ -->
-  <section class="section" id="block-decom">
+  <!-- ============ DECOM (bloco opcional: só aparece se config_painel.json
+       apontar um arquivo em blocos_opcionais.decom) ============ -->
+  <section class="section" id="block-decom" hidden>
     <div class="section-header">
-      <span class="section-num">07</span>
+      <span class="section-num"></span>
       <h2>DECOM</h2>
-      <a class="section-download" href="data/downloads/DECOM_2451.xlsx" download>⬇ Baixar dados (Excel)</a>
+      <a class="section-download" href="data/downloads/DECOM.xlsx" download>⬇ Baixar dados (Excel)</a>
     </div>
-    <p class="section-note">Fonte: DECOM/GECEX. Base específica de ferro e aço (2451); não há processos catalogados para não ferrosos (2452) nesta fonte.</p>
+    <p class="section-note">Fonte: DECOM/GECEX.</p>
     <div class="caption-meta" id="section-caption-decom"></div>
     <div class="exhibit-block" id="decom-wrap">
       <div id="table-decom"></div>
@@ -642,13 +603,12 @@
       </div>
       <p class="decom-highlight" id="decom-highlight"></p>
     </div>
-    <p class="filter-note" id="decom-not-available" style="display:none">Não há medidas de defesa comercial específicas para não ferrosos (2452) nesta base; a tabela acima é de ferro e aço (2451).</p>
   </section>
 
-  <!-- ============ 08. ESTUDOS ESPECIAIS ============ -->
+  <!-- ============ ESTUDOS ESPECIAIS ============ -->
   <section class="section" id="block-estudos-especiais">
     <div class="section-header">
-      <span class="section-num">08</span>
+      <span class="section-num"></span>
       <h2>Estudos especiais</h2>
     </div>
     <p class="section-note">Panorama do setor, com os mesmos dados usados no restante deste painel (RAIS, Comex, BNDES, PIA/IBGE).</p>
@@ -707,8 +667,8 @@
     <div class="exhibit-block">
       <div id="ee-chart-produtividade"></div>
       <div class="exhibit-caption">
-        <div class="exhibit-title">Produtividade da Fundição (24.5) ao longo do tempo</div>
-        <div class="exhibit-sub">VTI por pessoal ocupado, PIA/IBGE. Fundição combina 2451+2452 nesta fonte.</div>
+        <div class="exhibit-title" data-grupo-texto="Produtividade do grupo {grupo} ao longo do tempo"></div>
+        <div class="exhibit-sub" data-grupo-texto="VTI por pessoal ocupado, PIA/IBGE. O grupo {grupo} combina todos os segmentos nesta fonte."></div>
       </div>
     </div>
     <p class="pdi-note" id="ee-evidence-produtividade"></p>
@@ -719,7 +679,7 @@
       <div id="ee-chart-producao-emprego"></div>
       <div class="exhibit-caption">
         <div class="exhibit-title">Produção e emprego, indexados (base 100)</div>
-        <div class="exhibit-sub">Emprego do setor (RAIS) x produção física da metalurgia (IBGE, nível de divisão, não exclusiva de 2451/2452)</div>
+        <div class="exhibit-sub" id="ee-producao-emprego-sub"></div>
       </div>
     </div>
     <p class="pdi-note" id="ee-evidence-rodrik"></p>
@@ -733,7 +693,7 @@
     <div class="gargalos-list" id="gargalos-grid"></div>
   </section>
 
-  <p class="dataview-sources">Dados consolidados de fontes públicas (IBGE, RAIS/CAGED, MDIC/Comex Stat, UN Comtrade, BNDES, DECOM/GECEX).</p>
+  <p class="dataview-sources">Dados consolidados de fontes públicas (IBGE, RAIS/CAGED, MDIC/Comex Stat, UN Comtrade, BNDES).</p>
 
 </div><!-- /#data-view -->
 
@@ -812,111 +772,6 @@
   </section>
 </div><!-- /#energia-industrial-view -->
 
-<!-- ============ PD&I ============ -->
-<div id="pdi-view" hidden>
-  <div class="section-header">
-    <h2>Pesquisa, Desenvolvimento &amp; Inovação</h2>
-  </div>
-  <p class="pdi-intro">Casos setoriais construídos em cima dos dados já tratados neste painel, para apoiar conversas de venda de projetos de PD&amp;I com empresas do setor. Hoje cobre fundição (CNAE 2451 e 2452); a estrutura fica pronta para receber outros setores conforme o painel crescer.</p>
-
-  <section class="section" id="pdi-fundicao">
-    <div class="section-header">
-      <span class="section-num">01</span>
-      <h2>Fundição · CNAE 2451 e 2452</h2>
-    </div>
-    <p class="section-note">Os números abaixo vêm das mesmas bases usadas no restante do painel (Comex Stat, Comtrade, RAIS, CAGED, PIA/IBGE, BNDES e Energia Industrial). É um roteiro para conversar com o dono de uma fundição, não um relatório definitivo sobre a empresa dele.</p>
-
-    <h4>O que está mudando lá fora</h4>
-    <p class="pdi-note">Ferro e aço (2451) e não ferrosos (2452) estão vivendo momentos diferentes. O 2451 cresceu na exportação até 2022 e desde então perdeu força; é também o mais exposto à concorrência chinesa, que responde por 30% a 40% do que o Brasil importa nessa categoria. Já o 2452 vem de uma recuperação lenta e constante desde 2016, com a China pesando bem menos nas importações (entre 14% e 15%). Nos dois casos, a fatia do Brasil no comércio mundial de peças fundidas é pequena, e no não ferroso ela vem caindo ano após ano.</p>
-    <div class="exhibit-grid">
-      <div class="exhibit">
-        <div id="pdi-chart-china"></div>
-        <div class="exhibit-caption">
-          <div class="exhibit-title">Importação vinda da China</div>
-          <div class="exhibit-sub">% do total importado, por CNAE, Comex Stat</div>
-        </div>
-      </div>
-      <div class="exhibit">
-        <div id="pdi-chart-exportacao"></div>
-        <div class="exhibit-caption">
-          <div class="exhibit-title">Exportação: ferro e aço x não ferrosos</div>
-          <div class="exhibit-sub">US$ FOB por ano, Comex Stat (2026 é ano parcial)</div>
-        </div>
-      </div>
-      <div class="exhibit">
-        <div id="pdi-chart-mundial"></div>
-        <div class="exhibit-caption">
-          <div class="exhibit-title">Participação do Brasil no comércio mundial</div>
-          <div class="exhibit-sub">% das exportações mundiais de fundidos, Comtrade</div>
-        </div>
-      </div>
-    </div>
-
-    <h4>Onde a pressão aperta por dentro</h4>
-    <p class="pdi-note">Quatro sinais internos merecem atenção de quem toca uma fundição hoje. O custo da energia na metalurgia paulista (tarifa média real da classe Industrial na região Sudeste) subiu cerca de 19% em termos reais (já descontada a inflação) entre o ponto mais baixo, em 2014, e a média de 2023 a 2025 — bem menos dramático do que os mais de 100% de alta nominal do período, que é em boa parte efeito de inflação acumulada. A escolaridade da mão de obra segue concentrada no ensino médio, com quase 30% dos vínculos ainda no fundamental, o que limita a velocidade de adoção de processos mais técnicos. O saldo de contratações do setor, que ainda era positivo em 2022, passou a ser negativo nos três anos seguintes, ou seja, o setor está fechando mais vagas do que abrindo. E a margem operacional da fundição, embora tenha melhorado em 2023, segue oscilando entre 4% e 13% ao longo da década, um sinal de fragilidade estrutural mais do que de folga.</p>
-    <div class="exhibit-grid">
-      <div class="exhibit">
-        <div id="pdi-chart-energia"></div>
-        <div class="exhibit-caption">
-          <div class="exhibit-title">Custo da energia na metalurgia (SP)</div>
-          <div class="exhibit-sub" id="pdi-chart-energia-sub">R$/MWh, média anual, Energia Industrial</div>
-        </div>
-      </div>
-      <div class="exhibit">
-        <div id="pdi-chart-escolaridade"></div>
-        <div class="exhibit-caption">
-          <div class="exhibit-title">Escolaridade da mão de obra</div>
-          <div class="exhibit-sub">% dos vínculos, fundição (2451+2452), RAIS</div>
-        </div>
-      </div>
-      <div class="exhibit">
-        <div id="pdi-chart-saldo"></div>
-        <div class="exhibit-caption">
-          <div class="exhibit-title">Saldo de contratações por ano</div>
-          <div class="exhibit-sub">Admissões menos desligamentos, fundição (2451+2452), CAGED</div>
-        </div>
-      </div>
-      <div class="exhibit">
-        <div id="pdi-chart-margem"></div>
-        <div class="exhibit-caption">
-          <div class="exhibit-title">Margem operacional</div>
-          <div class="exhibit-sub">% da receita líquida, Fundição 24.5, PIA/IBGE</div>
-        </div>
-      </div>
-    </div>
-
-    <h4>O caminho de quem cresce</h4>
-    <p class="pdi-note">Existe crédito disponível e relativamente barato para inovação (Nova Indústria Brasil, FINEP, EMBRAPII, além do próprio BNDES), mas ele está concentrado em poucas mãos: a maior parte do desembolso do BNDES para o setor vai para empresas de grande porte, e um pequeno grupo de estados concentra a maior parte do total. O gargalo não costuma ser falta de linha de crédito, e sim não ter um projeto técnico maduro o suficiente para captar esse recurso. É exatamente esse projeto que o CIESP ajuda a desenhar.</p>
-    <div class="exhibit-grid">
-      <div class="exhibit">
-        <div id="pdi-chart-bndes"></div>
-        <div class="exhibit-caption">
-          <div class="exhibit-title">Desembolso do BNDES por porte</div>
-          <div class="exhibit-sub">Acumulado 2002-2026, fundição (2451+2452)</div>
-        </div>
-      </div>
-      <div class="exhibit">
-        <div id="pdi-chart-funil"></div>
-        <div class="exhibit-caption">
-          <div class="exhibit-title">Onde um projeto de PD&amp;I costuma gerar ganho</div>
-          <div class="exhibit-sub">Modelo ilustrativo, não é a projeção de nenhuma empresa específica</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="pdi-cta">
-      <h4>Como o CIESP entra</h4>
-      <p class="pdi-note">Três frentes de projeto tendem a se pagar mais rápido e mostrar resultado mais cedo no caixa da fundição.</p>
-      <ul class="pdi-list">
-        <li>Eficiência energética nos fornos elétricos e a indução, medindo consumo e ajustando o processo.</li>
-        <li>Redução de refugo e do tempo de try-out de moldes novos, incluindo impressão 3D de areia para lotes pequenos, que tira semanas do ciclo de desenvolvimento.</li>
-        <li>Qualificação técnica para operar processos mais automatizados, reduzindo a dependência do operador que só ele sabe ajustar o forno.</li>
-      </ul>
-      <p class="pdi-note">Nos três casos, quem convence o dono da fundição é o número da própria empresa dele comparado ao setor, não um discurso genérico sobre inovação.</p>
-    </div>
-  </section>
-</div><!-- /#pdi-view -->
-
 <!-- ============ RELATÓRIOS ============ -->
 <div id="relatorios-view" hidden>
   <div class="section-header">
@@ -942,9 +797,8 @@
   <p class="pdi-note">• RAIS: a partir de 2022 a metodologia de coleta mudou (base eSocial); os perfis detalhados (escolaridade, ocupação, tempo de emprego, massa salarial) têm uma quebra de série entre 2021 e 2022, por isso são tratados como retrato do último ano quando não há série completa.</p>
   <p class="pdi-note">• CAGED: cobre a janela indicada dinamicamente acima (calculada a partir dos dados carregados), com granularidade mensal por UF/CNAE.</p>
   <p class="pdi-note">• Comtrade (comércio mundial): classificação por código HS como proxy do CNAE, já que o Comtrade não reporta por CNAE. Usado apenas para contexto (Brasil x Mundo), não como número oficial de comércio exterior do Brasil; para isso, ver Comex (MDIC).</p>
-  <p class="pdi-note">• Dados financeiros (PIA/IBGE): a base "Fundição 24.5" reúne 2451 e 2452 sem abertura entre eles; é usada nos dois segmentos com a mesma ressalva.</p>
-  <p class="pdi-note">• DECOM: base específica de ferro e aço (2451); não há processos catalogados para não ferrosos (2452) nesta fonte.</p>
-  <p class="pdi-note">• Produção física: a série de ferro-gusa só existe a partir de fev/2009 na fonte (Instituto Aço Brasil); antes disso, só aço bruto e laminados têm dado. Semiacabados só existe a partir de 1986.</p>
+  <!-- Limitações específicas do setor (PIA, produção física, cestas de NCM): geradas por js/main.js a partir de config_painel.json -->
+  <div id="referencias-limitacoes-setor"></div>
   <p class="pdi-note">• Energia Industrial — custo: o R$/MWh é a <strong>tarifa média realmente faturada</strong> da classe Industrial (não uma estimativa de modelo), publicada anualmente pelo Ministério de Minas e Energia com dados da ANEEL — MME, <em>Informativo Tarifário do Setor Elétrico</em> (edições 2023-2025) e <em>Informativo Gestão do Setor Elétrico</em> (edições 2017-2022), Tabela "Tarifa Média Faturada por Classe de Consumo e Região", disponíveis em gov.br/mme/pt-br/assuntos/secretarias/secretaria-nacional-energia-eletrica/publicacoes/informativo-setor-eletrico. É aberta por região (Norte, Nordeste, Centro-Oeste, Sudeste, Sul), não por estado nem por divisão CNAE — todo estado da mesma região e toda divisão CNAE compartilham o mesmo valor no mesmo mês. Anos sem edição publicada com essa tabela (2012-2016, 2018, 2020-2021, 2026) são interpolados linearmente entre os anos com dado real mais próximos, ou extrapolados pela variação do IPCA fora desse intervalo — nesses anos o valor é uma aproximação, não o dado publicado. A conta real de uma empresa específica ainda pode divergir dessa média (depende do subgrupo tarifário, do mercado livre ou cativo, e da bandeira tarifária do mês). Consumo (MWh): EPE, <em>Consumo Mensal de Energia Elétrica por Classe</em> (epe.gov.br/pt/publicacoes-dados-abertos/publicacoes/consumo-de-energia-eletrica).</p>
   <p class="pdi-note">• Deflação: onde indicado como "R$ constantes" ou "R$ de [ano]", o valor nominal foi multiplicado por um fator = IPCA médio do ano-base ÷ IPCA médio do ano da observação (série do IPCA: IBGE, Sistema Nacional de Índices de Preços ao Consumidor). Onde a série original é em US$ (comércio exterior), o fator inclui também a taxa de câmbio (PTAX venda, Banco Central) média do ano antes da correção pelo IPCA. É a mesma fórmula em todos os blocos deflacionados do painel (Energia Industrial; remuneração real, bloco Emprego formal).</p>
   <p class="pdi-note">• Todos os valores monetários estão em valores correntes (nominais), exceto onde explicitamente indicado como deflacionado (remuneração real no bloco Emprego formal; custo de energia no bloco Energia Industrial).</p>
