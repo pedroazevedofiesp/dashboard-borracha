@@ -1,0 +1,44 @@
+{
+  "_comentario": "Tudo o que muda de um setor para outro fica aqui. build_data.py lê este arquivo, monta os nomes dos CSVs a partir de slug/rotulo_arquivo e repassa o bloco inteiro para data.json (meta.config), de onde index.html/js/main.js tiram rótulos e textos.",
+  "setor": {
+    "nome": "Setor de Borracha",
+    "titulo": "Painel do Setor de Borracha",
+    "nome_curto": "borracha",
+    "slug": "borracha",
+    "rotulo_arquivo": "Borracha",
+    "grupo_cnae": "22.1",
+    "grupo_descricao": "Fabricação de produtos de borracha",
+    "grupo_nota": "O grupo 22.1 inclui também a fabricação de pneus novos (CNAE 2211), que não faz parte dos recortes deste painel.",
+    "producao_rotulo_arquivo": "Borracha_Plastico",
+    "producao_titulo": "Produção da divisão borracha e plástico",
+    "producao_descricao": "Índice de produção física da divisão 22 do IBGE (PIM-PF, \"3.22 Fabricação de produtos de borracha e de material plástico\"). O IBGE não publica série só de borracha: o índice inclui plástico e é o mesmo para os dois segmentos.",
+    "ipp_rotulo": "IPP da divisão borracha e plástico",
+    "divisao_energia": 22,
+    "periodo_slider_padrao": {"inicio": 2016, "fim": 2026}
+  },
+  "cnaes": [
+    {
+      "codigo": "2212",
+      "cnae": "22.12-9",
+      "rotulo": "Reforma de pneumáticos",
+      "rotulo_exec": "Reforma de Pneumáticos",
+      "descricao": "Reforma de pneumáticos usados",
+      "comex_residual": true,
+      "nota_comex": "Comércio exterior residual neste segmento: exportações abaixo de US$ 1 milhão por ano e importações zeradas entre 2010 e 2020. O dado está correto; variações percentuais sobre valores tão pequenos não são significativas.",
+      "cesta_ncm": "NCMs 4012.11.00, 4012.12.00, 4012.13.00 e 4012.19.00 (pneumáticos recauchutados). No Comtrade: HS 401211, 401212, 401213 e 401219. Pneus usados (4012.20) e protetores/flaps (4012.90) ficam fora."
+    },
+    {
+      "codigo": "2219",
+      "cnae": "22.19-6",
+      "rotulo": "Artefatos de borracha",
+      "rotulo_exec": "Artefatos de Borracha",
+      "descricao": "Fabricação de artefatos de borracha não especificados anteriormente",
+      "comex_residual": false,
+      "nota_comex": "",
+      "cesta_ncm": "56 NCMs dos capítulos 40 e 59: borracha regenerada e desperdícios (4003, 4004), misturas e formas não vulcanizadas (4005, 4006.90), fios e cordas vulcanizados (4007), chapas e perfis (4008), tubos e mangueiras (4009), correias transportadoras e de transmissão (4010), artigos de higiene e farmácia (4014), outras obras de borracha vulcanizada (4016, exceto 4016.92), borracha endurecida (4017) e tecidos com borracha (5906). No Comtrade: HS4 quando todas as NCMs do HS4 estão na cesta; senão, os HS6 correspondentes."
+    }
+  ],
+  "blocos_opcionais": {
+    "decom": null
+  }
+}

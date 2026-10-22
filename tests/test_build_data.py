@@ -1,6 +1,7 @@
 """Testes de fumaça do pipeline de dados: garantem que build_data.py roda contra
 os CSVs reais e produz um data.json com o schema esperado, simétrico entre
-2451 e 2452. Não usa mocks — o dataset é pequeno o suficiente para rodar em CI."""
+os CNAEs de config_painel.json. Não usa mocks — o dataset é pequeno o
+suficiente para rodar em CI."""
 
 import json
 import sys
@@ -13,6 +14,8 @@ sys.path.insert(0, str(ROOT))
 
 import build_data  # noqa: E402
 
+CNAES = [c['codigo'] for c in build_data.CNAES]
+
 
 @pytest.fixture(scope='module')
 def data():
@@ -23,15 +26,17 @@ def data():
 
 def test_top_level_schema(data):
     assert set(data.keys()) == {'meta', 'shared', 'sectors', 'energia_industrial'}
-    assert set(data['sectors'].keys()) == {'2451', '2452'}
+    assert set(data['sectors'].keys()) == set(CNAES)
+
+
+def test_config_repassado_ao_json(data):
+    cfg = data['meta']['config']
+    assert [c['codigo'] for c in cfg['cnaes']] == CNAES
+    for c in cfg['cnaes']:
+        assert c['rotulo'] and c['rotulo_exec'] and c['cesta_ncm']
 
 
 def test_sectors_are_symmetric(data):
-    # Exceções documentadas: produção física do 2452 é alumínio primário
-    # (ABAL), sem equivalente pro 2451 (aço/Instituto Aço Brasil, que fica
-    # em shared.producao por ser a fonte usada há mais tempo no painel).
-    ONLY_2452 = {'producao_aluminio'}
-
     def keys(d, prefix=''):
         out = set()
         for k, v in d.items():
@@ -40,21 +45,22 @@ def test_sectors_are_symmetric(data):
                 out |= keys(v, prefix + k + '.')
         return out
 
-    keys_2451 = keys(data['sectors']['2451'])
-    keys_2452 = keys(data['sectors']['2452']) - ONLY_2452
-    assert keys_2451 == keys_2452
+    referencia = keys(data['sectors'][CNAES[0]])
+    for cnae in CNAES[1:]:
+        assert keys(data['sectors'][cnae]) == referencia
 
 
-@pytest.mark.parametrize('cnae', ['2451', '2452'])
+@pytest.mark.parametrize('cnae', CNAES)
 def test_core_series_not_empty(data, cnae):
     s = data['sectors'][cnae]
     assert len(s['rais']['uf_yearly_total']) > 0
     assert len(s['comex']['yearly']) > 0
+    assert len(s['comtrade']['brazil_yearly']) > 0
     assert len(s['bndes']['yearly']) > 0
     assert len(s['bndes']['table']) > 0
 
 
-@pytest.mark.parametrize('cnae', ['2451', '2452'])
+@pytest.mark.parametrize('cnae', CNAES)
 def test_comex_importacao_china_resto(data, cnae):
     rows = data['sectors'][cnae]['comex']['importacao_china_resto_yearly']
     assert len(rows) > 0
@@ -63,17 +69,29 @@ def test_comex_importacao_china_resto(data, cnae):
     is_sorted_by(rows, lambda r: r['ano'])
 
 
-def test_producao_has_laminados(data):
-    rows = data['shared']['producao']['aco_gusa']
+@pytest.mark.parametrize('cnae', CNAES)
+def test_comex_ncm_por_fluxo(data, cnae):
+    # Arquivo Comex_{cnae}_NCM.csv tem os dois fluxos numa coluna Fluxo
+    # (renomeado por nome, não por posição — ver build_sector).
+    ncm = data['sectors'][cnae]['comex']['ncm']
+    assert set(ncm.keys()) == {'exportacao', 'importacao'}
+    for bloco in ncm.values():
+        for item in bloco['latest']['itens']:
+            assert item['ncm'].isdigit() and len(item['ncm']) == 8
+
+
+def test_producao_indice(data):
+    rows = data['shared']['producao']['indice']
     assert len(rows) > 0
-    assert all('laminados' in r for r in rows)
+    assert all(r['indice_bruto'] is not None for r in rows)
 
 
 def test_financeiro_has_materias_primas(data):
-    for chave in ('metalurgia_24', 'fundicao_24_5'):
-        rows = data['shared']['financeiro'][chave]
-        assert len(rows) > 0
-        assert all('consumo_materias_primas' in r for r in rows)
+    rows = data['shared']['financeiro']['grupo']
+    assert len(rows) > 0
+    assert all('consumo_materias_primas' in r for r in rows)
+    por_cnae = data['shared']['financeiro']['por_cnae_2024']
+    assert {r['cnae'] for r in por_cnae} == set(CNAES)
 
 
 def test_json_is_utf8_no_bom():
@@ -86,16 +104,14 @@ def is_sorted_by(rows, key):
     assert values == sorted(values)
 
 
-@pytest.mark.parametrize('cnae', ['2451', '2452'])
+@pytest.mark.parametrize('cnae', CNAES)
 def test_yearly_and_monthly_series_are_chronological(data, cnae):
     # Séries usadas diretamente como categorias de eixo X nos gráficos —
     # se a ordem do CSV de origem não for cronológica, o gráfico embaralha
     # o eixo (bug real encontrado com massa_nacional_yearly).
     s = data['sectors'][cnae]
-    is_sorted_by(data['shared']['producao']['metalurgia_indice'], lambda r: r['ano'] * 100 + r['mes'])
-    is_sorted_by(data['shared']['producao']['aco_gusa'], lambda r: r['ano'] * 100 + r['mes'])
-    is_sorted_by(data['shared']['producao']['aco_gusa_dessaz'], lambda r: r['ano'] * 100 + r['mes'])
-    is_sorted_by(data['shared']['financeiro']['fundicao_24_5'], lambda r: r['ano'])
+    is_sorted_by(data['shared']['producao']['indice'], lambda r: r['ano'] * 100 + r['mes'])
+    is_sorted_by(data['shared']['financeiro']['grupo'], lambda r: r['ano'])
     is_sorted_by(s['rais']['uf_yearly_total'], lambda r: r['ano'])
     is_sorted_by(s['rais']['massa_nacional_yearly'], lambda r: r['ano'])
     is_sorted_by(s['caged']['saldo_monthly_national'], lambda r: r['ano'] * 100 + r['mes'])
@@ -103,7 +119,7 @@ def test_yearly_and_monthly_series_are_chronological(data, cnae):
     is_sorted_by(s['bndes']['yearly'], lambda r: r['ano'])
 
 
-@pytest.mark.parametrize('cnae', ['2451', '2452'])
+@pytest.mark.parametrize('cnae', CNAES)
 def test_caged_uf_monthly_series(data, cnae):
     caged = data['sectors'][cnae]['caged']
     assert len(caged['saldo_uf_monthly']) > 0
@@ -114,7 +130,14 @@ def test_caged_uf_monthly_series(data, cnae):
     is_sorted_by(caged['salario_uf_monthly'], lambda r: r['ano'] * 100 + r['mes'])
 
 
-@pytest.mark.parametrize('cnae', ['2451', '2452'])
+@pytest.mark.parametrize('cnae', CNAES)
+def test_caged_sem_buracos(data, cnae):
+    # Junção CAGED antigo (até 2019) + novo (2020+) + FTP: nenhum mês pode faltar.
+    meses = [r['ano'] * 12 + r['mes'] for r in data['sectors'][cnae]['caged']['saldo_monthly_national']]
+    assert meses == list(range(meses[0], meses[-1] + 1))
+
+
+@pytest.mark.parametrize('cnae', CNAES)
 def test_rais_ocupacao_detalhada(data, cnae):
     ocup = data['sectors'][cnae]['rais']['ocupacao_detalhada_latest']
     assert ocup['ano'] > 0
@@ -131,7 +154,7 @@ def test_energia_industrial_schema(data):
     assert ei['serie_campos'] == ['ano', 'mes', 'consumo_mwh', 'custo_rs_mwh', 'participacao_pct', 'custo_real_rs_mwh']
 
 
-@pytest.mark.parametrize('cnae', [10, 24, 33])
+@pytest.mark.parametrize('cnae', [10, 22, 24, 33])
 def test_energia_industrial_serie_por_divisao(data, cnae):
     path = ROOT / 'data' / 'energia' / f'serie-cnae-{cnae}.json'
     assert path.exists()

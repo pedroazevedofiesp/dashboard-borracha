@@ -16,6 +16,15 @@ ROOT = Path(__file__).resolve().parent
 SRC_DIR = ROOT / '3_Dados_Tratados_CSV'
 OUT_DIR = ROOT / 'data'
 
+# Tudo o que é específico do setor (CNAEs, rótulos, prefixos dos nomes de
+# arquivo) vem de config_painel.json — ver README, "Replicar para outro setor".
+with open(ROOT / 'config_painel.json', encoding='utf-8') as _f:
+    CONFIG = json.load(_f)
+SETOR = CONFIG['setor']
+SLUG = SETOR['slug']                    # rais_vinc_{slug}_..., caged_{slug}_...
+ROTULO_ARQUIVO = SETOR['rotulo_arquivo']  # Empregos_RAIS_UF_{rotulo}_..., Comtrade_Global_{rotulo}_...
+CNAES = CONFIG['cnaes']
+
 
 # ---------------------------------------------------------------------------
 # Helpers genéricos
@@ -140,53 +149,21 @@ def parse_competencia(s):
 # SHARED: Produção física
 # ---------------------------------------------------------------------------
 def build_producao():
-    met_df = read_csv('Producao_Fisica_Mensal_Metalurgia.csv')
-    metalurgia_indice = [
+    """Índice de produção física (PIM-PF/IBGE) da divisão CNAE do setor.
+    É uma série só, igual para todos os segmentos do painel (o IBGE não abre
+    a PIM-PF por classe CNAE)."""
+    df = read_csv(f"Producao_Fisica_Mensal_{SETOR['producao_rotulo_arquivo']}.csv")
+    indice = [
         {'ano': to_int(r.ano), 'mes': to_int(r.mes), 'data': r.data,
          'indice_bruto': to_num(r.indice_bruto_base_100),
          'indice_dessaz': to_num(r.indice_dessazonalizado_base_100)}
-        for r in met_df.itertuples(index=False)
+        for r in df.itertuples(index=False)
     ]
-
-    ag_df = read_csv('Producao_Fisica_Aco_Gusa_Bruto.csv').rename(columns={
-        'Período': 'periodo', 'Aço Bruto': 'aco_bruto', 'Laminados': 'laminados',
-        'Ferro-Gusa*': 'ferro_gusa', 'Semi-Acabados': 'semi_acabados',
-    })
-    aco_gusa = []
-    for r in ag_df.itertuples(index=False):
-        ano, mes = int(r.periodo[0:4]), int(r.periodo[5:7])
-        aco_gusa.append({'ano': ano, 'mes': mes, 'data': r.periodo,
-                          'aco_bruto': to_num(r.aco_bruto), 'laminados': to_num(r.laminados),
-                          'ferro_gusa': to_num(r.ferro_gusa), 'semi_acabados': to_num(r.semi_acabados)})
-
-    ds_df = read_csv('Producao_Fisica_Aco_Gusa_Dessazonalizado.csv').rename(columns={
-        'Período': 'periodo', 'Aço Bruto': 'aco_bruto', 'Total sem Ferro-Gusa': 'total_sem_ferro_gusa',
-    })
-    aco_gusa_dessaz = []
-    for r in ds_df.itertuples(index=False):
-        ano, mes = int(r.periodo[0:4]), int(r.periodo[5:7])
-        aco_gusa_dessaz.append({'ano': ano, 'mes': mes, 'data': r.periodo,
-                                 'aco_bruto': to_num(r.aco_bruto),
-                                 'total_sem_ferro_gusa': to_num(r.total_sem_ferro_gusa)})
-
-    key = lambda r: r['ano'] * 100 + r['mes']
-
-    # Alumínio primário (ABAL) — produção física do 2452. Diferente do aço
-    # (2451), aqui é só uma série (não abre por produto), então não tem
-    # equivalente a laminados/ferro-gusa/semi-acabados.
-    al_df = read_csv('Producao_Aluminio_Primario_ABAL.csv')
-    aluminio_primario = sorted([
-        {'ano': to_int(r.Ano), 'mes': to_int(r.Mes),
-         'producao': to_num(r.Producao_Mil_T), 'producao_dessaz': to_num(r.Producao_Dessaz_Mil_T)}
-        for r in al_df.itertuples(index=False)
-    ], key=key)
-
-    return (sorted(metalurgia_indice, key=key), sorted(aco_gusa, key=key), sorted(aco_gusa_dessaz, key=key),
-            aluminio_primario)
+    return sorted(indice, key=lambda r: r['ano'] * 100 + r['mes'])
 
 
 # ---------------------------------------------------------------------------
-# SHARED: Financeiro (PIA) — metalurgia ampla + fundição 24.5 (2451+2452)
+# SHARED: Financeiro (PIA) — grupo CNAE do setor + abertura por classe (2024)
 # ---------------------------------------------------------------------------
 def read_financeiro(name):
     df = read_csv(name)
@@ -220,8 +197,8 @@ def read_financeiro(name):
 
 
 def read_financeiro_por_cnae(name):
-    """Quebra 2451 x 2452 do financeiro (só existe pra 2024 — PIA/IBGE não
-    abre por classe nos demais anos, só no grupo 24.5 combinado)."""
+    """Quebra do financeiro por classe CNAE (só existe pra 2024 — série nova
+    da PIA/IBGE; nos demais anos só há o grupo CNAE combinado)."""
     df = read_csv(name)
     out = []
     for r in df.itertuples(index=False):
@@ -247,7 +224,7 @@ def build_macro():
     rows = [
         {'ano': to_int(r.ano), 'mes': to_int(r.mes), 'data': r.data,
          'ipca': to_num(r.ipca_indice_inflacao), 'dolar': to_num(r.dolar_venda),
-         'ipp_metalurgia': to_num(r.ipp_metalurgia_indice)}
+         'ipp_setor': to_num(r.ipp_setor_indice)}
         for r in df.itertuples(index=False)
     ]
     return sorted(rows, key=lambda r: r['ano'] * 100 + r['mes'])
@@ -290,8 +267,12 @@ def build_fator_brl_2023(macro_rows):
     }
 
 
-def build_decom():
-    df = read_csv('decom_fundicao_processos_2451.csv').rename(columns={
+def build_decom(arquivo):
+    """Processos de defesa comercial (DECOM). Bloco opcional: só existe se
+    config_painel.json apontar um arquivo em blocos_opcionais.decom."""
+    if not arquivo:
+        return []
+    df = read_csv(arquivo).rename(columns={
         'NCM': 'ncm', 'País': 'pais', 'Status': 'status', 'Alíquota_USD_Ton': 'aliquota',
         'Data_Início': 'data_inicio', 'Data_Resolução': 'data_resolucao',
         'Circular_Referência': 'circular',
@@ -464,7 +445,7 @@ def build_energia_industrial(macro_rows):
 
 
 # ---------------------------------------------------------------------------
-# Por setor (2451 / 2452)
+# Por setor (um bloco por CNAE de config_painel.json)
 # ---------------------------------------------------------------------------
 def latest_breakdown(file):
     df = read_csv(file)
@@ -475,12 +456,15 @@ def latest_breakdown(file):
     return {'ano': ano_max, 'items': items}
 
 
-def build_sector(cnae, label, fator_brl_2023):
+def build_sector(cfg, fator_brl_2023):
+    cnae, label = cfg['codigo'], cfg['rotulo']
+    # Prefixo dos arquivos Empregos_RAIS_*/Comtrade_Global_*: o do setor, ou
+    # um por CNAE se o config definir (a fundição usava Ferro_Aco/Nao_Ferrosos).
+    rotulo = cfg.get('rotulo_arquivo', ROTULO_ARQUIVO)
     print(f'  Setor {cnae} ({label})...')
 
     # --- RAIS: estabelecimentos/vínculos por UF, anual ---
-    rais_file = 'Empregos_RAIS_UF_Ferro_Aco_2451.csv' if cnae == '2451' else 'Empregos_RAIS_UF_Nao_Ferrosos_2452.csv'
-    rais_df = read_csv(rais_file)
+    rais_df = read_csv(f'Empregos_RAIS_UF_{rotulo}_{cnae}.csv')
     uf_yearly = []
     for r in rais_df.itertuples(index=False):
         ufi = resolve_uf(r.UF)
@@ -494,8 +478,7 @@ def build_sector(cnae, label, fator_brl_2023):
     ], key=lambda r: r['ano'])
 
     # --- RAIS por porte ---
-    tam_file = 'Empregos_RAIS_Tamanho_Ferro_Aco_2451.csv' if cnae == '2451' else 'Empregos_RAIS_Tamanho_Nao_Ferrosos_2452.csv'
-    tam_df = read_csv(tam_file)
+    tam_df = read_csv(f'Empregos_RAIS_Tamanho_{rotulo}_{cnae}.csv')
     tamanho_yearly = sorted([
         {'ano': to_int(r.Ano), 'faixa': r.Faixa_Tamanho, 'estabelecimentos': to_int(r.Estabelecimentos),
          'vinculos': to_int(r.Vinculos)}
@@ -503,13 +486,13 @@ def build_sector(cnae, label, fator_brl_2023):
     ], key=lambda r: r['ano'])
 
     # --- Perfis detalhados RAIS (retrato do último ano) ---
-    escolaridade_latest = latest_breakdown(f'rais_vinc_fundicao_escolaridade_{cnae}.csv')
-    ocupacao_agrupada_latest = latest_breakdown(f'rais_vinc_fundicao_ocupacao_agrupada_{cnae}.csv')
-    ocupacao_detalhada_latest = latest_breakdown(f'rais_vinc_fundicao_ocupacao_{cnae}.csv')
-    tempo_emprego_latest = latest_breakdown(f'rais_vinc_fundicao_tempo_emprego_{cnae}.csv')
+    escolaridade_latest = latest_breakdown(f'rais_vinc_{SLUG}_escolaridade_{cnae}.csv')
+    ocupacao_agrupada_latest = latest_breakdown(f'rais_vinc_{SLUG}_ocupacao_agrupada_{cnae}.csv')
+    ocupacao_detalhada_latest = latest_breakdown(f'rais_vinc_{SLUG}_ocupacao_{cnae}.csv')
+    tempo_emprego_latest = latest_breakdown(f'rais_vinc_{SLUG}_tempo_emprego_{cnae}.csv')
 
     # --- Escolaridade como série completa (para área empilhada) ---
-    esc_df = read_csv(f'rais_vinc_fundicao_escolaridade_{cnae}.csv')
+    esc_df = read_csv(f'rais_vinc_{SLUG}_escolaridade_{cnae}.csv')
     esc_full = esc_df[(~is_true_col(esc_df['is_total'])) & (esc_df['categoria'] != 'Total')]
     escolaridade_yearly = sorted([
         {'ano': to_int(r.ano), 'categoria': r.categoria, 'frequencia': to_int(r.frequencia)}
@@ -517,7 +500,7 @@ def build_sector(cnae, label, fator_brl_2023):
     ], key=lambda r: r['ano'])
 
     # --- Remuneração (massa salarial) ---
-    massa_df = read_csv(f'rais_vinc_fundicao_massa_{cnae}.csv')
+    massa_df = read_csv(f'rais_vinc_{SLUG}_massa_{cnae}.csv')
     massa_ano_max = int(massa_df['ano'].max())
     massa_latest = massa_df[massa_df['ano'] == massa_ano_max]
     massa_latest_total_mask = is_true_col(massa_latest['is_total'])
@@ -554,7 +537,7 @@ def build_sector(cnae, label, fator_brl_2023):
                         cmo=[p[1] if p else None for p in parsed])
         return df.dropna(subset=['cyr', 'cmo'])
 
-    caged_saldo = with_competencia(load_caged('caged_fundicao_saldo_mensal_uf_cnae.csv'))
+    caged_saldo = with_competencia(load_caged(f'caged_{SLUG}_saldo_mensal_uf_cnae.csv'))
     caged_saldo['Saldo_Movimentacao'] = pd.to_numeric(caged_saldo['Saldo_Movimentacao'], errors='coerce')
     saldo_monthly_national = (
         caged_saldo.groupby(['cyr', 'cmo'])['Saldo_Movimentacao'].sum()
@@ -565,9 +548,9 @@ def build_sector(cnae, label, fator_brl_2023):
         for r in saldo_monthly_national.itertuples(index=False)
     ]
 
-    caged_salario = with_competencia(load_caged('caged_fundicao_salario_mensal_uf_cnae.csv'))
+    caged_salario = with_competencia(load_caged(f'caged_{SLUG}_salario_mensal_uf_cnae.csv'))
     caged_salario['Salario_Mensal'] = pd.to_numeric(caged_salario['Salario_Mensal'], errors='coerce')
-    # Erro de digitação isolado na fonte (ex.: Santa Catarina/2451, Jun/2025 =
+    # Erro de digitação isolado na fonte (ex. visto na fundição: Santa Catarina, Jun/2025 =
     # R$33,4 milhões contra ~R$2-3 mil em todos os outros meses do mesmo
     # estado — 10.000x fora da curva): descarta linhas > 15x a mediana
     # daquele estado antes de somar, senão 1 ponto ruim esmaga a escala do
@@ -615,7 +598,7 @@ def build_sector(cnae, label, fator_brl_2023):
             for r in saldo_uf_df.itertuples(index=False)
         ], key=lambda x: (x['ano'] * 100 + x['mes'], x['uf']))
 
-    tipomov_all = read_csv('caged_fundicao_tipo_movimentacao_mensal_cnae.csv')
+    tipomov_all = read_csv(f'caged_{SLUG}_tipo_movimentacao_mensal_cnae.csv')
     tipomov_all = tipomov_all[tipomov_all['cnae_subclasse'].astype(str).str.strip() == cnae]
     tipomov_monthly_src = with_competencia(tipomov_all[tipomov_all['Competencia'] != 'Total'].copy())
     tipomov_monthly_src['Quantidade'] = pd.to_numeric(tipomov_monthly_src['Quantidade'], errors='coerce')
@@ -640,25 +623,16 @@ def build_sector(cnae, label, fator_brl_2023):
     comex_df['Valor_US_FOB'] = pd.to_numeric(comex_df['Valor_US_FOB'], errors='coerce')
     comex_df['Quilograma_Liquido'] = pd.to_numeric(comex_df['Quilograma_Liquido'], errors='coerce')
 
-    # Os totais nacionais (exportação x importação, kg, balança) vêm de uma
-    # extração por NCM específica de fundição — mais fiel ao escopo do que
-    # `Comex_Exportacao_Importacao_{cnae}.csv` (que superestimava os valores,
-    # provavelmente com NCMs correlatos demais):
-    #   2451: grupo 7325, "obras moldadas de ferro/aço" (limpo, só fundido)
-    #   2452: "outras obras" de cobre/níquel/alumínio/chumbo/zinco/estanho
-    #         (74199100, 75089000/90, 76169900, 78060090, 79070090, 80070090)
-    #         — aproximação: mistura fundido com outros processos, mas exclui
-    #         os itens claramente não-fundidos (esponja, tubo, chapa, higiene)
-    # Ranking por país/UF segue no arquivo antigo até termos essa abertura
-    # também na extração por NCM.
-    NCM_OVERRIDE_FILE = {'2451': 'Comex_2451_NCM7325.csv', '2452': 'Comex_2452_NCM_NaoFerrosos.csv'}
-    if cnae in NCM_OVERRIDE_FILE:
-        ncm_df = read_csv(NCM_OVERRIDE_FILE[cnae])
-        ncm_df['Valor_US_FOB'] = pd.to_numeric(ncm_df['Valor_US_FOB'], errors='coerce')
-        ncm_df['Quilograma_Liquido'] = pd.to_numeric(ncm_df['Quilograma_Liquido'], errors='coerce')
-        cy_source = ncm_df
-    else:
-        cy_source = comex_df
+    # Os totais nacionais (exportação x importação, kg, balança) vêm da
+    # extração por NCM da cesta do segmento (Comex_{cnae}_NCM.csv — cesta
+    # definida em Setor <Nome>/2_Scripts/config_setor.R e descrita na nota
+    # metodológica do painel). Ranking por país usa
+    # Comex_Exportacao_Importacao_{cnae}.csv, que tem a abertura por país.
+    ncm_df = read_csv(f'Comex_{cnae}_NCM.csv')
+    ncm_df['Fluxo'] = ncm_df['Fluxo'].astype(str).str.strip()
+    ncm_df['Valor_US_FOB'] = pd.to_numeric(ncm_df['Valor_US_FOB'], errors='coerce')
+    ncm_df['Quilograma_Liquido'] = pd.to_numeric(ncm_df['Quilograma_Liquido'], errors='coerce')
+    cy_source = ncm_df
 
     cy = cy_source.groupby(['Ano', 'Fluxo']).agg(
         valor_usd=('Valor_US_FOB', 'sum'), peso_kg=('Quilograma_Liquido', 'sum')).reset_index()
@@ -689,14 +663,10 @@ def build_sector(cnae, label, fator_brl_2023):
             row['importacao_brl_2023'] = None
             row['saldo_brl_2023'] = None
 
-    # Ranking por UF: usa a mesma extração por NCM de fundição acima, quando
-    # já disponível pro setor.
-    NCM_UF_OVERRIDE_FILE = {'2451': 'Comex_2451_NCM7325_UF.csv', '2452': 'Comex_2452_NCM_NaoFerrosos_UF.csv'}
-    if cnae in NCM_UF_OVERRIDE_FILE:
-        uf_df = read_csv(NCM_UF_OVERRIDE_FILE[cnae])
-        uf_df['Valor_US_FOB'] = pd.to_numeric(uf_df['Valor_US_FOB'], errors='coerce')
-    else:
-        uf_df = comex_df
+    # Ranking por UF: mesma extração por NCM, aberta por UF.
+    uf_df = read_csv(f'Comex_{cnae}_NCM_UF.csv')
+    uf_df['Fluxo'] = uf_df['Fluxo'].astype(str).str.strip()
+    uf_df['Valor_US_FOB'] = pd.to_numeric(uf_df['Valor_US_FOB'], errors='coerce')
 
     uf_totals = (uf_df.groupby('UF_Produto')['Valor_US_FOB'].sum()
                  .reset_index().sort_values('Valor_US_FOB', ascending=False))
@@ -750,7 +720,7 @@ def build_sector(cnae, label, fator_brl_2023):
         top_paises_yearly['yearly'].append(row)
 
     # Mesmo recorte "top 3 países + Outros", mas para importação — pedido
-    # do SIFESP pra dar mais destaque à evolução das origens de importação
+    # do cliente pra dar mais destaque à evolução das origens de importação
     # (hoje só existia a versão de exportação acima).
     imp_df = comex_df[comex_df['Fluxo'] == 'Importação']
     top_countries_imp = list(
@@ -772,8 +742,7 @@ def build_sector(cnae, label, fator_brl_2023):
         top_paises_imp_yearly['yearly'].append(row)
 
     # Importação: China x resto do mundo, série anual. Mede a pressão de
-    # peças fundidas chinesas mais baratas sobre o mercado interno (usado no
-    # case de PD&I para o setor).
+    # produtos chineses mais baratos sobre o mercado interno.
     importacao_china_resto_yearly = []
     for ano in sorted(imp_df['Ano'].unique().tolist()):
         yr = imp_df[imp_df['Ano'] == ano]
@@ -784,20 +753,10 @@ def build_sector(cnae, label, fator_brl_2023):
         })
 
     # --- Comex por NCM/produto: preço médio (US$/kg) e ranking de produtos.
-    # 2451 já tem extrações nacionais separadas por fluxo; 2452 só tem a
-    # versão aberta por UF, então soma-se UF pra chegar no total nacional.
-    NCM_PRODUTO_FILES = {
-        '2451': {'Exportação': 'Comex_Fonte_2451_Exportacao_NCM.csv',
-                 'Importação': 'Comex_Fonte_2451_Importacao_NCM.csv'},
-    }
-
-    def _ncm_df_from_file(path):
-        df = read_csv(path)
-        df.columns = ['Ano', 'NCM', 'Descricao', 'Valor_US_FOB', 'Quilograma_Liquido']
-        df['Valor_US_FOB'] = pd.to_numeric(df['Valor_US_FOB'], errors='coerce')
-        df['Quilograma_Liquido'] = pd.to_numeric(df['Quilograma_Liquido'], errors='coerce')
-        df['Descricao'] = df['Descricao'].astype(str).str.strip()
-        return df
+    # Mesmo arquivo dos totais (Comex_{cnae}_NCM.csv), filtrado por Fluxo.
+    # Colunas renomeadas por nome, não por posição.
+    ncm_prod = ncm_df.rename(columns={'Codigo_NCM': 'NCM', 'Descricao_NCM': 'Descricao'})
+    ncm_prod['Descricao'] = ncm_prod['Descricao'].astype(str).str.strip()
 
     def _ncm_itens_ano(df, ano):
         sub = df[df['Ano'] == ano].groupby(['NCM', 'Descricao'], as_index=False)[
@@ -827,21 +786,10 @@ def build_sector(cnae, label, fator_brl_2023):
         out.sort(key=lambda x: x['ano'])
         return out
 
-    if cnae in NCM_PRODUTO_FILES:
-        dfs_por_fluxo = {fluxo: _ncm_df_from_file(fname) for fluxo, fname in NCM_PRODUTO_FILES[cnae].items()}
-    elif cnae == '2452':
-        uf_df_2452 = read_csv('Comex_Fonte_2452_ExpImp_UF.csv')
-        uf_df_2452.columns = ['Fluxo', 'Ano', 'NCM', 'Descricao', 'UF', 'Valor_US_FOB', 'Quilograma_Liquido']
-        uf_df_2452['Fluxo'] = uf_df_2452['Fluxo'].astype(str).str.strip()
-        uf_df_2452['Valor_US_FOB'] = pd.to_numeric(uf_df_2452['Valor_US_FOB'], errors='coerce')
-        uf_df_2452['Quilograma_Liquido'] = pd.to_numeric(uf_df_2452['Quilograma_Liquido'], errors='coerce')
-        uf_df_2452['Descricao'] = uf_df_2452['Descricao'].astype(str).str.strip()
-        dfs_por_fluxo = {
-            'Exportação': uf_df_2452[uf_df_2452['Fluxo'] == 'Exportação'],
-            'Importação': uf_df_2452[uf_df_2452['Fluxo'] == 'Importação'],
-        }
-    else:
-        dfs_por_fluxo = {}
+    dfs_por_fluxo = {
+        'Exportação': ncm_prod[ncm_prod['Fluxo'] == 'Exportação'],
+        'Importação': ncm_prod[ncm_prod['Fluxo'] == 'Importação'],
+    }
 
     comex_ncm = {}
     for fluxo, chave in (('Exportação', 'exportacao'), ('Importação', 'importacao')):
@@ -856,7 +804,7 @@ def build_sector(cnae, label, fator_brl_2023):
         }
 
     # --- Comtrade global (agregação pesada: ~250k linhas) ---
-    ct_df = read_csv(f'Comtrade_Global_Fundicao_{cnae}.csv')
+    ct_df = read_csv(f'Comtrade_Global_{rotulo}_{cnae}.csv')
     ct_df['Valor_US_FOB'] = pd.to_numeric(ct_df['Valor_US_FOB'], errors='coerce')
 
     ct_bw = ct_df[(ct_df['Reporter'] == 'Brazil') & (ct_df['Partner'] == 'World')]
@@ -927,6 +875,7 @@ def build_sector(cnae, label, fator_brl_2023):
 
     return {
         'label': label,
+        'cnae': cfg['cnae'],
         'rais': {
             'uf_yearly': uf_yearly, 'uf_yearly_total': uf_yearly_total,
             'tamanho_yearly': tamanho_yearly,
@@ -964,38 +913,34 @@ def build_sector(cnae, label, fator_brl_2023):
 def main():
     print(f'Lendo CSVs de {SRC_DIR}...')
 
-    metalurgia_indice, aco_gusa, aco_gusa_dessaz, aluminio_primario = build_producao()
-    fin_metalurgia = read_financeiro('Dados_Financeiros_Metalurgia_24.csv')
-    fin_fundicao = read_financeiro('Dados_Financeiros_Fundicao_24_5.csv')
-    fin_por_cnae = read_financeiro_por_cnae('Dados_Financeiros_CNAE_2451_2452_2024_SerieNova.csv')
+    producao_indice = build_producao()
+    grupo_arquivo = SETOR['grupo_cnae'].replace('.', '_')
+    fin_grupo = read_financeiro(f'Dados_Financeiros_{ROTULO_ARQUIVO}_{grupo_arquivo}.csv')
+    codigos = '_'.join(c['codigo'] for c in CNAES)
+    fin_por_cnae = read_financeiro_por_cnae(f'Dados_Financeiros_CNAE_{codigos}_2024_SerieNova.csv')
     macro = build_macro()
     fator_brl_2023 = build_fator_brl_2023(macro)
-    decom = build_decom()
+    decom = build_decom(CONFIG.get('blocos_opcionais', {}).get('decom'))
     energia_industrial = build_energia_industrial(macro)
 
-    sector_2451 = build_sector('2451', 'Fundição de ferro e aço', fator_brl_2023)
-    sector_2452 = build_sector('2452', 'Fundição de metais não ferrosos', fator_brl_2023)
-    # Produção física do 2452 é alumínio primário (ABAL), não aço — ao
-    # contrário do resto do bloco "shared", aqui os dois segmentos têm
-    # fontes de fato diferentes.
-    sector_2452['producao_aluminio'] = aluminio_primario
+    sectors = {c['codigo']: build_sector(c, fator_brl_2023) for c in CNAES}
 
     uf_lista = sorted(({'uf': uf, 'nome': nome} for _, uf, nome in UF_TABLE), key=lambda x: x['nome'])
 
     data = {
         'meta': {
             'gerado_em': date.today().isoformat(),
-            'periodo_slider_padrao': {'inicio': 2016, 'fim': 2026},
+            'periodo_slider_padrao': SETOR['periodo_slider_padrao'],
             'uf_lista': uf_lista,
+            'config': CONFIG,
         },
         'shared': {
-            'producao': {'metalurgia_indice': metalurgia_indice, 'aco_gusa': aco_gusa,
-                         'aco_gusa_dessaz': aco_gusa_dessaz},
-            'financeiro': {'metalurgia_24': fin_metalurgia, 'fundicao_24_5': fin_fundicao, 'por_cnae_2024': fin_por_cnae},
+            'producao': {'indice': producao_indice},
+            'financeiro': {'grupo': fin_grupo, 'por_cnae_2024': fin_por_cnae},
             'macro': macro,
             'decom': decom,
         },
-        'sectors': {'2451': sector_2451, '2452': sector_2452},
+        'sectors': sectors,
         'energia_industrial': energia_industrial,
     }
 

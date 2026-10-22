@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Gera as planilhas Excel formatadas de data/downloads/, uma por seção do
-painel (uma para cada setor 2451/2452 onde a seção varia por segmento).
-Lê direto dos CSVs de 3_Dados_Tratados_CSV/ — roda depois de build_data.py,
-mas não depende do data.json."""
+painel (uma para cada CNAE de config_painel.json onde a seção varia por
+segmento). Lê direto dos CSVs de 3_Dados_Tratados_CSV/ — roda depois de
+build_data.py, mas não depende do data.json."""
 
 import re
 from pathlib import Path
@@ -12,7 +12,8 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
-from build_data import UF_REGIAO, build_fator_ipca, build_macro, tarifa_industrial_regiao_ano
+from build_data import (CNAES, CONFIG, ROTULO_ARQUIVO, SETOR, SLUG, UF_REGIAO, build_fator_ipca, build_macro,
+                        tarifa_industrial_regiao_ano)
 
 ROOT = Path(__file__).resolve().parent
 SRC_DIR = ROOT / '3_Dados_Tratados_CSV'
@@ -143,43 +144,31 @@ def _save(wb, filename):
 
 
 # ---------------------------------------------------------------------------
-# 01 — Produção física (nacional, não varia por setor)
+# 01 — Produção física (índice da divisão; igual para todos os segmentos,
+# por isso um arquivo só)
 # ---------------------------------------------------------------------------
 def build_producao_download():
     wb = _new_workbook()
-    _add_sheet(wb, 'Aco e gusa bruto', _read('Producao_Fisica_Aco_Gusa_Bruto.csv'),
-               title='Produção física — Aço e ferro-gusa (bruto)',
-               note='Fonte: Instituto Aço Brasil (IBS).')
-    _add_sheet(wb, 'Aco e gusa dessazonalizado', _read('Producao_Fisica_Aco_Gusa_Dessazonalizado.csv'),
-               title='Produção física — Aço e ferro-gusa (dessazonalizado)')
-    _add_sheet(wb, 'Metalurgia mensal', _read('Producao_Fisica_Mensal_Metalurgia.csv'),
-               title='Produção física — Índice mensal da metalurgia',
-               note='Fonte: IBGE/PIM-PF.')
-    _save(wb, 'Producao_Fisica_2451.xlsx')
-
-    wb2 = _new_workbook()
-    _add_sheet(wb2, 'Aluminio primario', _read('Producao_Aluminio_Primario_ABAL.csv'),
-               title='Produção física — Alumínio primário (bruto e dessazonalizado)',
-               note='Fonte: ABAL (Associação Brasileira do Alumínio). Mil toneladas/mês.')
-    _add_sheet(wb2, 'Metalurgia mensal', _read('Producao_Fisica_Mensal_Metalurgia.csv'),
-               title='Produção física — Índice mensal da metalurgia (contexto, não exclusivo de não ferrosos)',
-               note='Fonte: IBGE/PIM-PF.')
-    _save(wb2, 'Producao_Fisica_2452.xlsx')
+    _add_sheet(wb, 'Indice mensal', _read(f"Producao_Fisica_Mensal_{SETOR['producao_rotulo_arquivo']}.csv"),
+               title=f"Produção física — {SETOR['producao_titulo']} (índice mensal, base 100)",
+               note=f"Fonte: IBGE/PIM-PF. {SETOR['producao_descricao']}")
+    _save(wb, 'Producao_Fisica.xlsx')
 
 
 # ---------------------------------------------------------------------------
 # 02 — Financeiro (PIA, não varia por setor)
 # ---------------------------------------------------------------------------
 def build_financeiro_download():
+    grupo = SETOR['grupo_cnae']
+    codigos = '_'.join(c['codigo'] for c in CNAES)
+    rotulos = ' x '.join(f"{c['rotulo']} ({c['codigo']})" for c in CNAES)
     wb = _new_workbook()
-    _add_sheet(wb, 'Metalurgia 24', _read('Dados_Financeiros_Metalurgia_24.csv'),
-               title='Financeiro — Metalurgia (CNAE 24)',
-               note='Fonte: IBGE/PIA-Empresa, 2007-2024.')
-    _add_sheet(wb, 'Fundicao 24.5', _read('Dados_Financeiros_Fundicao_24_5.csv'),
-               title='Financeiro — Fundição (CNAE 24.5)',
-               note='Reúne 2451+2452 sem abertura entre eles. Fonte: IBGE/PIA-Empresa, 2007-2024.')
-    _add_sheet(wb, '2451 x 2452 (2024)', _read('Dados_Financeiros_CNAE_2451_2452_2024_SerieNova.csv'),
-               title='Financeiro — Ferro e aço (2451) x Não ferrosos (2452)',
+    _add_sheet(wb, f'Grupo {grupo}', _read(f"Dados_Financeiros_{ROTULO_ARQUIVO}_{grupo.replace('.', '_')}.csv"),
+               title=f"Financeiro — {SETOR['grupo_descricao']} (CNAE {grupo})",
+               note=f"Grupo CNAE completo, sem abertura por classe. {SETOR.get('grupo_nota', '')} "
+                    f"Fonte: IBGE/PIA-Empresa.")
+    _add_sheet(wb, 'Por CNAE (2024)', _read(f'Dados_Financeiros_CNAE_{codigos}_2024_SerieNova.csv'),
+               title=f'Financeiro — {rotulos}',
                note='Só 2024 — primeira vez com essa abertura por classe. Fonte: IBGE/PIA-Empresa.')
     _save(wb, 'Financeiro.xlsx')
 
@@ -187,45 +176,38 @@ def build_financeiro_download():
 # ---------------------------------------------------------------------------
 # 03 — Emprego formal / RAIS (por setor)
 # ---------------------------------------------------------------------------
-EMPREGO_FILES = {
-    '2451': [
-        ('Empregos_RAIS_UF_Ferro_Aco_2451.csv', 'RAIS por UF'),
-        ('Empregos_RAIS_Tamanho_Ferro_Aco_2451.csv', 'RAIS por tamanho'),
-        ('rais_vinc_fundicao_escolaridade_2451.csv', 'RAIS escolaridade'),
-        ('rais_vinc_fundicao_massa_2451.csv', 'RAIS massa salarial'),
-        ('rais_vinc_fundicao_ocupacao_2451.csv', 'RAIS ocupacao detalhada'),
-        ('rais_vinc_fundicao_ocupacao_agrupada_2451.csv', 'RAIS ocupacao agrupada'),
-        ('rais_vinc_fundicao_tempo_emprego_2451.csv', 'RAIS tempo de emprego'),
-    ],
-    '2452': [
-        ('Empregos_RAIS_UF_Nao_Ferrosos_2452.csv', 'RAIS por UF'),
-        ('Empregos_RAIS_Tamanho_Nao_Ferrosos_2452.csv', 'RAIS por tamanho'),
-        ('rais_vinc_fundicao_escolaridade_2452.csv', 'RAIS escolaridade'),
-        ('rais_vinc_fundicao_massa_2452.csv', 'RAIS massa salarial'),
-        ('rais_vinc_fundicao_ocupacao_2452.csv', 'RAIS ocupacao detalhada'),
-        ('rais_vinc_fundicao_ocupacao_agrupada_2452.csv', 'RAIS ocupacao agrupada'),
-        ('rais_vinc_fundicao_tempo_emprego_2452.csv', 'RAIS tempo de emprego'),
-    ],
-}
+def emprego_files(cfg):
+    cnae = cfg['codigo']
+    rotulo = cfg.get('rotulo_arquivo', ROTULO_ARQUIVO)
+    return [
+        (f'Empregos_RAIS_UF_{rotulo}_{cnae}.csv', 'RAIS por UF'),
+        (f'Empregos_RAIS_Tamanho_{rotulo}_{cnae}.csv', 'RAIS por tamanho'),
+        (f'rais_vinc_{SLUG}_escolaridade_{cnae}.csv', 'RAIS escolaridade'),
+        (f'rais_vinc_{SLUG}_massa_{cnae}.csv', 'RAIS massa salarial'),
+        (f'rais_vinc_{SLUG}_ocupacao_{cnae}.csv', 'RAIS ocupacao detalhada'),
+        (f'rais_vinc_{SLUG}_ocupacao_agrupada_{cnae}.csv', 'RAIS ocupacao agrupada'),
+        (f'rais_vinc_{SLUG}_tempo_emprego_{cnae}.csv', 'RAIS tempo de emprego'),
+    ]
 
 
-def build_emprego_download(cnae, label):
+def build_emprego_download(cfg):
     wb = _new_workbook()
-    for fname, sheet in EMPREGO_FILES[cnae]:
-        _add_sheet(wb, sheet, _read(fname), title=f'Emprego formal (RAIS) — {label}',
+    for fname, sheet in emprego_files(cfg):
+        _add_sheet(wb, sheet, _read(fname), title=f"Emprego formal (RAIS) — {cfg['rotulo']}",
                    note='Fonte: RAIS.')
-    _save(wb, f'Emprego_{cnae}.xlsx')
+    _save(wb, f"Emprego_{cfg['codigo']}.xlsx")
 
 
 # ---------------------------------------------------------------------------
 # 04 — CAGED (arquivos únicos com os dois setores, filtrados por cnae_subclasse)
 # ---------------------------------------------------------------------------
-def build_caged_download(cnae, label):
+def build_caged_download(cfg):
+    cnae, label = cfg['codigo'], cfg['rotulo']
     wb = _new_workbook()
     for fname, sheet in [
-        ('caged_fundicao_saldo_mensal_uf_cnae.csv', 'CAGED saldo mensal'),
-        ('caged_fundicao_salario_mensal_uf_cnae.csv', 'CAGED salario mensal'),
-        ('caged_fundicao_tipo_movimentacao_mensal_cnae.csv', 'CAGED tipo movimentacao'),
+        (f'caged_{SLUG}_saldo_mensal_uf_cnae.csv', 'CAGED saldo mensal'),
+        (f'caged_{SLUG}_salario_mensal_uf_cnae.csv', 'CAGED salario mensal'),
+        (f'caged_{SLUG}_tipo_movimentacao_mensal_cnae.csv', 'CAGED tipo movimentacao'),
     ]:
         df = _read(fname)
         df = df[df['cnae_subclasse'].astype(str).str.strip() == cnae].reset_index(drop=True)
@@ -234,30 +216,23 @@ def build_caged_download(cnae, label):
 
 
 # ---------------------------------------------------------------------------
-# 05 — Comércio exterior (por setor: NCM de fundição, país/UF, Comtrade)
+# 05 — Comércio exterior (por setor: cesta de NCM, país, Comtrade)
 # ---------------------------------------------------------------------------
-COMEX_NCM_FILE = {'2451': 'Comex_2451_NCM7325.csv', '2452': 'Comex_2452_NCM_NaoFerrosos.csv'}
-# UF por NCM de fundição, quando já disponível (igual o painel).
-COMEX_NCM_UF_FILE = {'2451': 'Comex_2451_NCM7325_UF.csv', '2452': 'Comex_2452_NCM_NaoFerrosos_UF.csv'}
-
-
-def build_comex_download(cnae, label):
+def build_comex_download(cfg):
+    cnae, label = cfg['codigo'], cfg['rotulo']
+    rotulo = cfg.get('rotulo_arquivo', ROTULO_ARQUIVO)
+    cesta = f"Cesta de NCMs do segmento: {cfg['cesta_ncm']}"
     wb = _new_workbook()
-    _add_sheet(wb, 'Balanca (NCM fundicao)', _read(COMEX_NCM_FILE[cnae]),
-               title=f'Comércio exterior — Balança comercial (extração NCM) — {label}',
-               note='Fonte: Comex Stat/MDIC, extração por NCM específica de fundição (ver painel para a lista de NCMs usada).')
-    if cnae in COMEX_NCM_UF_FILE:
-        _add_sheet(wb, 'UF (NCM fundicao)', _read(COMEX_NCM_UF_FILE[cnae]),
-                   title=f'Comércio exterior — UF de origem, extração NCM — {label}',
-                   note='Mesmos NCMs de fundição da aba "Balanca" — usada no ranking por UF do painel.')
-    else:
-        _add_sheet(wb, 'UF (base ampla)', _read(f'Comex_Exportacao_Importacao_{cnae}.csv'),
-                   title=f'Comércio exterior — UF de origem (base ampla) — {label}',
-                   note='Base mais ampla que a aba "Balanca" (não restrita ao NCM de fundição) — usada no ranking por UF do painel enquanto não há extração por NCM com essa abertura pra este setor.')
-    _add_sheet(wb, 'Pais (base ampla)', _read(f'Comex_Exportacao_Importacao_{cnae}.csv'),
-               title=f'Comércio exterior — País parceiro (base ampla) — {label}',
-               note='Base mais ampla que a aba "Balanca" (não restrita ao NCM de fundição) — usada no ranking por país do painel.')
-    _add_sheet(wb, 'Comtrade mundial', _read(f'Comtrade_Global_Fundicao_{cnae}.csv'),
+    _add_sheet(wb, 'Balanca por NCM', _read(f'Comex_{cnae}_NCM.csv'),
+               title=f'Comércio exterior — Balança comercial por NCM — {label}',
+               note=f'Fonte: Comex Stat/MDIC. {cesta}')
+    _add_sheet(wb, 'UF por NCM', _read(f'Comex_{cnae}_NCM_UF.csv'),
+               title=f'Comércio exterior — UF de origem, por NCM — {label}',
+               note='Mesma cesta de NCMs da aba "Balanca por NCM" — usada no ranking por UF do painel.')
+    _add_sheet(wb, 'Pais parceiro', _read(f'Comex_Exportacao_Importacao_{cnae}.csv'),
+               title=f'Comércio exterior — País parceiro e UF — {label}',
+               note='Mesma cesta de NCMs, aberta por país — usada no ranking por país do painel.')
+    _add_sheet(wb, 'Comtrade mundial', _read(f'Comtrade_Global_{rotulo}_{cnae}.csv'),
                title=f'Comércio mundial (Comtrade, proxy por HS) — {label}',
                note='Contexto global — classificação por código HS como proxy do CNAE, não é o número oficial de comércio exterior do Brasil (ver Comex/MDIC pra isso).')
     _save(wb, f'Comercio_Exterior_{cnae}.xlsx')
@@ -266,27 +241,29 @@ def build_comex_download(cnae, label):
 # ---------------------------------------------------------------------------
 # 06 — BNDES (por setor)
 # ---------------------------------------------------------------------------
-def build_bndes_download(cnae, label):
+def build_bndes_download(cfg):
+    cnae = cfg['codigo']
+    df = _read(f'BNDES_Desembolsos_{cnae}.csv')
     wb = _new_workbook()
-    _add_sheet(wb, 'Desembolsos', _read(f'BNDES_Desembolsos_{cnae}.csv'),
-               title=f'BNDES — Desembolsos — {label}',
-               note='Fonte: BNDES, 2002-2026.')
+    _add_sheet(wb, 'Desembolsos', df,
+               title=f"BNDES — Desembolsos — {cfg['rotulo']}",
+               note=f"Fonte: BNDES, {int(df['Ano'].min())}-{int(df['Ano'].max())}. Valores em R$ correntes.")
     _save(wb, f'BNDES_{cnae}.xlsx')
 
 
 # ---------------------------------------------------------------------------
-# 07 — DECOM (só ferro e aço, 2451)
+# 07 — DECOM (bloco opcional, só se config_painel.json apontar o arquivo)
 # ---------------------------------------------------------------------------
-def build_decom_download():
+def build_decom_download(arquivo):
     wb = _new_workbook()
-    _add_sheet(wb, 'Processos', _read('decom_fundicao_processos_2451.csv'),
-               title='DECOM — Processos de defesa comercial — Ferro e aço (2451)',
-               note='Fonte: DECOM/GECEX. Não há processos catalogados para não ferrosos (2452) nesta base.')
-    _save(wb, 'DECOM_2451.xlsx')
+    _add_sheet(wb, 'Processos', _read(arquivo),
+               title='DECOM — Processos de defesa comercial',
+               note='Fonte: DECOM/GECEX.')
+    _save(wb, 'DECOM.xlsx')
 
 
 # ---------------------------------------------------------------------------
-# Energia Industrial (view própria, não varia por setor 2451/2452)
+# Energia Industrial (view própria, comum a todos os painéis setoriais)
 # ---------------------------------------------------------------------------
 def build_energia_download():
     wb = _new_workbook()
@@ -336,12 +313,14 @@ def build_all_downloads():
     print('Gerando planilhas de download (data/downloads/)...')
     build_producao_download()
     build_financeiro_download()
-    for cnae, label in [('2451', 'Ferro e aço'), ('2452', 'Não ferrosos')]:
-        build_emprego_download(cnae, label)
-        build_caged_download(cnae, label)
-        build_comex_download(cnae, label)
-        build_bndes_download(cnae, label)
-    build_decom_download()
+    for cfg in CNAES:
+        build_emprego_download(cfg)
+        build_caged_download(cfg)
+        build_comex_download(cfg)
+        build_bndes_download(cfg)
+    decom = CONFIG.get('blocos_opcionais', {}).get('decom')
+    if decom:
+        build_decom_download(decom)
     build_energia_download()
 
 
