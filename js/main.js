@@ -1605,7 +1605,7 @@
   // blocos opcionais (DECOM) podem não existir.
   function buildSectorNav() {
     $('#sector-tabs').innerHTML = cfg().cnaes.map(c =>
-      `<button type="button" data-view="${c.codigo}" role="tab" aria-selected="false">${c.rotulo} (${c.codigo})</button>`).join('');
+      `<button type="button" data-view="${c.codigo}" role="tab" aria-selected="false"><span class="sector-tab-nome">${c.rotulo}</span><span class="sector-tab-cnae">${c.codigo}</span></button>`).join('');
     $('#exec-seg-toggle').innerHTML = cfg().cnaes.map(c =>
       `<button type="button" class="exec-seg-btn" data-seg="${c.codigo}" role="tab">${c.rotulo_exec}</button>`).join('');
     const metas = secoesVisiveis();
