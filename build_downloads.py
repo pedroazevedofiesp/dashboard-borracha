@@ -12,8 +12,8 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
-from build_data import (CNAES, CONFIG, ROTULO_ARQUIVO, SETOR, SLUG, UF_REGIAO, build_fator_ipca, build_macro,
-                        tarifa_industrial_regiao_ano)
+from build_data import (CNAES, CONFIG, ROTULO_ARQUIVO, SETOR, SETORES, SLUG, UF_REGIAO, build_fator_ipca,
+                        build_macro, tarifa_industrial_regiao_ano)
 
 ROOT = Path(__file__).resolve().parent
 SRC_DIR = ROOT / '3_Dados_Tratados_CSV'
@@ -174,27 +174,58 @@ def build_financeiro_download():
 
 
 # ---------------------------------------------------------------------------
+# Recorte agregado (ex.: "Borracha - Total"): as planilhas trazem as linhas de
+# cada CNAE componente, identificadas na coluna "cnae" — quem baixa vê de onde
+# vem cada número e pode somar como quiser.
+# ---------------------------------------------------------------------------
+def _componentes(cfg):
+    return [str(c) for c in cfg.get('componentes', [cfg['codigo']])]
+
+
+def _rotulo_de(code):
+    c = next((x for x in CNAES if x['codigo'] == code), {})
+    return c.get('rotulo_arquivo', ROTULO_ARQUIVO)
+
+
+def _read_setor(cfg, nome):
+    '''nome(code, rotulo) -> arquivo daquele CNAE. Para um CNAE, lê o arquivo
+    como está; para um agregado, junta os dos componentes com coluna "cnae".'''
+    codes = _componentes(cfg)
+    if len(codes) == 1:
+        return _read(nome(codes[0], _rotulo_de(codes[0])))
+    partes = []
+    for c in codes:
+        df = _read(nome(c, _rotulo_de(c)))
+        df.insert(0, 'cnae', c)
+        partes.append(df)
+    return pd.concat(partes, ignore_index=True)
+
+
+def _nota_agregado(cfg):
+    if len(_componentes(cfg)) == 1:
+        return ''
+    return f" {cfg.get('descricao', '')} Linhas separadas por CNAE (coluna cnae)."
+
+
+# ---------------------------------------------------------------------------
 # 03 — Emprego formal / RAIS (por setor)
 # ---------------------------------------------------------------------------
-def emprego_files(cfg):
-    cnae = cfg['codigo']
-    rotulo = cfg.get('rotulo_arquivo', ROTULO_ARQUIVO)
-    return [
-        (f'Empregos_RAIS_UF_{rotulo}_{cnae}.csv', 'RAIS por UF'),
-        (f'Empregos_RAIS_Tamanho_{rotulo}_{cnae}.csv', 'RAIS por tamanho'),
-        (f'rais_vinc_{SLUG}_escolaridade_{cnae}.csv', 'RAIS escolaridade'),
-        (f'rais_vinc_{SLUG}_massa_{cnae}.csv', 'RAIS massa salarial'),
-        (f'rais_vinc_{SLUG}_ocupacao_{cnae}.csv', 'RAIS ocupacao detalhada'),
-        (f'rais_vinc_{SLUG}_ocupacao_agrupada_{cnae}.csv', 'RAIS ocupacao agrupada'),
-        (f'rais_vinc_{SLUG}_tempo_emprego_{cnae}.csv', 'RAIS tempo de emprego'),
-    ]
+EMPREGO_ARQUIVOS = [
+    (lambda c, r: f'Empregos_RAIS_UF_{r}_{c}.csv', 'RAIS por UF'),
+    (lambda c, r: f'Empregos_RAIS_Tamanho_{r}_{c}.csv', 'RAIS por tamanho'),
+    (lambda c, r: f'rais_vinc_{SLUG}_escolaridade_{c}.csv', 'RAIS escolaridade'),
+    (lambda c, r: f'rais_vinc_{SLUG}_massa_{c}.csv', 'RAIS massa salarial'),
+    (lambda c, r: f'rais_vinc_{SLUG}_ocupacao_{c}.csv', 'RAIS ocupacao detalhada'),
+    (lambda c, r: f'rais_vinc_{SLUG}_ocupacao_agrupada_{c}.csv', 'RAIS ocupacao agrupada'),
+    (lambda c, r: f'rais_vinc_{SLUG}_tempo_emprego_{c}.csv', 'RAIS tempo de emprego'),
+]
 
 
 def build_emprego_download(cfg):
     wb = _new_workbook()
-    for fname, sheet in emprego_files(cfg):
-        _add_sheet(wb, sheet, _read(fname), title=f"Emprego formal (RAIS) — {cfg['rotulo']}",
-                   note='Fonte: RAIS.')
+    for nome, sheet in EMPREGO_ARQUIVOS:
+        _add_sheet(wb, sheet, _read_setor(cfg, nome), title=f"Emprego formal (RAIS) — {cfg['rotulo']}",
+                   note='Fonte: RAIS.' + _nota_agregado(cfg))
     _save(wb, f"Emprego_{cfg['codigo']}.xlsx")
 
 
@@ -210,8 +241,8 @@ def build_caged_download(cfg):
         (f'caged_{SLUG}_tipo_movimentacao_mensal_cnae.csv', 'CAGED tipo movimentacao'),
     ]:
         df = _read(fname)
-        df = df[df['cnae_subclasse'].astype(str).str.strip() == cnae].reset_index(drop=True)
-        _add_sheet(wb, sheet, df, title=f'CAGED — {label}', note='Fonte: CAGED/Novo CAGED.')
+        df = df[df['cnae_subclasse'].astype(str).str.strip().isin(_componentes(cfg))].reset_index(drop=True)
+        _add_sheet(wb, sheet, df, title=f'CAGED — {label}', note='Fonte: CAGED/Novo CAGED.' + _nota_agregado(cfg))
     _save(wb, f'CAGED_{cnae}.xlsx')
 
 
@@ -220,21 +251,24 @@ def build_caged_download(cfg):
 # ---------------------------------------------------------------------------
 def build_comex_download(cfg):
     cnae, label = cfg['codigo'], cfg['rotulo']
-    rotulo = cfg.get('rotulo_arquivo', ROTULO_ARQUIVO)
+    agregado = len(_componentes(cfg)) > 1
     cesta = f"Cesta de NCMs do segmento: {cfg['cesta_ncm']}"
     wb = _new_workbook()
-    _add_sheet(wb, 'Balanca por NCM', _read(f'Comex_{cnae}_NCM.csv'),
+    _add_sheet(wb, 'Balanca por NCM', _read_setor(cfg, lambda c, r: f'Comex_{c}_NCM.csv'),
                title=f'Comércio exterior — Balança comercial por NCM — {label}',
-               note=f'Fonte: Comex Stat/MDIC. {cesta}')
-    _add_sheet(wb, 'UF por NCM', _read(f'Comex_{cnae}_NCM_UF.csv'),
+               note=f'Fonte: Comex Stat/MDIC. {cesta}' + _nota_agregado(cfg))
+    _add_sheet(wb, 'UF por NCM', _read_setor(cfg, lambda c, r: f'Comex_{c}_NCM_UF.csv'),
                title=f'Comércio exterior — UF de origem, por NCM — {label}',
                note='Mesma cesta de NCMs da aba "Balanca por NCM" — usada no ranking por UF do painel.')
-    _add_sheet(wb, 'Pais parceiro', _read(f'Comex_Exportacao_Importacao_{cnae}.csv'),
+    _add_sheet(wb, 'Pais parceiro', _read_setor(cfg, lambda c, r: f'Comex_Exportacao_Importacao_{c}.csv'),
                title=f'Comércio exterior — País parceiro e UF — {label}',
                note='Mesma cesta de NCMs, aberta por país — usada no ranking por país do painel.')
-    _add_sheet(wb, 'Comtrade mundial', _read(f'Comtrade_Global_{rotulo}_{cnae}.csv'),
-               title=f'Comércio mundial (Comtrade, proxy por HS) — {label}',
-               note='Contexto global — classificação por código HS como proxy do CNAE, não é o número oficial de comércio exterior do Brasil (ver Comex/MDIC pra isso).')
+    # Comtrade do agregado ficaria com ~780 mil linhas (~38 MB) e repetiria o
+    # que já está nas planilhas de cada segmento: só nas planilhas por CNAE.
+    if not agregado:
+        _add_sheet(wb, 'Comtrade mundial', _read(f'Comtrade_Global_{_rotulo_de(cnae)}_{cnae}.csv'),
+                   title=f'Comércio mundial (Comtrade, proxy por HS) — {label}',
+                   note='Contexto global — classificação por código HS como proxy do CNAE, não é o número oficial de comércio exterior do Brasil (ver Comex/MDIC pra isso).')
     _save(wb, f'Comercio_Exterior_{cnae}.xlsx')
 
 
@@ -243,11 +277,11 @@ def build_comex_download(cfg):
 # ---------------------------------------------------------------------------
 def build_bndes_download(cfg):
     cnae = cfg['codigo']
-    df = _read(f'BNDES_Desembolsos_{cnae}.csv')
+    df = _read_setor(cfg, lambda c, r: f'BNDES_Desembolsos_{c}.csv')
     wb = _new_workbook()
     _add_sheet(wb, 'Desembolsos', df,
                title=f"BNDES — Desembolsos — {cfg['rotulo']}",
-               note=f"Fonte: BNDES, {int(df['Ano'].min())}-{int(df['Ano'].max())}. Valores em R$ correntes.")
+               note=f"Fonte: BNDES, {int(df['Ano'].min())}-{int(df['Ano'].max())}. Valores em R$ correntes." + _nota_agregado(cfg))
     _save(wb, f'BNDES_{cnae}.xlsx')
 
 
@@ -313,7 +347,7 @@ def build_all_downloads():
     print('Gerando planilhas de download (data/downloads/)...')
     build_producao_download()
     build_financeiro_download()
-    for cfg in CNAES:
+    for cfg in SETORES:
         build_emprego_download(cfg)
         build_caged_download(cfg)
         build_comex_download(cfg)

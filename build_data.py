@@ -24,6 +24,10 @@ SETOR = CONFIG['setor']
 SLUG = SETOR['slug']                    # rais_vinc_{slug}_..., caged_{slug}_...
 ROTULO_ARQUIVO = SETOR['rotulo_arquivo']  # Empregos_RAIS_UF_{rotulo}_..., Comtrade_Global_{rotulo}_...
 CNAES = CONFIG['cnaes']
+# Recorte opcional que soma vários CNAEs (ex.: "Borracha - Total" = 2212 + 2219).
+AGREGADO = CONFIG.get('agregado')
+# Todos os recortes do painel: o agregado (se houver) primeiro, depois os CNAEs.
+SETORES = ([AGREGADO] if AGREGADO else []) + CNAES
 
 
 # ---------------------------------------------------------------------------
@@ -447,8 +451,7 @@ def build_energia_industrial(macro_rows):
 # ---------------------------------------------------------------------------
 # Por setor (um bloco por CNAE de config_painel.json)
 # ---------------------------------------------------------------------------
-def latest_breakdown(file):
-    df = read_csv(file)
+def latest_breakdown(df):
     ano_max = int(df['ano'].max())
     sub = df[(df['ano'] == ano_max) & (~is_true_col(df['is_total']))]
     items = [{'categoria': r.categoria, 'frequencia': to_int(r.frequencia)} for r in sub.itertuples(index=False)]
@@ -458,13 +461,33 @@ def latest_breakdown(file):
 
 def build_sector(cfg, fator_brl_2023):
     cnae, label = cfg['codigo'], cfg['rotulo']
-    # Prefixo dos arquivos Empregos_RAIS_*/Comtrade_Global_*: o do setor, ou
-    # um por CNAE se o config definir (a fundição usava Ferro_Aco/Nao_Ferrosos).
-    rotulo = cfg.get('rotulo_arquivo', ROTULO_ARQUIVO)
-    print(f'  Setor {cnae} ({label})...')
+    # Um recorte é um CNAE ou a soma de vários (agregado, com 'componentes').
+    # Os arquivos são sempre por CNAE: lê os de cada componente e soma.
+    codes = [str(c) for c in cfg.get('componentes', [cnae])]
+    somando = len(codes) > 1
+    print(f'  Setor {cnae} ({label}{", soma de " + " + ".join(codes) if somando else ""})...')
+
+    def rotulo_de(code):
+        # Prefixo dos arquivos Empregos_RAIS_*/Comtrade_Global_*: o do setor, ou
+        # um por CNAE se o config definir (a fundição usava Ferro_Aco/Nao_Ferrosos).
+        c = next((x for x in CNAES if x['codigo'] == code), {})
+        return c.get('rotulo_arquivo', ROTULO_ARQUIVO)
+
+    def read_multi(nome):
+        # nome(code, rotulo) -> nome do arquivo daquele CNAE
+        return pd.concat([read_csv(nome(c, rotulo_de(c))) for c in codes], ignore_index=True)
+
+    def somar(df, chaves, valores):
+        # Só agrega quando há mais de um CNAE (para um CNAE só, o dado fica
+        # exatamente como na fonte). sort=False mantém a ordem original das
+        # categorias (faixas de tamanho, por exemplo).
+        if not somando:
+            return df
+        return df.groupby(chaves, as_index=False, sort=False)[valores].sum()
 
     # --- RAIS: estabelecimentos/vínculos por UF, anual ---
-    rais_df = read_csv(f'Empregos_RAIS_UF_{rotulo}_{cnae}.csv')
+    rais_df = somar(read_multi(lambda c, r: f'Empregos_RAIS_UF_{r}_{c}.csv'),
+                    ['Ano', 'UF'], ['Estabelecimentos', 'Vinculos'])
     uf_yearly = []
     for r in rais_df.itertuples(index=False):
         ufi = resolve_uf(r.UF)
@@ -478,7 +501,8 @@ def build_sector(cfg, fator_brl_2023):
     ], key=lambda r: r['ano'])
 
     # --- RAIS por porte ---
-    tam_df = read_csv(f'Empregos_RAIS_Tamanho_{rotulo}_{cnae}.csv')
+    tam_df = somar(read_multi(lambda c, r: f'Empregos_RAIS_Tamanho_{r}_{c}.csv'),
+                   ['Ano', 'Faixa_Tamanho'], ['Estabelecimentos', 'Vinculos'])
     tamanho_yearly = sorted([
         {'ano': to_int(r.Ano), 'faixa': r.Faixa_Tamanho, 'estabelecimentos': to_int(r.Estabelecimentos),
          'vinculos': to_int(r.Vinculos)}
@@ -486,13 +510,17 @@ def build_sector(cfg, fator_brl_2023):
     ], key=lambda r: r['ano'])
 
     # --- Perfis detalhados RAIS (retrato do último ano) ---
-    escolaridade_latest = latest_breakdown(f'rais_vinc_{SLUG}_escolaridade_{cnae}.csv')
-    ocupacao_agrupada_latest = latest_breakdown(f'rais_vinc_{SLUG}_ocupacao_agrupada_{cnae}.csv')
-    ocupacao_detalhada_latest = latest_breakdown(f'rais_vinc_{SLUG}_ocupacao_{cnae}.csv')
-    tempo_emprego_latest = latest_breakdown(f'rais_vinc_{SLUG}_tempo_emprego_{cnae}.csv')
+    def rais_vinc(perfil):
+        df = read_multi(lambda c, r: f'rais_vinc_{SLUG}_{perfil}_{c}.csv')
+        return somar(df, ['ano', 'categoria', 'is_total'], ['frequencia'])
+
+    esc_df = rais_vinc('escolaridade')
+    escolaridade_latest = latest_breakdown(esc_df)
+    ocupacao_agrupada_latest = latest_breakdown(rais_vinc('ocupacao_agrupada'))
+    ocupacao_detalhada_latest = latest_breakdown(rais_vinc('ocupacao'))
+    tempo_emprego_latest = latest_breakdown(rais_vinc('tempo_emprego'))
 
     # --- Escolaridade como série completa (para área empilhada) ---
-    esc_df = read_csv(f'rais_vinc_{SLUG}_escolaridade_{cnae}.csv')
     esc_full = esc_df[(~is_true_col(esc_df['is_total'])) & (esc_df['categoria'] != 'Total')]
     escolaridade_yearly = sorted([
         {'ano': to_int(r.ano), 'categoria': r.categoria, 'frequencia': to_int(r.frequencia)}
@@ -500,7 +528,11 @@ def build_sector(cfg, fator_brl_2023):
     ], key=lambda r: r['ano'])
 
     # --- Remuneração (massa salarial) ---
-    massa_df = read_csv(f'rais_vinc_{SLUG}_massa_{cnae}.csv')
+    massa_df = read_multi(lambda c, r: f'rais_vinc_{SLUG}_massa_{c}.csv')
+    if somando:
+        # Remuneração média da soma = massa total / vínculos (não a média das médias).
+        massa_df = somar(massa_df, ['ano', 'categoria', 'is_total'], ['frequencia', 'vl_remun_dezembro_nom'])
+        massa_df['remuneracao_media_nominal'] = massa_df['vl_remun_dezembro_nom'] / massa_df['frequencia']
     massa_ano_max = int(massa_df['ano'].max())
     massa_latest = massa_df[massa_df['ano'] == massa_ano_max]
     massa_latest_total_mask = is_true_col(massa_latest['is_total'])
@@ -528,7 +560,7 @@ def build_sector(cfg, fator_brl_2023):
     # --- CAGED (2008-2019, por UF) ---
     def load_caged(file):
         df = read_csv(file)
-        df = df[df['cnae_subclasse'].astype(str).str.strip() == cnae]
+        df = df[df['cnae_subclasse'].astype(str).str.strip().isin(codes)]
         return df[df['Competencia'] != 'Total'].copy()
 
     def with_competencia(df):
@@ -599,7 +631,7 @@ def build_sector(cfg, fator_brl_2023):
         ], key=lambda x: (x['ano'] * 100 + x['mes'], x['uf']))
 
     tipomov_all = read_csv(f'caged_{SLUG}_tipo_movimentacao_mensal_cnae.csv')
-    tipomov_all = tipomov_all[tipomov_all['cnae_subclasse'].astype(str).str.strip() == cnae]
+    tipomov_all = tipomov_all[tipomov_all['cnae_subclasse'].astype(str).str.strip().isin(codes)]
     tipomov_monthly_src = with_competencia(tipomov_all[tipomov_all['Competencia'] != 'Total'].copy())
     tipomov_monthly_src['Quantidade'] = pd.to_numeric(tipomov_monthly_src['Quantidade'], errors='coerce')
     tipo_movimentacao_monthly = []
@@ -619,7 +651,7 @@ def build_sector(cfg, fator_brl_2023):
     ]
 
     # --- Comércio exterior (Comex Brasil) ---
-    comex_df = read_csv(f'Comex_Exportacao_Importacao_{cnae}.csv')
+    comex_df = read_multi(lambda c, r: f'Comex_Exportacao_Importacao_{c}.csv')
     comex_df['Valor_US_FOB'] = pd.to_numeric(comex_df['Valor_US_FOB'], errors='coerce')
     comex_df['Quilograma_Liquido'] = pd.to_numeric(comex_df['Quilograma_Liquido'], errors='coerce')
 
@@ -628,7 +660,7 @@ def build_sector(cfg, fator_brl_2023):
     # definida em Setor <Nome>/2_Scripts/config_setor.R e descrita na nota
     # metodológica do painel). Ranking por país usa
     # Comex_Exportacao_Importacao_{cnae}.csv, que tem a abertura por país.
-    ncm_df = read_csv(f'Comex_{cnae}_NCM.csv')
+    ncm_df = read_multi(lambda c, r: f'Comex_{c}_NCM.csv')
     ncm_df['Fluxo'] = ncm_df['Fluxo'].astype(str).str.strip()
     ncm_df['Valor_US_FOB'] = pd.to_numeric(ncm_df['Valor_US_FOB'], errors='coerce')
     ncm_df['Quilograma_Liquido'] = pd.to_numeric(ncm_df['Quilograma_Liquido'], errors='coerce')
@@ -664,7 +696,7 @@ def build_sector(cfg, fator_brl_2023):
             row['saldo_brl_2023'] = None
 
     # Ranking por UF: mesma extração por NCM, aberta por UF.
-    uf_df = read_csv(f'Comex_{cnae}_NCM_UF.csv')
+    uf_df = read_multi(lambda c, r: f'Comex_{c}_NCM_UF.csv')
     uf_df['Fluxo'] = uf_df['Fluxo'].astype(str).str.strip()
     uf_df['Valor_US_FOB'] = pd.to_numeric(uf_df['Valor_US_FOB'], errors='coerce')
 
@@ -804,7 +836,7 @@ def build_sector(cfg, fator_brl_2023):
         }
 
     # --- Comtrade global (agregação pesada: ~250k linhas) ---
-    ct_df = read_csv(f'Comtrade_Global_{rotulo}_{cnae}.csv')
+    ct_df = read_multi(lambda c, r: f'Comtrade_Global_{r}_{c}.csv')
     ct_df['Valor_US_FOB'] = pd.to_numeric(ct_df['Valor_US_FOB'], errors='coerce')
 
     ct_bw = ct_df[(ct_df['Reporter'] == 'Brazil') & (ct_df['Partner'] == 'World')]
@@ -836,7 +868,7 @@ def build_sector(cfg, fator_brl_2023):
     comtrade = {'brazil_yearly': brazil_yearly, 'world_yearly': world_yearly, 'top_partners_latest': top_partners_latest}
 
     # --- BNDES ---
-    bndes_df = read_csv(f'BNDES_Desembolsos_{cnae}.csv')
+    bndes_df = read_multi(lambda c, r: f'BNDES_Desembolsos_{c}.csv')
     bndes_df['UF'] = bndes_df['UF'].astype(str).str.strip()
     bndes_df['Valor_Contratado'] = pd.to_numeric(bndes_df['Valor_Contratado'], errors='coerce')
     bndes_df['Valor_Desembolsado'] = pd.to_numeric(bndes_df['Valor_Desembolsado'], errors='coerce')
@@ -923,7 +955,16 @@ def main():
     decom = build_decom(CONFIG.get('blocos_opcionais', {}).get('decom'))
     energia_industrial = build_energia_industrial(macro)
 
-    sectors = {c['codigo']: build_sector(c, fator_brl_2023) for c in CNAES}
+    sectors = {c['codigo']: build_sector(c, fator_brl_2023) for c in SETORES}
+    if AGREGADO:
+        # PIA 2024 por classe: o agregado é a soma das linhas dos componentes.
+        comp = [r for r in fin_por_cnae if r['cnae'] in AGREGADO['componentes']]
+        soma = {'ano': comp[0]['ano'], 'cnae': AGREGADO['codigo']}
+        for k in comp[0]:
+            if k not in soma:
+                vals = [r[k] for r in comp]
+                soma[k] = None if any(v is None for v in vals) else sum(vals)
+        fin_por_cnae.append(soma)
 
     uf_lista = sorted(({'uf': uf, 'nome': nome} for _, uf, nome in UF_TABLE), key=lambda x: x['nome'])
 

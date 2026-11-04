@@ -8,6 +8,8 @@ borracha no Brasil, em dois recortes alternáveis:
 | 22.12-9 (2212) | Reforma de pneumáticos | Reforma de pneumáticos usados |
 | 22.19-6 (2219) | Artefatos de borracha | Fabricação de artefatos de borracha não especificados anteriormente |
 
+Há também o recorte **Borracha - Total** (2212 + 2219), que soma os dados de origem dos dois CNAEs (bloco `agregado` do `config_painel.json`; em `data.json`, `sectors["total"]`). As cestas de NCM dos dois não se sobrepõem, então a soma não tem dupla contagem.
+
 Pneus novos (CNAE 2211) não fazem parte do escopo. Blocos: produção física
 (índice IBGE), financeiro (PIA), emprego formal (RAIS), CAGED, comércio
 exterior (Comex Stat e Comtrade), BNDES, estudos especiais e energia industrial

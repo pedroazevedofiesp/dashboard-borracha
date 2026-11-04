@@ -38,6 +38,19 @@
       "cesta_ncm": "56 NCMs dos capítulos 40 e 59: borracha regenerada e desperdícios (4003, 4004), misturas e formas não vulcanizadas (4005, 4006.90), fios e cordas vulcanizados (4007), chapas e perfis (4008), tubos e mangueiras (4009), correias transportadoras e de transmissão (4010), artigos de higiene e farmácia (4014), outras obras de borracha vulcanizada (4016, exceto 4016.92), borracha endurecida (4017) e tecidos com borracha (5906). No Comtrade: HS4 quando todas as NCMs do HS4 estão na cesta; senão, os HS6 correspondentes."
     }
   ],
+  "agregado": {
+    "_comentario": "Recorte extra = soma dos CNAEs listados em componentes. build_data.py soma os dados de origem (RAIS, CAGED, Comex, Comtrade, BNDES, PIA 2024); as cestas de NCM dos componentes não se sobrepõem, então não há dupla contagem. Remova este bloco para não ter o recorte total.",
+    "codigo": "total",
+    "componentes": ["2212", "2219"],
+    "cnae": "22.12-9 + 22.19-6",
+    "rotulo": "Borracha - Total",
+    "rotulo_exec": "Borracha - Total",
+    "rotulo_curto_codigo": "2212+2219",
+    "descricao": "Soma dos dois segmentos do painel: Reforma de pneumáticos (CNAE 22.12-9) e Artefatos de borracha (CNAE 22.19-6). Não inclui a fabricação de pneus novos (CNAE 22.11-1).",
+    "comex_residual": false,
+    "nota_comex": "",
+    "cesta_ncm": "soma das cestas dos dois segmentos — pneumáticos recauchutados (NCMs 4012.11 a 4012.19) da reforma de pneumáticos e as 56 NCMs dos capítulos 40 e 59 de artefatos de borracha. As cestas não se sobrepõem."
+  },
   "blocos_opcionais": {
     "decom": null
   }

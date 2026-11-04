@@ -80,11 +80,22 @@
   // config_painel.json, repassado pelo build_data.py em meta.config.
   function cfg() { return state.data.meta.config; }
   function setorCfg() { return cfg().setor; }
+  // CNAEs reais (cada um com seus arquivos) e recortes do painel: o agregado
+  // opcional (ex.: "Borracha - Total", soma dos CNAEs) vem primeiro.
   function cnaeCodigos() { return cfg().cnaes.map(c => c.codigo); }
-  function cnaeCfg(codigo) { return cfg().cnaes.find(c => c.codigo === (codigo || state.sector)); }
-  function rotuloCnae(codigo) { const c = cnaeCfg(codigo); return c ? `${c.rotulo} (${c.codigo})` : codigo; }
+  function setores() { return (cfg().agregado ? [cfg().agregado] : []).concat(cfg().cnaes); }
+  function cnaeCfg(codigo) { return setores().find(c => c.codigo === (codigo || state.sector)); }
+  function codigoCurto(c) { return c.rotulo_curto_codigo || c.codigo; }
+  function rotuloCnae(codigo) { const c = cnaeCfg(codigo); return c ? `${c.rotulo} (${codigoCurto(c)})` : codigo; }
   function rotulosTodos() { return cfg().cnaes.map(c => rotuloCnae(c.codigo)).join(' e '); }
-  function isSectorView(view) { return cnaeCodigos().includes(view); }
+  function isSectorView(view) { return setores().some(c => c.codigo === view); }
+  // Frase que diz o que é o recorte: a definição do CNAE ou, no agregado,
+  // quais CNAEs ele soma.
+  function descricaoSetor(codigo) {
+    const c = cnaeCfg(codigo);
+    if (!c) return '';
+    return c.componentes ? c.descricao : `CNAE ${c.cnae} — ${c.descricao}.`;
+  }
   function temDecom() { return (shared().decom || []).length > 0; }
   // Média anual do índice de produção (só anos com 12 meses, pra não comparar
   // ano parcial com ano fechado).
@@ -1270,6 +1281,7 @@
       `Dados financeiros (PIA/IBGE): o grupo ${sc.grupo_cnae} (${sc.grupo_descricao.toLowerCase()}) reúne todos os segmentos sem abertura entre eles; é usado nos dois recortes com a mesma ressalva. ${sc.grupo_nota || ''} A abertura por classe CNAE só existe para 2024 (série nova do IBGE).`,
       `Produção física: ${sc.producao_descricao}`,
       ...cfg().cnaes.map(c => `Cesta de produtos de ${rotuloCnae(c.codigo)}: ${c.cesta_ncm} Não existe correspondência oficial entre atividade (CNAE) e produto (NCM); a cesta é uma escolha metodológica.${c.comex_residual ? ' ' + c.nota_comex : ''}`),
+      ...(cfg().agregado ? [`${cfg().agregado.rotulo}: ${cfg().agregado.descricao} Os valores são a soma dos dados de origem dos segmentos (vínculos, estabelecimentos, comércio exterior, BNDES, PIA 2024); a remuneração média é a massa salarial total dividida pelo total de vínculos.`] : []),
       'Comtrade: o total mundial de importações aparece bem abaixo das exportações porque só entra o valor FOB e muitos países declaram importação em CIF; por isso o painel usa a exportação para dimensionar o comércio mundial.',
     ];
     $('#referencias-limitacoes-setor').innerHTML = lim.map(t => `<p class="pdi-note">• ${t}</p>`).join('');
@@ -1604,9 +1616,9 @@
   // Também numera as seções (01, 02...) na ordem em que aparecem, já que
   // blocos opcionais (DECOM) podem não existir.
   function buildSectorNav() {
-    $('#sector-tabs').innerHTML = cfg().cnaes.map(c =>
-      `<button type="button" data-view="${c.codigo}" role="tab" aria-selected="false"><span class="sector-tab-nome">${c.rotulo}</span><span class="sector-tab-cnae">${c.codigo}</span></button>`).join('');
-    $('#exec-seg-toggle').innerHTML = cfg().cnaes.map(c =>
+    $('#sector-tabs').innerHTML = setores().map(c =>
+      `<button type="button" data-view="${c.codigo}" role="tab" aria-selected="false" title="${descricaoSetor(c.codigo)}"><span class="sector-tab-nome">${c.rotulo}</span><span class="sector-tab-cnae">${codigoCurto(c)}</span></button>`).join('');
+    $('#exec-seg-toggle').innerHTML = setores().map(c =>
       `<button type="button" class="exec-seg-btn" data-seg="${c.codigo}" role="tab">${c.rotulo_exec}</button>`).join('');
     const metas = secoesVisiveis();
     $('#section-nav').innerHTML = metas.map(m =>
@@ -1725,6 +1737,7 @@
       .map(m => ({ ...m, num: m.semNumero ? '·' : String(++n).padStart(2, '0') }));
   }
   function renderSectorSummary() {
+    $('#sector-desc').textContent = descricaoSetor(state.sector);
     $('#sector-section-list').innerHTML = secoesVisiveis().map(sec => `<button type="button" class="sector-section-row" data-target="${sec.target}"><span class="ssr-num">${sec.num}</span><span class="ssr-text"><span class="ssr-title">${sec.title}</span><span class="ssr-sub">${sec.sub}</span></span><span class="ssr-arrow">↓</span></button>`).join('');
     $('#sector-section-list').querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => scrollToBlock(btn.dataset.target)));
   }
@@ -1827,6 +1840,7 @@
 
     const sd = state.data.sectors[execSector];
     const sh = shared();
+    $('#exec-seg-desc').textContent = descricaoSetor(execSector);
     const { atual: empregoAtual, anterior: empregoAnterior } = ultimosDoisAnosFechados(sd.rais.uf_yearly_total);
     const { atual: comexAtual, anterior: comexAnterior } = ultimosDoisAnosFechados(sd.comex.yearly);
     const finRow = sh.financeiro.por_cnae_2024.find(r => r.cnae === execSector);
@@ -2046,7 +2060,7 @@
     .then(r => r.json())
     .then(data => {
       state.data = data;
-      state.sector = cnaeCodigos()[0];
+      state.sector = setores()[0].codigo;
       buildSectorNav();
       initBlocks();
       setupBlockFilters();

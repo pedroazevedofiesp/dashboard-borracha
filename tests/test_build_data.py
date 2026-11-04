@@ -14,7 +14,8 @@ sys.path.insert(0, str(ROOT))
 
 import build_data  # noqa: E402
 
-CNAES = [c['codigo'] for c in build_data.CNAES]
+CNAES = [c['codigo'] for c in build_data.SETORES]  # CNAEs + recorte agregado (se houver)
+AGREGADO = build_data.AGREGADO
 
 
 @pytest.fixture(scope='module')
@@ -31,7 +32,7 @@ def test_top_level_schema(data):
 
 def test_config_repassado_ao_json(data):
     cfg = data['meta']['config']
-    assert [c['codigo'] for c in cfg['cnaes']] == CNAES
+    assert [c['codigo'] for c in cfg['cnaes']] == [c['codigo'] for c in build_data.CNAES]
     for c in cfg['cnaes']:
         assert c['rotulo'] and c['rotulo_exec'] and c['cesta_ncm']
 
@@ -173,3 +174,30 @@ def test_energia_industrial_composicao_por_uf(data, uf):
     assert len(by_month) > 0
     for valores in by_month.values():
         assert len(valores) == 24
+
+
+@pytest.mark.skipif(not AGREGADO, reason='painel sem recorte agregado')
+def test_agregado_e_a_soma_dos_componentes(data):
+    # "Borracha - Total" tem de bater exatamente com a soma dos segmentos.
+    tot = data['sectors'][AGREGADO['codigo']]
+    comps = [data['sectors'][c] for c in AGREGADO['componentes']]
+
+    def por_ano(s, bloco, serie, campo):
+        return {r['ano']: r[campo] for r in s[bloco][serie]}
+
+    for bloco, serie, campo in [('rais', 'uf_yearly_total', 'vinculos'),
+                                ('rais', 'uf_yearly_total', 'estabelecimentos'),
+                                ('comex', 'yearly', 'exportacao_usd'),
+                                ('comex', 'yearly', 'importacao_usd'),
+                                ('bndes', 'yearly', 'valor_desembolsado')]:
+        t = por_ano(tot, bloco, serie, campo)
+        for ano, v in t.items():
+            soma = sum(por_ano(c, bloco, serie, campo).get(ano, 0) or 0 for c in comps)
+            assert v == pytest.approx(soma), (bloco, serie, campo, ano)
+
+    saldo = lambda s: {(r['ano'], r['mes']): r['saldo'] for r in s['caged']['saldo_monthly_national']}
+    for k, v in saldo(tot).items():
+        assert v == sum(saldo(c).get(k, 0) for c in comps)
+
+    pia = {r['cnae']: r['receita_liquida_total'] for r in data['shared']['financeiro']['por_cnae_2024']}
+    assert pia[AGREGADO['codigo']] == pytest.approx(sum(pia[c] for c in AGREGADO['componentes']))
