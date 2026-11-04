@@ -451,7 +451,7 @@ a:hover { color: var(--accent); }
   padding: 10px 12px;
   font-size: 0.78rem;
   color: #fdffff;
-  max-width: 250px;
+  max-width: 340px;
   opacity: 0;
   transition: opacity .08s;
 }
@@ -460,10 +460,12 @@ a:hover { color: var(--accent); }
   font-weight: 700; color: #fdffff;
   margin-bottom: 5px; font-variant-numeric: tabular-nums; font-size: 0.75rem;
 }
-.chart-tooltip .tt-row { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+/* Rótulo pode quebrar linha; o valor nunca (antes o valor vazava da caixa). */
+.chart-tooltip .tt-row { display: flex; align-items: center; gap: 6px; }
+.chart-tooltip .tt-row > span:not(.tt-key):not(.tt-val) { min-width: 0; }
 .chart-tooltip .tt-row + .tt-row { margin-top: 2px; }
 .chart-tooltip .tt-key { width: 9px; height: 9px; border-radius: 2px; flex-shrink: 0; }
-.chart-tooltip .tt-val { font-weight: 700; color: #fdffff; margin-left: auto; padding-left: 10px; font-variant-numeric: tabular-nums; }
+.chart-tooltip .tt-val { font-weight: 700; color: #fdffff; margin-left: auto; padding-left: 10px; font-variant-numeric: tabular-nums; white-space: nowrap; flex-shrink: 0; }
 
 /* ---------- Data table (BNDES, DECOM) ---------- */
 .data-table-wrap { overflow-x: auto; }
