@@ -851,6 +851,147 @@
   }
 
   // ---------------------------------------------------------------------
+  // Sankey de três colunas (fornecedores -> elo central -> clientes) — Cadeia
+  // Produtiva. opts: { left:[node], right:[node], center:{label,sub},
+  // headers:{left,right}, formatV, onNodeClick(node) }
+  // node: { label, value, color, clickable?, tip?:[{label,value}] }
+  // A espessura de cada faixa é proporcional ao valor; os nós laterais têm
+  // altura mínima (MIN_SLOT) só pra o rótulo caber — a faixa continua fina.
+  // ---------------------------------------------------------------------
+  function quebrarLinhas(texto, max, maxLinhas) {
+    const linhas = [];
+    texto.split(/\s+/).forEach(p => {
+      const atual = linhas[linhas.length - 1];
+      if (atual != null && (atual + ' ' + p).length <= max) linhas[linhas.length - 1] = atual + ' ' + p;
+      else linhas.push(p);
+    });
+    if (linhas.length > maxLinhas) {
+      linhas.length = maxLinhas;
+      linhas[maxLinhas - 1] += '…';
+    }
+    return linhas;
+  }
+
+  function sankeyChart(container, opts) {
+    container.innerHTML = '';
+    const { left, right, center, headers = {}, formatV = fmt.compact, onNodeClick } = opts;
+    if (!left.length || !right.length) {
+      container.innerHTML = '<div class="empty-note">Sem dados disponíveis.</div>';
+      return;
+    }
+    // Proporção larga (1200 x ~500): em monitor largo o SVG estica até a
+    // largura da página, e com 960 de largura ele passava da altura da tela.
+    const width = 1200, labelW = 260, barW = 12, centerW = 26, gap = 8, MIN_SLOT = 30;
+    const bottom = 10, alvoH = 400, LINHA = 18;
+    // O nome do elo central fica numa faixa de cabeçalho, acima de todos os
+    // fluxos (antes ficava colado na barra e, quando ela era curta, caía em
+    // cima das faixas). Nome longo quebra em até 3 linhas de ~24 caracteres.
+    const linhasCentro = quebrarLinhas(center.label.toUpperCase(), 24, 3);
+    const top = 12 + linhasCentro.length * LINHA + 18;
+    const soma = arr => arr.reduce((s, n) => s + Math.max(n.value, 0), 0);
+    const sumL = soma(left), sumR = soma(right);
+    const k = alvoH / Math.max(sumL, sumR);
+
+    function layout(nodes) {
+      let y = 0;
+      const out = nodes.map(n => {
+        const h = Math.max(n.value, 0) * k;
+        const slot = Math.max(h, MIN_SLOT);
+        const node = { ...n, h, slot, y0: y + (slot - h) / 2 };
+        y += slot + gap;
+        return node;
+      });
+      return { nodes: out, total: y - gap };
+    }
+    const L = layout(left), R = layout(right);
+    const colH = Math.max(L.total, R.total, Math.max(sumL, sumR) * k);
+    const height = top + colH + bottom;
+    const offL = top + (colH - L.total) / 2, offR = top + (colH - R.total) / 2;
+    L.nodes.forEach(n => { n.y0 += offL; });
+    R.nodes.forEach(n => { n.y0 += offR; });
+    const cH = Math.max(sumL, sumR) * k, cY = top + (colH - cH) / 2;
+    const xL = labelW, xC = width / 2 - centerW / 2, xR = width - labelW - barW;
+
+    const svg = svgEl('svg', { viewBox: `0 0 ${width} ${height}`, class: 'chart-svg sankey-svg', role: 'img',
+      'aria-label': `${center.label}: fornecedores à esquerda, clientes à direita` });
+
+    function faixa(x0, y0, x1, y1, h) {
+      const xm = (x0 + x1) / 2;
+      return `M${x0},${y0} C${xm},${y0} ${xm},${y1} ${x1},${y1} L${x1},${y1 + h} C${xm},${y1 + h} ${xm},${y0 + h} ${x0},${y0 + h} Z`;
+    }
+    function tip(ev, n) {
+      showTooltip(ev.clientX, ev.clientY, n.label, [{ label: 'Valor', value: formatV(n.value) }, ...(n.tip || [])]);
+    }
+
+    const gFaixas = svgEl('g', {}), gNos = svgEl('g', {});
+    svg.appendChild(gFaixas); svg.appendChild(gNos);
+
+    // Passar o mouse num fluxo apaga os outros: dá pra seguir um caminho só.
+    function focar(p, g, ligado) {
+      svg.classList.toggle('foco', ligado);
+      p.classList.toggle('ativo', ligado);
+      g.classList.toggle('ativo', ligado);
+    }
+
+    function desenharColuna(nodes, lado) {
+      let acc = cY + (cH - (lado === 'L' ? sumL : sumR) * k) / 2;
+      nodes.forEach(n => {
+        const xBar = lado === 'L' ? xL - barW : xR;
+        const path = lado === 'L'
+          ? faixa(xL, n.y0, xC, acc, n.h)
+          : faixa(xC + centerW, acc, xR, n.y0, n.h);
+        acc += n.h;
+        const p = svgEl('path', { d: path, fill: n.color, class: 'sankey-link' });
+        const bar = svgEl('rect', { x: xBar, y: n.y0, width: barW, height: Math.max(n.h, 1.5), fill: n.color });
+        const tx = lado === 'L' ? xBar - 10 : xBar + barW + 10;
+        const ty = n.y0 + n.h / 2;
+        const anchor = lado === 'L' ? 'end' : 'start';
+        const val = svgEl('text', { x: tx, y: ty - 1, 'text-anchor': anchor, class: 'sankey-value' });
+        val.textContent = formatV(n.value);
+        const txt = svgEl('text', { x: tx, y: ty + 14, 'text-anchor': anchor, class: 'sankey-label' });
+        txt.textContent = n.label;
+        const g = svgEl('g', { class: 'sankey-node' + (n.clickable ? ' clickable' : '') });
+        [bar, val, txt].forEach(e => g.appendChild(e));
+        [p, g].forEach(el => {
+          el.addEventListener('mousemove', ev => { tip(ev, n); focar(p, g, true); });
+          el.addEventListener('mouseleave', () => { hideTooltip(); focar(p, g, false); });
+        });
+        if (n.clickable && onNodeClick) {
+          g.setAttribute('tabindex', '0');
+          g.setAttribute('role', 'button');
+          g.setAttribute('aria-label', `Centralizar a cadeia em ${n.label}`);
+          const go = () => { hideTooltip(); onNodeClick(n); };
+          [p, g].forEach(el => el.addEventListener('click', go));
+          p.classList.add('clickable');
+          g.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); go(); } });
+        }
+        gFaixas.appendChild(p);
+        gNos.appendChild(g);
+      });
+    }
+    desenharColuna(L.nodes, 'L');
+    desenharColuna(R.nodes, 'R');
+
+    gNos.appendChild(svgEl('rect', { x: xC, y: cY, width: centerW, height: cH, fill: 'var(--text-primary)' }));
+    linhasCentro.forEach((linha, i) => {
+      const t = svgEl('text', { x: width / 2, y: 12 + i * LINHA + 4, 'text-anchor': 'middle', class: 'sankey-center-label' });
+      t.textContent = linha;
+      gNos.appendChild(t);
+    });
+    // Fio do nome até a barra, por trás dos fluxos.
+    const yFio = 12 + (linhasCentro.length - 1) * LINHA + 12;
+    if (cY - yFio > 4) gFaixas.insertBefore(svgEl('line', { x1: width / 2, x2: width / 2, y1: yFio, y2: cY, class: 'sankey-fio' }), gFaixas.firstChild);
+
+    [[headers.left, xL - barW, 'start'], [headers.right, xR + barW, 'end']].forEach(([t, x, anchor]) => {
+      if (!t) return;
+      const h = svgEl('text', { x, y: 12, 'text-anchor': anchor, class: 'sankey-header' });
+      h.textContent = t;
+      svg.appendChild(h);
+    });
+    container.appendChild(svg);
+  }
+
+  // ---------------------------------------------------------------------
   // Lista ranqueada (barras horizontais em HTML) — países, UFs, categorias
   // ---------------------------------------------------------------------
   function rankList(container, items, opts) {
@@ -889,5 +1030,5 @@
     container.appendChild(ul);
   }
 
-  window.Charts = { lineChart, barChart, hBarChart, dualAxisLineChart, waterfallChart, donutChart, dataTable, rankList, fmt, hideTooltip };
+  window.Charts = { lineChart, barChart, hBarChart, dualAxisLineChart, waterfallChart, donutChart, sankeyChart, dataTable, rankList, fmt, showTooltip, hideTooltip };
 })();

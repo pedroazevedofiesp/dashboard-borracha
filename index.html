@@ -28,6 +28,7 @@
   <nav class="sidebar-nav sidebar-nav-sections" id="section-nav"></nav>
 
   <nav class="sidebar-nav sidebar-nav-foot" id="foot-tabs-top" role="tablist" aria-label="Outras seções">
+    <button type="button" data-view="cadeia" role="tab" aria-selected="false">Cadeia Produtiva</button>
     <button type="button" data-view="energia-industrial" role="tab" aria-selected="false">Energia Industrial</button>
   </nav>
 
@@ -699,6 +700,34 @@
   <p class="dataview-sources">Dados consolidados de fontes públicas (IBGE, RAIS/CAGED, MDIC/Comex Stat, UN Comtrade, BNDES).</p>
 
 </div><!-- /#data-view -->
+
+<!-- ============ CADEIA PRODUTIVA ============ -->
+<div id="cadeia-view" hidden>
+  <header class="cad-cabeca">
+    <div class="cad-chapeu" id="cad-chapeu">Cadeia produtiva</div>
+    <h2 class="cad-titulo" id="cad-titulo"></h2>
+    <p class="cad-linha-fina" id="cad-linha-fina"></p>
+  </header>
+
+  <nav class="cad-elos" id="cad-elos" aria-label="Elos da cadeia"></nav>
+
+  <div class="cad-bloco">
+    <div class="cad-toolbar">
+      <nav class="cadeia-trilha" id="cadeia-trilha" aria-label="Caminho percorrido"></nav>
+      <div class="cadeia-busca">
+        <label for="cadeia-select">Ver a cadeia de</label>
+        <select id="cadeia-select"></select>
+      </div>
+    </div>
+    <div class="cad-sankey-cab">
+      <div class="cad-sankey-titulo" id="cadeia-sankey-title"></div>
+      <div class="cad-sankey-sub" id="cadeia-sankey-sub"></div>
+    </div>
+    <div class="cadeia-sankey-wrap"><div id="cadeia-sankey"></div></div>
+    <p class="cad-resumo" id="cadeia-resumo"></p>
+    <p class="cad-nota" id="cadeia-nota"></p>
+  </div>
+</div><!-- /#cadeia-view -->
 
 <!-- ============ ENERGIA INDUSTRIAL ============ -->
 <div id="energia-industrial-view" hidden>

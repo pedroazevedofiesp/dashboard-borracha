@@ -1,6 +1,6 @@
 (function () {
   'use strict';
-  const { lineChart, barChart, hBarChart, dualAxisLineChart, waterfallChart, donutChart, dataTable, rankList, fmt } = window.Charts;
+  const { lineChart, barChart, hBarChart, dualAxisLineChart, waterfallChart, donutChart, sankeyChart, dataTable, rankList, fmt, showTooltip, hideTooltip } = window.Charts;
   const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
   const CURRENT_YEAR = new Date().getFullYear();
   const CORES = ['var(--series-1)', 'var(--series-2)', 'var(--series-3)', 'var(--series-4)',
@@ -1299,6 +1299,9 @@
       [TODOS, 'Contexto', `Indicadores macro (IPCA, dólar, ${sc.ipp_rotulo})`, `1990–${last(data.shared.macro).ano} (mensal)`, 'IPCA usado para deflacionar a remuneração real (bloco Emprego formal) e a balança comercial em R$ de 2023; demais indicadores só como pano de fundo.'],
       ['Energia Industrial (aba própria)', 'Energia', 'Consumo e custo de energia da indústria de transformação, 27 estados + Brasil', '2012–2026 (mensal)', 'Consumo (MWh): nível de divisão CNAE (24 divisões, fonte EPE). Custo (R$/MWh): tarifa média REAL faturada da classe Industrial, por região (5 regiões, não por estado nem por divisão CNAE) — MME/ANEEL, "Informativo Tarifário/Gestão do Setor Elétrico", Tabela 7. Anos sem edição publicada são interpolados/extrapolados a partir dos anos com dado real, ajustados pelo IPCA. Detalhe completo e citação em "Limitações gerais" abaixo.'],
     ];
+    const anosCadeia = data.cadeia.produto.oferta.map(o => o.ano);
+    const cfgCadeia = data.cadeia.config;
+    rows.push(['Cadeia Produtiva (aba própria)', 'Cadeia produtiva', 'IBGE, Tabelas de Recursos e Usos (TRU) nível 68 atividades + Matriz Insumo-Produto 2015 nível 67', `${anosCadeia[0]}–${anosCadeia[anosCadeia.length - 1]} (anual)`, `Valores a preço de consumidor (com margens e impostos), R$ correntes. A TRU é a tabela mais recente do IBGE nesse detalhe; a MIP 2015 (a última publicada) entra só no multiplicador de produção e na parcela importada dos insumos. Produto em destaque: ${cfgCadeia.produto} (${cfgCadeia.nome_produto}). ${cfgCadeia.nota_escopo || ''} ${cfgCadeia.nota_insumos}`]);
     if ((data.shared.decom || []).length) {
       rows.splice(7, 0, [TODOS, 'DECOM', 'DECOM/GECEX, processos de defesa comercial', 'Histórico (datas variáveis)', '']);
     }
@@ -1312,6 +1315,222 @@
       'Comtrade: o total mundial de importações aparece bem abaixo das exportações porque só entra o valor FOB e muitos países declaram importação em CIF; por isso o painel usa a exportação para dimensionar o comércio mundial.',
     ];
     $('#referencias-limitacoes-setor').innerHTML = lim.map(t => `<p class="pdi-note">• ${t}</p>`).join('');
+  }
+
+  // ---------------------------------------------------------------------
+  // Cadeia Produtiva: Sankey fornecedores -> elo -> clientes, com dados das
+  // Contas Nacionais (ver extrair_cadeia.py). O ponto de partida é o produto
+  // do setor; clicar num fornecedor/cliente recentraliza o diagrama naquela
+  // atividade, usando o fluxo atividade x atividade. Valores em R$ milhões.
+  // Tudo que é específico do setor (produto, atividade, textos, botões de
+  // elos, cores) vem de cadeia_config.json, via data.cadeia.config — para
+  // replicar para outro CNAE não precisa mexer aqui (COMO_REPLICAR_CADEIA.md).
+  // ---------------------------------------------------------------------
+  const PRODUTO = 'produto'; // valor de "centro" que, na config, abre o próprio produto
+  const CADEIA_TOP = 7;
+  const CADEIA_CORES = {
+    fornecedor: 'var(--series-2)', va: 'var(--series-5)', importado: 'var(--series-6)', margem: 'var(--baseline)',
+    cliente: 'var(--text-muted)', demandaFinal: 'var(--series-4)', outros: 'var(--baseline)',
+  };
+  const NOMES_DF = {
+    exportacao: 'Exportação', governo: 'Consumo do governo', isflsf: 'Consumo das ISFLSF',
+    familias: 'Consumo das famílias', fbcf: 'Investimento (FBCF)', estoque: 'Variação de estoque',
+  };
+
+  function renderCadeia(data) {
+    const c = data.cadeia;
+    const cfg = c.config;
+    const corCliente = cod => {
+      const g = cfg.grupos_cor.find(x => x.cods.includes(cod));
+      return g ? `var(--${g.cor})` : CADEIA_CORES.cliente;
+    };
+    const A = c.atividades;
+    const idx = new Map(A.map((a, i) => [a.cod, i]));
+    const vendas = A.map(() => []), compras = A.map(() => []);
+    c.fluxos.forEach(([o, d, v]) => { vendas[o].push([d, v]); compras[d].push([o, v]); });
+    const brl = v => fmt.brl(v * 1e6);
+    const pct = (v, tot) => tot ? fmt.pct(100 * v / tot) : '-';
+    const multOrdenado = A.map(a => a.multiplicador).sort((x, y) => y - x);
+    const rankMult = m => multOrdenado.indexOf(m) + 1;
+    const mult2 = m => m.toFixed(2).replace('.', ',');
+
+    const ofertaUlt = c.produto.oferta[c.produto.oferta.length - 1];
+    const ofertaPri = c.produto.oferta[0];
+    const destUlt = c.produto.destinos.filter(d => d.ano === c.ano);
+    const pImp = o => 100 * o.importacao / (o.producao + o.importacao);
+    let trilha = [PRODUTO];
+
+    // Agrupa os menores em "Outros" pra o diagrama não virar uma franja ilegível.
+    function topN(nodes, n, rotuloOutros) {
+      const pos = nodes.filter(x => x.value > 0).sort((a, b) => b.value - a.value);
+      if (pos.length <= n + 1) return pos;
+      const resto = pos.slice(n);
+      return [...pos.slice(0, n), {
+        label: rotuloOutros, value: resto.reduce((s, x) => s + x.value, 0), color: CADEIA_CORES.outros,
+        tip: [{ label: 'Inclui', value: `${resto.length} itens menores` }],
+      }];
+    }
+    // Um setor que compra dele mesmo (ex.: autopeças de autopeças) aparece
+    // no diagrama, mas não é clicável: já é o centro.
+    function noAtividade(i, value, cor, total) {
+      const clickable = A[i].cod !== trilha[trilha.length - 1];
+      return {
+        label: A[i].nome, value, color: cor, cod: A[i].cod, clickable,
+        tip: [{ label: 'Participação', value: pct(value, total) },
+          ...(clickable ? [{ label: '', value: 'Clique para ver a cadeia deste setor' }] : [])],
+      };
+    }
+    function nosDemandaFinal(df, total) {
+      return Object.entries(df).filter(([, v]) => v > 0).map(([k, v]) => ({
+        label: NOMES_DF[k], value: v, color: CADEIA_CORES.demandaFinal, tip: [{ label: 'Participação', value: pct(v, total) }],
+      }));
+    }
+
+    function montarProduto() {
+      const total = ofertaUlt.demanda;
+      const direita = topN(destUlt.map(d => d.tipo === 'atividade'
+        ? noAtividade(idx.get(d.cod), d.valor, corCliente(d.cod), total)
+        : { label: d.nome, value: d.valor, color: CADEIA_CORES.demandaFinal, tip: [{ label: 'Participação', value: pct(d.valor, total) }] }),
+        CADEIA_TOP, 'Outros clientes');
+
+      // Insumos: estrutura de custos da atividade do setor, escalada para a produção do produto.
+      const met = A[idx.get(cfg.atividade)];
+      const escala = ofertaUlt.producao / met.vbp;
+      const porAtividade = new Map();
+      c.insumos_atividade.forEach(r => porAtividade.set(r.atividade, (porAtividade.get(r.atividade) || 0) + r.valor * escala));
+      const margens = ofertaUlt.demanda - ofertaUlt.producao - ofertaUlt.importacao;
+      const esquerda = [
+        ...topN([...porAtividade].map(([cod, v]) => noAtividade(idx.get(cod), v, CADEIA_CORES.fornecedor, total)), CADEIA_TOP - 2, 'Outros insumos'),
+        { label: 'Salários e lucros', value: met.va * escala, color: CADEIA_CORES.va,
+          tip: [{ label: 'Participação', value: pct(met.va * escala, total) }, { label: '', value: `Valor adicionado do próprio setor (${cfg.nome})` }] },
+        { label: `Importação de ${cfg.nome_produto}`, value: ofertaUlt.importacao, color: CADEIA_CORES.importado,
+          tip: [{ label: 'Da oferta a preço básico', value: pct(ofertaUlt.importacao, ofertaUlt.producao + ofertaUlt.importacao) }] },
+        { label: 'Margens e impostos', value: margens, color: CADEIA_CORES.margem,
+          tip: [{ label: 'Participação', value: pct(margens, total) }, { label: '', value: 'Comércio, transporte e impostos sobre produtos' }] },
+      ];
+      // Link para a RAIS do painel, só se a config apontar setores que existem nele.
+      const empregos = (cfg.empregos_rais || []).filter(s => data.sectors[s]).map(s => last(data.sectors[s].rais.uf_yearly_total));
+      return {
+        titulo: cfg.nome,
+        sub: `${cfg.descricao_produto} · ${c.ano}`,
+        esquerda, direita,
+        resumo: [
+          ['Produção nacional', brl(ofertaUlt.producao)],
+          ['Importado', pct(ofertaUlt.importacao, ofertaUlt.producao + ofertaUlt.importacao)],
+          ['Multiplicador', `${mult2(met.multiplicador)} (${rankMult(met.multiplicador)}º de ${A.length})`],
+          ...(empregos.length ? [['Empregos formais', `${fmt.compact(empregos.reduce((s, e) => s + (e ? e.vinculos : 0), 0))} em ${empregos[0] ? empregos[0].ano : ''}`, cfg.empregos_rais[0], 'block-emprego']] : []),
+        ],
+        nota: `${cfg.nota_escopo ? cfg.nota_escopo + ' ' : ''}Clientes: IBGE, produto ${cfg.produto} da TRU. ${cfg.nota_insumos} Multiplicador: MIP 2015.`,
+      };
+    }
+
+    function montarAtividade(cod) {
+      const i = idx.get(cod), a = A[i];
+      const totalDir = vendas[i].reduce((s, [, v]) => s + v, 0)
+        + Object.values(a.demanda_final).reduce((s, v) => s + Math.max(v, 0), 0);
+      const direita = topN([
+        ...vendas[i].map(([j, v]) => noAtividade(j, v, corCliente(A[j].cod), totalDir)),
+        ...nosDemandaFinal(a.demanda_final, totalDir),
+      ], CADEIA_TOP, 'Outros clientes');
+      const esquerda = [
+        ...topN(compras[i].map(([j, v]) => noAtividade(j, v, CADEIA_CORES.fornecedor, a.vbp)), CADEIA_TOP - 1, 'Outros insumos'),
+        { label: 'Salários e lucros', value: a.va, color: CADEIA_CORES.va, tip: [{ label: 'Participação', value: pct(a.va, a.vbp) }] },
+      ];
+      // A produção (VBP) e o que os clientes pagam (preço de consumidor) não
+      // batem: a diferença são importações, margens e impostos — ou, no
+      // comércio e nos transportes, margens embutidas no preço de outros produtos.
+      const somaEsq = esquerda.reduce((s, n) => s + n.value, 0), somaDir = direita.reduce((s, n) => s + n.value, 0);
+      const dif = somaDir - somaEsq;
+      if (dif > 0.01 * somaDir) esquerda.push({ label: 'Importações, margens e impostos', value: dif, color: CADEIA_CORES.margem });
+      else if (-dif > 0.01 * somaEsq) direita.push({ label: 'Margens embutidas em outros produtos', value: -dif, color: CADEIA_CORES.margem });
+      return {
+        titulo: a.nome,
+        sub: `${a.descricao} · ${c.ano}`,
+        esquerda, direita,
+        resumo: [
+          ['Produção', brl(a.vbp)],
+          ['Ocupações', fmt.compact(a.ocupacoes)],
+          ['Multiplicador', `${mult2(a.multiplicador)} (${rankMult(a.multiplicador)}º de ${A.length})`],
+          ['Insumos importados', a.pct_insumos_importados != null ? fmt.pct(100 * a.pct_insumos_importados) : '-'],
+        ],
+        nota: 'Fluxo entre atividades: IBGE, TRU, consumo intermediário a preço de consumidor, levado de produto para a atividade que o produz; os insumos incluem a parte importada. Multiplicador e insumos importados: MIP 2015.',
+      };
+    }
+
+    function nomeCentro(cod) { return cod === PRODUTO ? cfg.nome : A[idx.get(cod)].nome; }
+
+    function renderTrilha() {
+      const nav = $('#cadeia-trilha');
+      nav.innerHTML = trilha.length < 2 ? '' : trilha.map((cod, i) => i === trilha.length - 1
+        ? `<span class="cadeia-crumb atual" aria-current="true">${nomeCentro(cod)}</span>`
+        : `<button type="button" class="cadeia-crumb" data-i="${i}">${nomeCentro(cod)}</button><span class="cadeia-crumb-sep">›</span>`).join('');
+      nav.querySelectorAll('button[data-i]').forEach(b => b.addEventListener('click', () => {
+        trilha = trilha.slice(0, +b.dataset.i + 1);
+        desenhar();
+      }));
+    }
+
+    function renderResumo(m) {
+      const el = $('#cadeia-resumo');
+      el.innerHTML = m.resumo.map(([rot, val, setor, bloco]) => setor
+        ? `<button type="button" class="cad-resumo-item link" data-sector="${setor}" data-target="${bloco}">${rot} <b>${val}</b> →</button>`
+        : `<span class="cad-resumo-item">${rot} <b>${val}</b></span>`).join('');
+      el.querySelectorAll('[data-sector]').forEach(b => b.addEventListener('click', () => goToBlock(b.dataset.sector, b.dataset.target)));
+    }
+
+    function desenhar() {
+      const centro = trilha[trilha.length - 1];
+      const m = centro === PRODUTO ? montarProduto() : montarAtividade(centro);
+      $('#cadeia-sankey-title').textContent = m.titulo;
+      $('#cadeia-sankey-sub').textContent = m.sub;
+      $('#cadeia-nota').textContent = m.nota;
+      $('#cadeia-select').value = centro;
+      sankeyChart($('#cadeia-sankey'), {
+        left: m.esquerda, right: m.direita,
+        center: { label: m.titulo },
+        headers: { left: 'DE ONDE VEM', right: 'PARA ONDE VAI' },
+        formatV: brl,
+        onNodeClick: n => irPara(n.cod),
+      });
+      renderTrilha();
+      renderResumo(m);
+      document.querySelectorAll('#cad-elos .cad-elo').forEach(b => b.classList.toggle('ativo', b.dataset.centro === centro));
+    }
+
+    function irPara(cod) {
+      if (!cod || cod === trilha[trilha.length - 1]) return;
+      const ja = trilha.indexOf(cod);
+      trilha = ja >= 0 ? trilha.slice(0, ja + 1) : [...trilha, cod];
+      desenhar();
+    }
+
+    // Seletor com todas as atividades, pra quem quer olhar outra cadeia.
+    const sel = $('#cadeia-select');
+    sel.innerHTML = `<option value="${PRODUTO}">${cfg.nome} (${cfg.nome_produto})</option>` +
+      [...A].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')).map(a => `<option value="${a.cod}">${a.nome}</option>`).join('');
+    sel.addEventListener('change', () => { trilha = [sel.value]; desenhar(); });
+
+    $('#cad-elos').innerHTML = '<span class="cad-elos-chamada">Veja a cadeia de:</span>' + cfg.elos.map(grupo =>
+      `<span class="cad-elo-grupo">${grupo.rotulo ? `<span class="cad-elo-rotulo">${grupo.rotulo}</span>` : ''}${grupo.itens.map(e =>
+        `<button type="button" class="cad-elo${e.centro === PRODUTO ? ' principal' : ''}" data-centro="${e.centro}">${e.label}</button>`).join('')}</span>`
+    ).join('<span class="cad-elo-seta" aria-hidden="true">→</span>');
+    $('#cad-elos').querySelectorAll('.cad-elo').forEach(b => b.addEventListener('click', () => {
+      trilha = b.dataset.centro === PRODUTO ? [PRODUTO] : [PRODUTO, b.dataset.centro];
+      desenhar();
+    }));
+
+    // Linha fina: os três números que resumem a cadeia, no meio do texto.
+    const base = destUlt.filter(d => d.valor > 0).reduce((s, d) => s + d.valor, 0);
+    // Principais clientes da config, pra frase dizer exatamente o que soma.
+    const pPrincipais = 100 * destUlt.filter(d => cfg.principais_clientes.cods.includes(d.cod)).reduce((s, d) => s + d.valor, 0) / base;
+    $('#cad-chapeu').textContent = `Cadeia produtiva · IBGE, ${c.ano}`;
+    $('#cad-titulo').textContent = cfg.titulo;
+    $('#cad-linha-fina').innerHTML =
+      `Em ${c.ano}, o Brasil consumiu <b>${brl(ofertaUlt.demanda)}</b> em ${cfg.nome_produto}. ` +
+      `<b>${Math.round(pPrincipais)}%</b> foram para ${cfg.principais_clientes.rotulo}, e <b>${Math.round(pImp(ofertaUlt))}%</b> vieram de fora, ` +
+      `contra ${fmt.pct(pImp(ofertaPri))} em ${ofertaPri.ano}.`;
+
+    desenhar();
   }
 
   // ---------------------------------------------------------------------
@@ -1666,7 +1885,7 @@
 
   // Faixa vermelha do topo: título fixo + vista atual e data de atualização,
   // pra quem rola a página saber onde está e de quando é o dado.
-  const VIEW_LABELS = { home: 'Painel Executivo', 'energia-industrial': 'Energia Industrial', relatorios: 'Relatórios', referencias: 'Referências' };
+  const VIEW_LABELS = { home: 'Painel Executivo', cadeia: 'Cadeia Produtiva', 'energia-industrial': 'Energia Industrial', relatorios: 'Relatórios', referencias: 'Referências' };
   function updateHeaderMeta() {
     const vista = isSectorView(state.view) ? rotuloCnae(state.view) : (VIEW_LABELS[state.view] || '');
     const atualizado = state.data.meta.gerado_em ? 'Atualizado em ' + formatDataBr(state.data.meta.gerado_em) : '';
@@ -1684,6 +1903,7 @@
     const dataView = $('#data-view');
     const sectionNav = $('#section-nav-label'), sectionNavList = $('#section-nav');
     const energiaIndustrialView = $('#energia-industrial-view');
+    const cadeiaView = $('#cadeia-view');
     const relatoriosView = $('#relatorios-view');
     const referenciasView = $('#referencias-view');
 
@@ -1694,6 +1914,7 @@
       sectionNav.style.display = isData ? '' : 'none';
       sectionNavList.style.display = isData ? '' : 'none';
       energiaIndustrialView.hidden = state.view !== 'energia-industrial';
+      cadeiaView.hidden = state.view !== 'cadeia';
       relatoriosView.hidden = state.view !== 'relatorios';
       referenciasView.hidden = state.view !== 'referencias';
     }
@@ -1810,6 +2031,7 @@
   // esconde nada do painel de dados, é só uma porta de entrada mais simples.
   // ---------------------------------------------------------------------
   const EXEC_OUTRAS_SECOES = [
+    { view: 'cadeia', title: 'Cadeia Produtiva', sub: 'De onde vêm os insumos da borracha e para quem ela vai (IBGE).' },
     { view: 'energia-industrial', title: 'Energia Industrial', sub: 'Consumo e custo de energia na indústria, por estado.' },
     { view: 'relatorios', title: 'Relatórios', sub: 'Em construção.' },
     { view: 'referencias', title: 'Referências', sub: 'Fontes e metodologia de cada indicador.' },
@@ -2094,6 +2316,7 @@
       setupViewTabs();
       renderReferencias(data);
       renderEnergiaIndustrial(data);
+      renderCadeia(data);
       renderAll();
       initSectionCaptions();
       setupExecSegToggle();

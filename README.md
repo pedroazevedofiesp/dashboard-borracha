@@ -105,6 +105,17 @@ código novo.
 Um CNAE pode usar um prefixo próprio nos arquivos de RAIS/Comtrade com a chave
 opcional `rotulo_arquivo` dentro do item do CNAE.
 
+## Aba Cadeia Produtiva
+
+Diagrama de onde vêm os insumos e para quem vai a borracha, com as Contas
+Nacionais do IBGE (TRU nível 68, 2010–2021, e MIP 2015). Veio do painel de
+fundição e é configurada em `cadeia_config.json` (produto 22001, artigos de
+borracha; atividade 2200, borracha e plástico). Atenção: no IBGE o produto
+inclui os pneus novos (CNAE 2211), que ficam fora do resto do painel — a aba
+diz isso na nota. Os CSVs `Cadeia_*` saem de `extrair_cadeia.py`, que lê as
+tabelas do IBGE em `../Setor Borracha/1_Dados_Manuais_XLS/` (fora do git) e só
+precisa rodar quando o IBGE publicar tabelas novas. Ver `COMO_REPLICAR_CADEIA.md`.
+
 ## Fontes de dados
 
 | Bloco | Base | Cobertura |
@@ -117,6 +128,7 @@ opcional `rotulo_arquivo` dentro do item do CNAE.
 | Comércio exterior (contexto mundial) | UN Comtrade (proxy por HS) | 2015–2024 (anual) |
 | Energia Industrial | EPE (consumo) + MME/ANEEL (tarifa média faturada) | 2012–2026 (mensal, por UF e divisão CNAE) |
 | BNDES | Desembolsos por UF/porte/instrumento | 2002–2026 (anual) |
+| Cadeia Produtiva | IBGE — TRU nível 68 + MIP 2015 | 2010–2021 (anual) |
 
 Detalhes de cobertura e limitações metodológicas de cada fonte estão na aba
 **Referências** do próprio painel, gerada a partir do mesmo `data.json`.

@@ -1,0 +1,46 @@
+{
+  "_leia_me": "Tudo que é específico do setor na aba Cadeia Produtiva. Para replicar para outro CNAE, troque os valores abaixo seguindo COMO_REPLICAR_CADEIA.md, rode extrair_cadeia.py e build_data.py. Códigos de 5 dígitos são produtos da TRU do IBGE; de 4 dígitos, atividades.",
+
+  "produto": "22001",
+  "atividade": "2200",
+
+  "nome": "Borracha",
+  "nome_produto": "artigos de borracha",
+  "descricao_produto": "Artigos de borracha, inclusive pneus novos e reformados",
+  "titulo": "Para onde vai a borracha",
+
+  "nota_insumos": "O IBGE não separa os insumos por produto, então o lado esquerdo usa a estrutura de custos da atividade 2200 (borracha e plástico), proporcional à produção de artigos de borracha.",
+
+  "nota_escopo": "Nas Contas Nacionais, o IBGE trata todos os artigos de borracha como um produto só (22001), inclusive os pneus novos (CNAE 22.11), que ficam fora dos dois segmentos do resto deste painel. Por isso esta aba mostra a cadeia da borracha inteira, não só de 22.12 (reforma de pneumáticos) e 22.19 (artefatos de borracha).",
+
+  "_principais_clientes": "Usados na frase do topo: '<pct>% foram para <rotulo>'. Escolha pelos dados (python extrair_cadeia.py --sugerir).",
+  "principais_clientes": {
+    "cods": ["4900", "2991"],
+    "rotulo": "o transporte terrestre e as montadoras de veículos"
+  },
+
+  "_empregos_rais": "Opcional. Setores do painel (chaves de sectors no data.json) cuja RAIS entra no link 'Empregos formais'. Fica vazio aqui: o produto do IBGE inclui pneus novos (CNAE 2211), que a RAIS do painel não cobre, e o número misturaria escopos diferentes.",
+  "empregos_rais": [],
+
+  "_elos": "Botões acima do diagrama, em ordem da cadeia. centro = código da atividade que o botão abre; \"produto\" abre o produto acima. rotulo é opcional.",
+  "elos": [
+    { "itens": [{ "label": "Petróleo e gás", "centro": "0680" }] },
+    { "itens": [{ "label": "Refino", "centro": "1991" }, { "label": "Químicos e resinas", "centro": "2091" }] },
+    { "itens": [{ "label": "Borracha", "centro": "produto" }] },
+    { "rotulo": "clientes diretos", "itens": [
+      { "label": "Transporte terrestre", "centro": "4900" },
+      { "label": "Montadoras", "centro": "2991" },
+      { "label": "Mineração", "centro": "0791" },
+      { "label": "Máquinas mecânicas", "centro": "2800" },
+      { "label": "Autopeças", "centro": "2992" }
+    ] }
+  ],
+
+  "_grupos_cor": "Compradores com cor própria no diagrama (os demais ficam cinza). cor = um dos tokens --series-1 a --series-8 de css/style.css.",
+  "grupos_cor": [
+    { "cods": ["4900", "5100", "5000"], "cor": "series-1" },
+    { "cods": ["2991", "2992", "4500"], "cor": "series-3" },
+    { "cods": ["0791", "0792"], "cor": "series-8" },
+    { "cods": ["2800", "2700", "3300", "3000"], "cor": "series-7" }
+  ]
+}

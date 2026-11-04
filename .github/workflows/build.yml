@@ -8,6 +8,7 @@ on:
       - 'build_data.py'
       - 'build_downloads.py'
       - 'config_painel.json'
+      - 'cadeia_config.json'
       - 'requirements.txt'
       - 'index.html'
       - 'css/**'

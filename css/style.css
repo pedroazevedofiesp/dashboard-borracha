@@ -518,6 +518,92 @@ table.data-table tbody tr:hover { background: var(--surface-2); }
 .decom-highlight { font-size: 0.85rem; color: var(--text-secondary); margin: 0 0 16px; }
 .decom-highlight strong { color: var(--text-primary); font-size: 1.15rem; font-weight: 700; }
 
+/* ---------- Cadeia Produtiva ----------
+   Página aberta, sem cartões nem molduras: texto e gráfico direto no fundo,
+   separados por fios finos (linguagem de infográfico de jornal). */
+#cadeia-view { padding: 44px 0 60px; max-width: 1080px; margin: 0 auto; }
+
+.cad-chapeu { font-size: 0.72rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.12em; }
+.cad-titulo { font-size: 2.3rem; font-weight: 800; letter-spacing: -0.02em; line-height: 1.08; margin: 6px 0 12px; color: var(--text-primary); }
+.cad-linha-fina { font-size: 1.12rem; line-height: 1.6; color: var(--text-secondary); max-width: 760px; margin: 0; }
+.cad-linha-fina b { color: var(--text-primary); font-weight: 800; }
+
+.cad-elos { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px; margin: 32px 0 0; padding: 14px 0; border-top: 2px solid var(--text-primary); border-bottom: 1px solid var(--border); }
+.cad-elos-chamada { font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-right: 4px; }
+.cad-elo-grupo { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.cad-elo-seta { color: var(--text-muted); }
+.cad-elo-rotulo { font-size: 0.7rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-right: 2px; }
+/* Etiqueta com borda: precisa parecer clicável sem virar cartão. */
+.cad-elo {
+  font: inherit; font-size: 0.86rem; font-weight: 600; color: var(--text-primary);
+  background: var(--surface-card); border: 1px solid var(--baseline); border-radius: 999px;
+  padding: 5px 13px; cursor: pointer; transition: border-color .12s, color .12s, background .12s;
+}
+.cad-elo:hover { border-color: var(--accent); color: var(--accent); }
+.cad-elo:focus { outline: none; }
+.cad-elo:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.cad-elo.principal { font-weight: 800; }
+.cad-elo.ativo, .cad-elo.ativo:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+.cad-bloco { padding: 28px 0 8px; }
+.cad-bloco + .cad-bloco { margin-top: 28px; border-top: 2px solid var(--text-primary); }
+.cad-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px 16px; flex-wrap: wrap; min-height: 32px; margin-bottom: 8px; }
+.cadeia-trilha { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; font-size: 0.82rem; }
+.cadeia-crumb { font: inherit; background: none; border: 0; padding: 2px 4px; color: var(--accent-dark); cursor: pointer; }
+.cadeia-crumb:hover { color: var(--accent); text-decoration: underline; }
+.cadeia-crumb.atual { color: var(--text-primary); font-weight: 700; cursor: default; }
+.cadeia-crumb-sep { color: var(--text-muted); }
+.cadeia-busca { display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: var(--text-muted); margin-left: auto; }
+.cadeia-busca select { font: inherit; font-size: 0.85rem; color: var(--text-primary); padding: 5px 8px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-card); max-width: 280px; }
+
+.cad-sankey-titulo { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.01em; color: var(--text-primary); }
+.cad-sankey-sub { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
+.cadeia-sankey-wrap { overflow-x: auto; margin-top: 8px; }
+.cadeia-sankey-wrap > div { min-width: 720px; }
+/* Nunca mais alto que a tela: se passar, o SVG encolhe inteiro e centraliza. */
+.cadeia-sankey-wrap .sankey-svg { max-height: 72vh; }
+
+.sankey-link { opacity: 0.38; transition: opacity .15s; }
+.sankey-svg.foco .sankey-link { opacity: 0.1; }
+.sankey-svg.foco .sankey-link.ativo { opacity: 0.75; }
+.sankey-svg.foco .sankey-node:not(.ativo) text { opacity: 0.35; }
+.sankey-link.clickable, .sankey-node.clickable { cursor: pointer; }
+.sankey-node.clickable:hover .sankey-label, .sankey-node.clickable:focus .sankey-label { fill: var(--accent); text-decoration: underline; }
+.sankey-node:focus { outline: none; }
+.sankey-node:focus-visible rect { stroke: var(--accent); stroke-width: 2; }
+.sankey-value { font-size: 15px; font-weight: 800; fill: var(--text-primary); font-variant-numeric: tabular-nums; }
+.sankey-label { font-size: 12px; fill: var(--text-secondary); }
+.sankey-center-label { font-size: 15px; font-weight: 800; fill: var(--text-primary); letter-spacing: 0.05em; }
+.sankey-fio { stroke: var(--text-primary); stroke-width: 1; }
+.sankey-header { font-size: 10.5px; font-weight: 700; fill: var(--text-muted); letter-spacing: 0.1em; }
+
+.cad-resumo { display: flex; flex-wrap: wrap; gap: 6px 0; margin: 18px 0 0; padding: 12px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); font-size: 0.85rem; color: var(--text-muted); }
+.cad-resumo-item { padding: 0 16px; border-left: 1px solid var(--border); }
+.cad-resumo-item:first-child { padding-left: 0; border-left: 0; }
+.cad-resumo-item b { color: var(--text-primary); font-weight: 800; margin-left: 4px; }
+button.cad-resumo-item { font: inherit; background: none; border-top: 0; border-right: 0; border-bottom: 0; cursor: pointer; color: var(--accent-dark); }
+button.cad-resumo-item:hover { color: var(--accent); }
+.cad-nota { font-size: 0.72rem; color: var(--text-muted); line-height: 1.55; margin: 12px 0 0; max-width: 860px; }
+.cad-h3 { font-size: 1.35rem; font-weight: 800; letter-spacing: -0.01em; margin: 0 0 10px; color: var(--text-primary); }
+.cad-texto { font-size: 1rem; line-height: 1.7; color: var(--text-secondary); max-width: 760px; margin: 0 0 22px; }
+.cad-texto b, .cad-lista b { color: var(--text-primary); font-weight: 800; }
+.cad-graficos { display: grid; grid-template-columns: 1fr 1fr; gap: 32px 40px; align-items: start; }
+.cad-fig { margin: 0; min-width: 0; }
+.cad-fig figcaption { display: flex; flex-direction: column; gap: 2px; margin-bottom: 10px; }
+.cad-fig figcaption strong { font-size: 0.95rem; color: var(--text-primary); }
+.cad-fig figcaption span { font-size: 0.76rem; color: var(--text-muted); }
+.cad-lista { margin: 0 0 20px; padding-left: 22px; max-width: 760px; font-size: 1rem; line-height: 1.7; color: var(--text-secondary); }
+.cad-lista li { margin-bottom: 10px; padding-left: 4px; }
+@media (max-width: 900px) { .cad-graficos { grid-template-columns: 1fr; } }
+
+@media (max-width: 640px) {
+  .cad-titulo { font-size: 1.8rem; }
+  .cad-linha-fina { font-size: 1rem; }
+  .cadeia-busca { flex-direction: column; align-items: stretch; width: 100%; margin-left: 0; }
+  .cadeia-busca select { max-width: none; width: 100%; }
+  .cad-resumo-item { padding: 0 10px; }
+}
+
 /* ---------- PD&I / Referências (páginas de aba, não mais accordion) ---------- */
 #pdi-view, #referencias-view { padding: 40px 0 60px; }
 .pdi-intro { color: var(--text-secondary); font-size: 0.85rem; line-height: 1.65; }

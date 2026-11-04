@@ -1,0 +1,69 @@
+﻿Ano;Codigo;Descricao;Nome_Curto;VBP;Valor_Adicionado;Ocupacoes;Consumo_Intermediario;Pct_Insumos_Importados_2015;Multiplicador_Producao_2015;DF_Exportacao;DF_Governo;DF_Isflsf;DF_Familias;DF_Fbcf;DF_Estoque
+2021;0191;Agricultura, inclusive o apoio à agricultura e a pós-colheita;Agricultura;769160,0;421109,0;6934294,0;348051,0;0,1584;1,7237;288934,8;177,5;0,0;168172,1;5007,5;46352,2
+2021;0192;Pecuária, inclusive o apoio à pecuária;Pecuária;272241,0;130445,0;5393173,0;141796,0;0,0868;1,795;13128,8;10,6;0,0;50185,3;31332,5;1033,7
+2021;0280;"Produção florestal; pesca e aquicultura";Florestal, pesca e aquicultura;54743,0;39531,0;815655,0;15212,0;0,1258;1,3636;6688,6;5,0;0,0;34559,6;2181,9;-951,4
+2021;0580;Extração de carvão mineral e de minerais não-metálicos;Carvão e minerais não metálicos;30081,0;11561,0;110127,0;18520,0;0,1516;1,8271;3941,1;0,0;0,0;304,9;25,3;1099,7
+2021;0680;Extração de petróleo e gás, inclusive as atividades de apoio;Petróleo e gás;406701,0;231887,0;55195,0;174814,0;0,2721;1,7061;165144,1;0,0;0,0;1115,4;58608,2;-12658,4
+2021;0791;Extração de minério de ferro, inclusive beneficiamentos e a aglomeração;Minério de ferro;279099,0;167230,0;42815,0;111869,0;0,196;1,7853;238522,4;0,0;0,0;18,8;1812,8;-7692,8
+2021;0792;Extração de minerais metálicos não-ferrosos, inclusive beneficiamentos;Minerais metálicos não ferrosos;30712,0;14189,0;35085,0;16523,0;0,2257;2,0507;22410,0;0,0;0,0;13,0;11,2;-3284,0
+2021;1091;Abate e produtos de carne, inclusive os produtos do laticínio e da pesca;Carnes e laticínios;495404,0;59950,0;860656,0;435454,0;0,0272;2,5107;114931,5;101,0;0,0;405931,6;255,2;2345,8
+2021;1092;Fabricação e refino de açúcar;Açúcar;94655,0;18988,0;139807,0;75667,0;0,0347;2,4088;43445,2;0,0;0,0;28409,9;655,5;503,8
+2021;1093;Outros produtos alimentares;Outros alimentos;513838,0;78319,0;1272409,0;435519,0;0,0732;2,3555;77695,4;128,1;0,0;383934,0;432,5;8902,1
+2021;1100;Fabricação de bebidas;Bebidas;110108,0;26193,0;188767,0;83915,0;0,0552;2,2203;4451,5;0,5;0,0;105104,3;158,7;1594,2
+2021;1200;Fabricação de produtos do fumo;Fumo;18653,0;3106,0;17515,0;15547,0;0,0365;2,1772;7614,0;0,0;0,0;40622,3;88,4;-79,2
+2021;1300;Fabricação de produtos têxteis;Têxteis;82836,0;19370,0;638518,0;63466,0;0,1909;2,0236;3781,4;1,4;0,0;56611,7;265,5;8305,3
+2021;1400;Confecção de artefatos do vestuário e acessórios;Vestuário;80645,0;28809,0;1655089,0;51836,0;0,1722;1,8614;2514,4;38,9;0,0;160013,8;144,8;-1279,2
+2021;1500;Fabricação de calçados e de artefatos de couro;Calçados e couro;50739,0;16343,0;455637,0;34396,0;0,1426;2,098;13321,4;0,2;0,0;71326,0;357,8;-806,3
+2021;1600;Fabricação de produtos da madeira;Madeira;61516,0;19564,0;389391,0;41952,0;0,1193;1,9557;22612,2;0,0;0,0;4738,0;256,2;1916,2
+2021;1700;Fabricação de celulose, papel e produtos de papel;Celulose e papel;156926,0;29864,0;216547,0;127062,0;0,199;2,0272;47127,3;7,1;0,0;26151,0;1595,6;-2495,8
+2021;1800;Impressão e reprodução de gravações;Impressão;22332,0;8119,0;168568,0;14213,0;0,2081;1,8267;351,7;0,0;0,0;1915,2;125,6;35,9
+2021;1991;Refino de petróleo e coquerias;Refino de petróleo e coque;678319,0;90157,0;22483,0;588162,0;0,1218;2,4836;40762,9;0,0;0,0;268373,9;4,8;1713,8
+2021;1992;Fabricação de biocombustíveis;Biocombustíveis;105728,0;20994,0;108126,0;84734,0;0,0288;2,3794;12486,4;0,2;0,0;50029,6;107,2;-650,1
+2021;2091;Fabricação de químicos orgânicos e inorgânicos, resinas e elastômeros;Químicos e resinas;353156,0;62229,0;112336,0;290927,0;0,3774;2,0147;36520,0;19,1;0,0;7964,8;820,1;9316,8
+2021;2092;Fabricação de defensivos, desinfestantes, tintas e químicos diversos;Tintas e químicos diversos;138097,0;19572,0;97429,0;118525,0;0,3474;1,9968;13071,6;29,2;0,0;5943,6;1285,7;7870,5
+2021;2093;Fabricação de produtos de limpeza, cosméticos/perfumaria e higiene pessoal;Limpeza e cosméticos;67872,0;11340,0;138125,0;56532,0;0,2171;2,1856;7298,6;15,0;0,0;107842,1;591,5;-2144,7
+2021;2100;Fabricação de produtos farmoquímicos e farmacêuticos;Farmacêuticos;99278,0;45544,0;113456,0;53734,0;0,3144;1,7656;5529,9;10441,3;0,0;145067,8;1250,2;3033,2
+2021;2200;Fabricação de produtos de borracha e de material plástico;Borracha e plástico;197694,0;37300,0;444332,0;160394,0;0,2856;2,0235;15675,7;1,9;0,0;31012,9;2717,8;10652,0
+2021;2300;Fabricação de produtos de minerais não-metálicos;Minerais não metálicos;143010,0;42799,0;609593,0;100211,0;0,1258;2,1129;13164,8;20,9;0,0;6927,6;1174,4;10757,9
+2021;2491;Produção de ferro-gusa/ferroligas, siderurgia e tubos de aço sem costura;Siderurgia (ferro-gusa e aço);305615,0;96011,0;131519,0;209604,0;0,1607;2,1479;79844,1;0,0;0,0;3019,5;2876,1;8252,3
+2021;2492;Metalurgia de metais não-ferrosos e a fundição de metais;Metalurgia de não ferrosos e fundição;121205,0;29466,0;108045,0;91739,0;0,2541;2,1284;58436,4;0,0;0,0;2772,9;1151,8;749,4
+2021;2500;Fabricação de produtos de metal, exceto máquinas e equipamentos;Produtos de metal;189661,0;51610,0;702971,0;138051,0;0,1567;1,9718;13206,1;0,0;0,0;23794,4;20749,2;6399,4
+2021;2600;Fabricação de equipamentos de informática, produtos eletrônicos e ópticos;Informática e eletrônicos;146376,0;19947,0;122788,0;126429,0;0,6319;1,6837;6991,3;0,0;0,0;129133,2;102898,2;7697,3
+2021;2700;Fabricação de máquinas e equipamentos elétricos;Máquinas e equipamentos elétricos;137668,0;29515,0;228003,0;108153,0;0,2756;2,0685;15848,7;0,0;0,0;58417,1;50835,0;14752,7
+2021;2800;Fabricação de máquinas e equipamentos mecânicos;Máquinas e equipamentos mecânicos;242983,0;59125,0;436572,0;183858,0;0,3;1,8753;42150,3;0,0;0,0;14616,3;221019,0;3374,5
+2021;2991;Fabricação de automóveis, caminhões e ônibus, exceto peças;Automóveis, caminhões e ônibus;241683,0;25538,0;155333,0;216145,0;0,266;2,18;39251,4;0,0;0,0;180084,7;160909,6;567,6
+2021;2992;Fabricação de peças e acessórios para veículos automotores;Peças para veículos;145523,0;32464,0;304453,0;113059,0;0,2338;2,0757;23549,9;0,0;0,0;3088,4;7565,8;1,6
+2021;3000;Fabricação de outros equipamentos de transporte, exceto veículos automotores;Outros equipamentos de transporte;50525,0;8912,0;87198,0;41613,0;0,3882;1,9199;20735,7;0,0;0,0;23965,3;83699,4;15220,7
+2021;3180;Fabricação de móveis e de produtos de indústrias diversas;Móveis e indústrias diversas;113057,0;44592,0;773017,0;68465,0;0,2063;1,8168;10314,2;69,5;0,0;137749,4;28141,6;2241,2
+2021;3300;Manutenção, reparação e instalação de máquinas e equipamentos;Manutenção de máquinas;107939,0;37099,0;673031,0;70840,0;0,3973;1,7488;3788,1;0,0;0,0;1042,3;19587,2;200,5
+2021;3500;Energia elétrica, gás natural e outras utilidades;Energia elétrica e gás;455696,0;157298,0;174830,0;298398,0;0,1484;2,0857;348,8;0,0;0,0;172611,3;369,3;0,0
+2021;3680;Água, esgoto e gestão de resíduos;Água, esgoto e resíduos;107088,0;63684,0;606919,0;43404,0;0,1111;1,5764;14,5;0,0;0,0;45724,5;32,6;50,3
+2021;4180;Construção;Construção;704341,0;275111,0;8267084,0;429230,0;0,1086;1,7992;3945,1;0,0;0,0;1631,4;617505,5;0,0
+2021;4500;Comércio e reparação de veículos automotores e motocicletas;Comércio de veículos;225817,0;121904,0;2976940,0;103913,0;0,2016;1,5387;807,0;0,0;0,0;69063,5;7,1;-4,6
+2021;4680;Comércio por atacado e a varejo, exceto veículos automotores;Comércio atacadista e varejista;1442385,0;843798,0;15848633,0;598587,0;0,0725;1,5387;17162,8;1484,5;0,0;109783,8;8384,1;2389,2
+2021;4900;Transporte terrestre;Transporte terrestre;506364,0;183535,0;4123552,0;322829,0;0,0785;1,99;2473,2;0,0;0,0;81327,2;12,1;-4,1
+2021;5000;Transporte aquaviário;Transporte aquaviário;34706,0;14616,0;48865,0;20090,0;0,193;1,7219;10316,3;0,0;0,0;1596,4;0,0;0,0
+2021;5100;Transporte aéreo;Transporte aéreo;35749,0;3073,0;51770,0;32676,0;0,3197;1,8585;9127,2;0,0;0,0;6347,3;0,0;0,0
+2021;5280;Armazenamento, atividades auxiliares dos transportes e correio;Armazenagem e correio;188012,0;102818,0;937458,0;85194,0;0,1085;1,59;19254,3;0,0;0,0;39075,0;51,4;1,2
+2021;5500;Alojamento;Alojamento;31722,0;16415,0;402267,0;15307,0;0,0577;1,6961;4929,2;0,0;0,0;6689,6;0,0;0,0
+2021;5600;Alimentação;Alimentação;287344,0;120712,0;4980988,0;166632,0;0,1195;1,8283;3271,2;0,0;0,0;265515,6;0,0;0,0
+2021;5800;Edição e edição integrada à impressão;Edição;17626,0;7995,0;126997,0;9631,0;0,1522;1,7329;1034,1;0,0;0,0;13361,0;21,4;-826,8
+2021;5980;Atividades de televisão, rádio, cinema e gravação/edição de som e imagem;TV, rádio e cinema;46662,0;17533,0;154532,0;29129,0;0,1601;1,7246;2040,4;0,0;0,0;1273,9;0,0;0,0
+2021;6100;Telecomunicações;Telecomunicações;182343,0;79011,0;322694,0;103332,0;0,0966;1,8145;2867,1;0,0;0,0;142823,5;450,3;0,0
+2021;6280;Desenvolvimento de sistemas e outros serviços de informação;Sistemas e informação;267495,0;159992,0;962675,0;107503,0;0,2156;1,3759;14747,1;0,0;0,0;5882,5;139301,2;23,5
+2021;6480;Intermediação financeira, seguros e previdência complementar;Finanças e seguros;717847,0;447048,0;1519655,0;270799,0;0,0498;1,4859;11393,0;1784,1;586,4;402189,9;777,1;0,1
+2021;6800;Atividades imobiliárias;Imobiliárias;758313,0;699465,0;518258,0;58848,0;0,0623;1,1093;3846,8;0,0;0,0;643986,7;0,9;0,0
+2021;6980;Atividades jurídicas, contábeis, consultoria e sedes de empresas;Jurídico, contábil e consultoria;285030,0;195074,0;2206221,0;89956,0;0,0932;1,424;22235,3;0,0;0,0;22534,6;0,0;0,0
+2021;7180;Serviços de arquitetura, engenharia, testes/análises técnicas e P & D;Engenharia e P&D;85091,0;50176,0;777044,0;34915,0;0,1887;1,4387;27111,4;0,0;0,0;1611,8;10195,9;16,9
+2021;7380;Outras atividades profissionais, científicas e técnicas;Outras atividades técnicas;146292,0;53773,0;850029,0;92519,0;0,0632;1,991;6051,0;0,0;0,0;2758,7;0,0;0,0
+2021;7700;Aluguéis não-imobiliários e gestão de ativos de propriedade intelectual;Aluguéis não imobiliários;75203,0;49842,0;320139,0;25361,0;0,1882;1,4195;8263,7;0,0;0,0;6948,4;962,5;8,4
+2021;7880;Outras atividades administrativas e serviços complementares;Serviços administrativos;319061,0;213521,0;4539907,0;105540,0;0,1067;1,3889;9493,6;0,0;39053,0;12971,9;43,7;0,0
+2021;8000;Atividades de vigilância, segurança e investigação;Vigilância e segurança;46889,0;36376,0;785372,0;10513,0;0,1119;1,2215;1,7;0,0;0,0;569,7;0,0;0,0
+2021;8400;Administração pública, defesa e seguridade social;Administração pública;993216,0;719944,0;4692057,0;273272,0;0,0834;1,4078;2904,1;933361,7;382,7;17380,7;10398,7;55,8
+2021;8591;Educação pública;Educação pública;404343,0;340323,0;4226629,0;64020,0;0,0968;1,2421;42,1;388909,9;6,0;991,8;12920,0;0,0
+2021;8592;Educação privada;Educação privada;150446,0;100728,0;2757268,0;49718,0;0,1036;1,3937;42,9;0,0;0,0;131425,9;769,4;0,0
+2021;8691;Saúde pública;Saúde pública;279166,0;158689,0;2306888,0;120477,0;0,1907;1,4646;5,2;274509,7;85,1;2324,7;1772,4;0,0
+2021;8692;Saúde privada;Saúde privada;382369,0;222222,0;3908377,0;160147,0;0,136;1,5256;573,7;60417,8;9953,8;271981,9;24,2;0,0
+2021;9080;Atividades artísticas, criativas e de espetáculos;Artes e espetáculos;42806,0;22891,0;937222,0;19915,0;0,0821;1,5926;2609,1;0,0;12067,9;33155,1;0,0;0,0
+2021;9480;Organizações associativas e outros serviços pessoais;Associações e serviços pessoais;185302,0;86270,0;4342454,0;99032,0;0,1608;1,6637;15,6;0,0;52913,0;100641,3;82,5;0,0
+2021;9700;Serviços domésticos;Serviços domésticos;61371,0;61371,0;5633396,0;0,0;;1,0;0,0;0,0;0,0;61371,0;0,0;0,0

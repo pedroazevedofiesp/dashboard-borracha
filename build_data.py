@@ -453,6 +453,58 @@ def build_energia_industrial(macro_rows):
 
 
 # ---------------------------------------------------------------------------
+# Cadeia produtiva (Contas Nacionais do IBGE: TRU 2010-2021 + MIP 2015).
+# Os CSVs saem de extrair_cadeia.py, que só roda quando o IBGE publica
+# tabelas novas ou ao trocar de setor. O que é específico do setor (produto,
+# atividade, textos, botões, cores) vem de cadeia_config.json e vai junto no
+# data.json, para a aba não ter nada do setor fixo no código.
+# ---------------------------------------------------------------------------
+def build_cadeia():
+    config = json.loads((ROOT / 'cadeia_config.json').read_text(encoding='utf-8'))
+    config = {k: v for k, v in config.items() if not k.startswith('_')}  # tira os comentários
+    cod = {'dtype': {'Codigo': str, 'Origem': str, 'Destino': str, 'Produto': str, 'Atividade_Produtora': str}}
+    ativ = read_csv('Cadeia_Atividades.csv', **cod)
+    fluxos = read_csv('Cadeia_Fluxos_Atividades.csv', **cod)
+    destinos = read_csv('Cadeia_Produto_Destinos.csv', **cod)
+    oferta = read_csv('Cadeia_Produto_Oferta.csv')
+    insumos = read_csv('Cadeia_Insumos_Atividade.csv', **cod)
+
+    df_cols = [c for c in ativ.columns if c.startswith('DF_')]
+    atividades = [{
+        'cod': r.Codigo, 'nome': r.Nome_Curto, 'descricao': r.Descricao,
+        'vbp': to_num(r.VBP), 'va': to_num(r.Valor_Adicionado), 'ocupacoes': to_int(r.Ocupacoes),
+        'ci': to_num(r.Consumo_Intermediario), 'pct_insumos_importados': to_num(r.Pct_Insumos_Importados_2015),
+        'multiplicador': to_num(r.Multiplicador_Producao_2015),
+        'demanda_final': {c[3:].lower(): to_num(getattr(r, c)) for c in df_cols},
+    } for r in ativ.itertuples(index=False)]
+    idx = {a['cod']: i for i, a in enumerate(atividades)}
+
+    centros = {i['centro'] for e in config['elos'] for i in e['itens']} - {'produto'}
+    cods_config = centros | set(config['principais_clientes']['cods']) | {config['atividade']} \
+        | {c for g in config['grupos_cor'] for c in g['cods']}
+    faltando = cods_config - set(idx)
+    if faltando:
+        raise ValueError(f'cadeia_config.json cita atividades que não existem na TRU: {sorted(faltando)}')
+
+    return {
+        'ano': int(ativ['Ano'].max()),
+        'config': config,
+        'atividades': atividades,
+        # [índice da atividade vendedora, índice da compradora, R$ mi] — compacto, ~4 mil pares
+        'fluxos': [[idx[r.Origem], idx[r.Destino], to_num(r.Valor)] for r in fluxos.itertuples(index=False)],
+        'produto': {
+            'oferta': [{'ano': int(r.Ano), 'producao': to_num(r.Producao_Nacional), 'importacao': to_num(r.Importacao),
+                        'demanda': to_num(r.Demanda_Total)} for r in oferta.itertuples(index=False)],
+            'destinos': [{'ano': int(r.Ano), 'tipo': r.Tipo, 'cod': r.Codigo, 'nome': r.Nome, 'valor': to_num(r.Valor)}
+                         for r in destinos.itertuples(index=False)],
+        },
+        'insumos_atividade': [{'produto': r.Produto, 'descricao': r.Descricao, 'atividade': r.Atividade_Produtora,
+                          'valor': to_num(r.Valor), 'pct_importado': to_num(r.Pct_Importado_2015)}
+                         for r in insumos.itertuples(index=False)],
+    }
+
+
+# ---------------------------------------------------------------------------
 # Por setor (um bloco por CNAE de config_painel.json)
 # ---------------------------------------------------------------------------
 def latest_breakdown(df):
@@ -1006,6 +1058,7 @@ def main():
         },
         'sectors': sectors,
         'energia_industrial': energia_industrial,
+        'cadeia': build_cadeia(),
     }
 
     OUT_DIR.mkdir(exist_ok=True)
