@@ -83,7 +83,7 @@ a:hover { color: var(--accent); }
   padding: 18px 20px;
   border-bottom: 1px solid var(--border);
 }
-.sidebar-brand img { height: auto; width: 146px; max-width: 100%; display: block; }
+.sidebar-brand img { height: auto; width: 200px; max-width: 100%; display: block; }
 
 .sidebar-section-label {
   padding: 16px 20px 6px;
