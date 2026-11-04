@@ -227,7 +227,7 @@
     const bs = blocks.producao;
 
     $('#producao-section-note').textContent = sc.producao_descricao + ' Dado nacional, sem abertura por estado.';
-    renderCaptionMeta($('#section-caption-producao'), { fonte: 'IBGE/PIM-PF' });
+    renderCaptionMeta($('#section-caption-producao'), { fonte: 'IBGE/PIM-PF', cobertura: 'producao' });
 
     const idx = filterMonthly(sh.producao.indice, bs.lo, bs.hi);
     const catIdx = idx.map(r => r.ano * 100 + r.mes);
@@ -1567,11 +1567,11 @@
     const cnaesOrdenadas = () => ei.divisoes.map(d => d.cnae).filter(c => stateEI.cnaes.has(c));
 
     async function ensureCnae(cnae) {
-      if (!cache[cnae]) cache[cnae] = await fetch(`data/energia/serie-cnae-${cnae}.json`).then(r => r.json());
+      if (!cache[cnae]) cache[cnae] = await fetch(`data/energia/serie-cnae-${cnae}.json?v=dev`).then(r => r.json());
       return cache[cnae];
     }
     async function ensureComposicaoUf(uf) {
-      if (!cacheComposicao[uf]) cacheComposicao[uf] = await fetch(`data/energia/composicao-uf-${uf}.json`).then(r => r.json());
+      if (!cacheComposicao[uf]) cacheComposicao[uf] = await fetch(`data/energia/composicao-uf-${uf}.json?v=dev`).then(r => r.json());
       return cacheComposicao[uf];
     }
 
@@ -1888,7 +1888,7 @@
   const VIEW_LABELS = { home: 'Painel Executivo', diagnostico: 'Diagnóstico Setorial', cadeia: 'Cadeia Produtiva', 'energia-industrial': 'Energia Industrial', relatorios: 'Relatórios', referencias: 'Referências' };
   function updateHeaderMeta() {
     const vista = isSectorView(state.view) ? rotuloCnae(state.view) : (VIEW_LABELS[state.view] || '');
-    const atualizado = state.data.meta.gerado_em ? 'Atualizado em ' + formatDataBr(state.data.meta.gerado_em) : '';
+    const atualizado = state.data.meta.gerado_em ? 'Painel publicado em ' + formatDataBr(state.data.meta.gerado_em) : '';
     $('#site-header-meta').textContent = [vista, atualizado].filter(Boolean).join(' · ');
   }
 
@@ -2005,14 +2005,35 @@
     const [y, m, d] = iso.split('-');
     return `${d}/${m}/${y}`;
   }
-  function renderCaptionMeta(el, { fonte, periodo } = {}) {
+  // "Fonte · Dados até X": a data de publicação do site (meta.gerado_em) não
+  // diz de quando é o dado — cada fonte tem sua defasagem (RAIS anual,
+  // CAGED mensal, PIA com 2 anos de atraso...). cobertura = chave de coberturaDados().
+  function renderCaptionMeta(el, { fonte, periodo, cobertura } = {}) {
     if (!el) return;
-    const atualizado = state.data && state.data.meta && state.data.meta.gerado_em;
     const partes = [];
     if (fonte) partes.push('Fonte: ' + fonte);
     if (periodo) partes.push(periodo);
-    if (atualizado) partes.push('Atualizado em ' + formatDataBr(atualizado));
+    const c = cobertura && coberturaDados()[cobertura];
+    if (c) partes.push('Dados até ' + c);
     el.textContent = partes.join(' · ');
+  }
+  function mesAno(ano, mes) { return MESES[mes - 1] + '/' + ano; }
+  function coberturaDados() {
+    const d = state.data, sh = d.shared;
+    const s = d.sectors[cnaeCodigos()[0]];
+    const ultAno = rows => Math.max(...rows.map(r => r.ano));
+    const prod = last(sh.producao.indice);
+    const [cAno, cMes] = s.caged.coverage.fim.split('-').map(Number);
+    const comexAno = ultAno(s.comex.yearly);
+    return {
+      producao: mesAno(prod.ano, prod.mes),
+      financeiro: String(ultAno(sh.financeiro.grupo)),
+      emprego: String(ultAno(s.rais.uf_yearly_total)),
+      caged: mesAno(cAno, cMes),
+      comex: comexAno === CURRENT_YEAR ? `${comexAno} (ano parcial)` : String(comexAno),
+      comtrade: String(ultAno(s.comtrade.brazil_yearly)),
+      bndes: ultAno(s.bndes.yearly) === CURRENT_YEAR ? `${CURRENT_YEAR} (ano parcial)` : String(ultAno(s.bndes.yearly)),
+    };
   }
   const SECTION_FONTES = {
     financeiro: 'IBGE — PIA-Empresa',
@@ -2025,7 +2046,7 @@
   };
   function initSectionCaptions() {
     Object.keys(SECTION_FONTES).forEach(key => {
-      renderCaptionMeta($('#section-caption-' + key), { fonte: SECTION_FONTES[key] });
+      renderCaptionMeta($('#section-caption-' + key), { fonte: SECTION_FONTES[key], cobertura: key });
     });
   }
 
@@ -2069,12 +2090,15 @@
 
   // Seta + variação % em relação ao período anterior, no formato pedido
   // pelo cliente ("IMPORTAÇÕES ↑ XX% em relação ao ano anterior").
-  function trendHtml(atual, anterior, labelPeriodo) {
+  // subirEhRuim: a seta continua indicando a direção, mas a cor diz se foi
+  // bom ou ruim para o setor (importação subindo = vermelho).
+  function trendHtml(atual, anterior, labelPeriodo, subirEhRuim = false) {
     if (atual == null || anterior == null || !anterior) return '';
     const pct = ((atual - anterior) / Math.abs(anterior)) * 100;
     const dir = pct > 0.5 ? 'up' : pct < -0.5 ? 'down' : 'flat';
     const arrow = dir === 'up' ? '↑' : dir === 'down' ? '↓' : '→';
-    return `<span class="kpi-trend kpi-trend-${dir}">${arrow} ${fmt.pct(Math.abs(pct))} ${labelPeriodo || 'em relação ao ano anterior'}</span>`;
+    const cor = dir === 'flat' ? 'flat' : ((dir === 'up') !== subirEhRuim ? 'up' : 'down');
+    return `<span class="kpi-trend kpi-trend-${cor}">${arrow} ${fmt.pct(Math.abs(pct))} ${labelPeriodo || 'em relação ao ano anterior'}</span>`;
   }
   // Pega o último ano "fechado" de uma série anual (ignora o ano corrente,
   // que costuma vir parcial no Comex/RAIS) e o ano anterior a ele, pra
@@ -2110,7 +2134,7 @@
     // então os cartões de comex mostram só o valor, sem seta, com nota curta.
     const residual = !!(cnaeCfg(execSector) || {}).comex_residual;
     const notaResidual = residual ? 'Comércio exterior residual neste segmento' : '';
-    const trendComex = (atual, anterior) => (residual || atual == null || anterior == null) ? '' : trendHtml(atual, anterior);
+    const trendComex = (atual, anterior, subirEhRuim) => (residual || atual == null || anterior == null) ? '' : trendHtml(atual, anterior, null, subirEhRuim);
 
     const saldoAtualUsd = comexAtual ? (comexAtual.exportacao_usd - comexAtual.importacao_usd) : null;
     const saldoAnteriorUsd = comexAnterior ? (comexAnterior.exportacao_usd - comexAnterior.importacao_usd) : null;
@@ -2149,7 +2173,7 @@
         id: 'exec-kpi-importacao', label: 'Importações',
         value: comexAtual ? fmt.usd(comexAtual.importacao_usd) : '-',
         sub: comexAtual ? `US$ FOB em ${comexAtual.ano}` : '',
-        trendHtml: comexAtual && comexAnterior ? trendComex(comexAtual.importacao_usd, comexAnterior.importacao_usd) : '',
+        trendHtml: comexAtual && comexAnterior ? trendComex(comexAtual.importacao_usd, comexAnterior.importacao_usd, true) : '',
         note: notaResidual,
         sector: execSector, target: 'block-comex',
       }),
@@ -2174,11 +2198,11 @@
     });
 
     renderCaptionMeta($('#exec-kpi-faturamento [data-caption]'), { fonte: 'IBGE/PIA-Empresa', periodo: '2024' });
-    renderCaptionMeta($('#exec-kpi-emprego [data-caption]'), { fonte: 'RAIS' });
-    renderCaptionMeta($('#exec-kpi-estabelecimentos [data-caption]'), { fonte: 'RAIS' });
-    renderCaptionMeta($('#exec-kpi-exportacao [data-caption]'), { fonte: 'MDIC/Comex Stat' });
-    renderCaptionMeta($('#exec-kpi-importacao [data-caption]'), { fonte: 'MDIC/Comex Stat' });
-    renderCaptionMeta($('#exec-kpi-saldo [data-caption]'), { fonte: 'MDIC/Comex Stat' });
+    renderCaptionMeta($('#exec-kpi-emprego [data-caption]'), { fonte: 'RAIS', cobertura: 'emprego' });
+    renderCaptionMeta($('#exec-kpi-estabelecimentos [data-caption]'), { fonte: 'RAIS', cobertura: 'emprego' });
+    renderCaptionMeta($('#exec-kpi-exportacao [data-caption]'), { fonte: 'MDIC/Comex Stat', cobertura: 'comex' });
+    renderCaptionMeta($('#exec-kpi-importacao [data-caption]'), { fonte: 'MDIC/Comex Stat', cobertura: 'comex' });
+    renderCaptionMeta($('#exec-kpi-saldo [data-caption]'), { fonte: 'MDIC/Comex Stat', cobertura: 'comex' });
 
     renderExecCharts(execSector);
     renderExecNavMenu(execSector);
@@ -2189,6 +2213,21 @@
   // o setor cresce? as importações crescem? de onde vem a concorrência?
   // como estão custos e competitividade?
   // ---------------------------------------------------------------------
+  // Deflator do faturamento e do VTI: IPP da divisão do setor (preço ao
+  // produtor da borracha e plástico, IBGE), média anual. Só anos com os 12
+  // meses (a série começa em dez/2009). Fator para preços do último ano.
+  function fatorIppAnual() {
+    const porAno = {};
+    shared().macro.forEach(r => { if (r.ipp_setor != null) (porAno[r.ano] = porAno[r.ano] || []).push(r.ipp_setor); });
+    const medias = {};
+    Object.entries(porAno).forEach(([a, v]) => { if (v.length === 12) medias[a] = v.reduce((x, y) => x + y, 0) / 12; });
+    const anos = Object.keys(medias).map(Number).sort((a, b) => a - b);
+    const base = medias[anos[anos.length - 1]];
+    const fator = {};
+    anos.forEach(a => { fator[a] = base / medias[a]; });
+    return { fator, anoBase: anos[anos.length - 1], primeiroAno: anos[0] };
+  }
+
   function indexarBase100(vals) {
     const base = vals.find(v => v != null && v !== 0);
     if (base == null) return vals.map(() => null);
@@ -2203,17 +2242,23 @@
     // divisão — igual nos dois segmentos, dito no rótulo), faturamento
     // (grupo CNAE, combinado — não abre por segmento) e empregos (por
     // segmento), indexados a 100 no primeiro ano em comum.
+    // Faturamento em R$ correntes subia ~3x de 2007 a 2024, quase tudo
+    // inflação: ao lado de produção e empregos (volumes), parecia que o
+    // faturamento tinha disparado. Agora é real, deflacionado pelo IPP do
+    // setor — por isso o gráfico começa no primeiro ano com IPP completo.
     const sc = setorCfg();
+    const ipp = fatorIppAnual();
     const finAnos = sh.financeiro.grupo.map(r => r.ano);
-    const catCrescimento = finAnos.filter(a => a >= 2007);
+    const catCrescimento = finAnos.filter(a => a >= ipp.primeiroAno && ipp.fator[a]);
+    $('#exec-chart-crescimento-sub').textContent = `Produção, faturamento real e empregos, indexados (base 100 em ${catCrescimento[0]}). Faturamento deflacionado pelo ${sc.ipp_rotulo} (IBGE)`;
     const producaoPorAno = new Map(producaoMediaAnual('indice_bruto').map(r => [r.ano, r.valor]));
     const empregoPorAno = new Map(sd.rais.uf_yearly_total.map(r => [r.ano, r.vinculos]));
-    const finPorAno = new Map(sh.financeiro.grupo.map(r => [r.ano, r.receita_liquida_total]));
+    const finPorAno = new Map(sh.financeiro.grupo.map(r => [r.ano, r.receita_liquida_total * ipp.fator[r.ano]]));
     lineChart($('#exec-chart-crescimento'), {
       categories: catCrescimento, formatY: n => fmt.compact(n), height: 260,
       series: [
         { label: `${sc.producao_titulo} (índice IBGE)`, color: 'var(--series-7)', values: indexarBase100(catCrescimento.map(a => producaoPorAno.has(a) ? producaoPorAno.get(a) : null)) },
-        { label: `Faturamento (grupo ${sc.grupo_cnae})`, color: 'var(--series-3)', values: indexarBase100(catCrescimento.map(a => finPorAno.has(a) ? finPorAno.get(a) : null)) },
+        { label: `Faturamento real (grupo ${sc.grupo_cnae})`, color: 'var(--series-3)', values: indexarBase100(catCrescimento.map(a => finPorAno.has(a) ? finPorAno.get(a) : null)) },
         { label: 'Empregos (segmento selecionado)', color: 'var(--series-5)', values: indexarBase100(catCrescimento.map(a => empregoPorAno.has(a) ? empregoPorAno.get(a) : null)) },
       ],
     });
@@ -2251,15 +2296,18 @@
     // relação direta com as duas).
     const finComp = sh.financeiro.grupo
       .filter(r => r.receita_liquida_total && r.custos_despesas_totais != null && r.vti != null && r.pessoal_ocupado)
+      .filter(r => ipp.fator[r.ano])
       .map(r => ({
         ano: r.ano,
         margem: ((r.receita_liquida_total - r.custos_despesas_totais) / r.receita_liquida_total) * 100,
-        produtividade: (r.vti * 1000) / r.pessoal_ocupado,
+        // VTI por trabalhador em R$ do último ano (IPP do setor), não corrente
+        produtividade: (r.vti * 1000 * ipp.fator[r.ano]) / r.pessoal_ocupado,
       }));
+    $('#exec-chart-margem-sub').textContent = `Margem operacional (%) e produtividade (VTI por trabalhador, R$ de ${ipp.anoBase} pelo ${sc.ipp_rotulo}), grupo ${sc.grupo_cnae}`;
     dualAxisLineChart($('#exec-chart-margem'), {
       categories: finComp.map(r => r.ano), height: 260,
       seriesLeft: { label: 'Margem operacional (%)', color: 'var(--series-8)', values: finComp.map(r => r.margem) },
-      seriesRight: { label: 'Produtividade (R$/trabalhador)', color: 'var(--series-2)', values: finComp.map(r => r.produtividade) },
+      seriesRight: { label: `Produtividade (R$ de ${ipp.anoBase}/trabalhador)`, color: 'var(--series-2)', values: finComp.map(r => r.produtividade) },
       formatYLeft: n => fmt.pct(n), formatYRight: n => fmt.brl(n), plainAxis: true,
     });
   }
@@ -2311,7 +2359,7 @@
   // ---------------------------------------------------------------------
   // Boot
   // ---------------------------------------------------------------------
-  fetch('data/data.json')
+  fetch('data/data.json?v=dev')
     .then(r => r.json())
     .then(data => {
       state.data = data;

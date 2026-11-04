@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Painel do Setor de Borracha</title>
 <meta name="description" content="Painel do setor de borracha no Brasil (CNAEs 2212 e 2219): produção, emprego, financeiro, comércio exterior, energia e BNDES.">
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/style.css?v=dev">
 </head>
 <body>
 
@@ -75,7 +75,7 @@
         <div id="exec-chart-crescimento"></div>
         <div class="exhibit-caption">
           <div class="exhibit-title">1. O setor está crescendo ou diminuindo?</div>
-          <div class="exhibit-sub">Produção, faturamento e empregos, indexados (base 100 no primeiro ano)</div>
+          <div class="exhibit-sub" id="exec-chart-crescimento-sub">Produção, faturamento real e empregos, indexados (base 100 no primeiro ano)</div>
         </div>
       </div>
       <div class="exhibit">
@@ -862,7 +862,9 @@
 </div>
 </div>
 
-<script src="js/charts.js"></script>
-<script src="js/main.js"></script>
+<!-- ?v=dev: o workflow troca pelo commit a cada publicação, para o navegador
+     não misturar arquivo novo com arquivo velho guardado em cache. -->
+<script src="js/charts.js?v=dev"></script>
+<script src="js/main.js?v=dev"></script>
 </body>
 </html>

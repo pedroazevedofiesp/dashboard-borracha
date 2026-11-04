@@ -136,7 +136,13 @@ Detalhes de cobertura e limitações metodológicas de cada fonte estão na aba
 ## Publicação (GitHub Pages)
 
 `.github/workflows/build.yml` roda os testes, regenera `data/` e publica o site
-a cada push na branch `main` que toque nos CSVs, no código ou no
-`config_painel.json`. Em **Settings → Pages**, a fonte ("Source") deve ser
-**GitHub Actions**. O `data/` gerado também é versionado, então o site
-funciona mesmo com a fonte em "Deploy from a branch".
+a cada push na branch `main` que toque nos CSVs, no código, no
+`config_painel.json` ou no `cadeia_config.json`. Em **Settings → Pages**, a
+fonte ("Source") é **GitHub Actions**. A pasta `data/` é gerada pelo CI e não
+fica no repositório (está no `.gitignore`); para ver o painel localmente, rode
+`build_data.py` e `build_downloads.py` antes.
+
+CSS, JS e os JSON de dados são referenciados com `?v=dev`; o workflow troca isso
+pelo commit a cada publicação, para o navegador não misturar arquivo novo com
+arquivo velho guardado em cache (o Pages guarda por ~10 minutos). Arquivo novo
+carregado pelo `index.html` ou `fetch` novo precisa do mesmo `?v=dev`.

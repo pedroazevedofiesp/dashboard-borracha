@@ -19,3 +19,7 @@ desktop.ini
 .Renviron
 .env
 Setor */
+
+# Gerado pelo CI a cada publicação (build_data.py e build_downloads.py).
+# O GitHub Pages publica via Actions, então não precisa estar no repositório.
+data/
