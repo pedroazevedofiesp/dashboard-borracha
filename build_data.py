@@ -24,6 +24,10 @@ SETOR = CONFIG['setor']
 SLUG = SETOR['slug']                    # rais_vinc_{slug}_..., caged_{slug}_...
 ROTULO_ARQUIVO = SETOR['rotulo_arquivo']  # Empregos_RAIS_UF_{rotulo}_..., Comtrade_Global_{rotulo}_...
 CNAES = CONFIG['cnaes']
+# ISO3 (código do Comtrade) -> [ISO2 minúsculo para a bandeira, nome em português]
+with open(ROOT / 'assets' / 'paises_iso3.json', encoding='utf-8') as _f:
+    PAISES_ISO3 = json.load(_f)
+RANKING_MUNDIAL_TOP = 25
 # Recorte opcional que soma vários CNAEs (ex.: "Borracha - Total" = 2212 + 2219).
 AGREGADO = CONFIG.get('agregado')
 # Todos os recortes do painel: o agregado (se houver) primeiro, depois os CNAEs.
@@ -865,7 +869,26 @@ def build_sector(cfg, fator_brl_2023):
         'ano': ano_max_ct,
         'items': [{'pais': r.Partner, 'valor_usd': to_num(r.Valor_US_FOB)} for r in tp.head(10).itertuples(index=False)],
     }
-    comtrade = {'brazil_yearly': brazil_yearly, 'world_yearly': world_yearly, 'top_partners_latest': top_partners_latest}
+    # Ranking mundial de exportadores por ano (exportação de cada país para
+    # "World"): top N + o Brasil, mesmo fora do top, com posição e % do total
+    # mundial. Usa exportação porque a importação mundial vem subestimada
+    # (muitos países declaram importação em CIF; aqui só entra FOB).
+    ct_rank = (ct_world_exp.groupby(['Ano', 'Reporter_ISO', 'Reporter'], as_index=False)['Valor_US_FOB'].sum())
+    ranking_exportadores = {}
+    for ano, g in ct_rank.groupby('Ano'):
+        g = g.sort_values('Valor_US_FOB', ascending=False).reset_index(drop=True)
+        total_mundo = g['Valor_US_FOB'].sum()
+        linhas = []
+        for pos, r in enumerate(g.itertuples(index=False), start=1):
+            if pos > RANKING_MUNDIAL_TOP and r.Reporter_ISO != 'BRA':
+                continue
+            iso2, nome = PAISES_ISO3.get(r.Reporter_ISO, [None, r.Reporter])
+            linhas.append({'pos': pos, 'iso2': iso2, 'pais': nome, 'valor_usd': to_num(r.Valor_US_FOB),
+                           'pct_mundo': to_num(r.Valor_US_FOB / total_mundo * 100) if total_mundo else None})
+        ranking_exportadores[str(int(ano))] = {'n_paises': len(g), 'itens': linhas}
+
+    comtrade = {'brazil_yearly': brazil_yearly, 'world_yearly': world_yearly, 'top_partners_latest': top_partners_latest,
+                'ranking_exportadores': ranking_exportadores}
 
     # --- BNDES ---
     bndes_df = read_multi(lambda c, r: f'BNDES_Desembolsos_{c}.csv')

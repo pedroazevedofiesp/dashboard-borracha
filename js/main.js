@@ -698,21 +698,14 @@
     const ctBr = filterAnnual(s.comtrade.brazil_yearly, bs.lo, bs.hi);
     const ctWorld = filterAnnual(s.comtrade.world_yearly, bs.lo, bs.hi);
     const catCt = annualCategories([ctBr, ctWorld]);
-    // Eixos independentes: exportação do Brasil é ordens de grandeza menor
-    // que a mundial (milhões x bilhões) — no mesmo eixo linear, a linha do
-    // Brasil ficava achatada perto de zero e só a linha mundial aparecia.
-    dualAxisLineChart($('#chart-comex-mundo'), {
-      categories: catCt, formatYLeft: fmt.usd, formatYRight: fmt.usd, height: 280,
-      seriesLeft: { label: 'Exportação do Brasil', color: 'var(--series-1)', values: seriesAnnual(ctBr, 'export_usd', catCt) },
-      seriesRight: { label: 'Exportação mundial (contexto)', color: 'var(--series-8)', values: seriesAnnual(ctWorld, 'export_usd', catCt) },
-    });
+    renderRankingMundial();
 
     const participacaoMundo = catCt.map(ano => {
       const b = ctBr.find(r => r.ano === ano), w = ctWorld.find(r => r.ano === ano);
       return (b && w && w.export_usd) ? (b.export_usd / w.export_usd) * 100 : null;
     });
     lineChart($('#chart-comex-participacao-mundial'), {
-      categories: catCt, formatY: n => fmt.pct(n), height: 280,
+      categories: catCt, formatY: pct2, height: 280,
       series: [{ label: 'Participação do Brasil', color: 'var(--series-4)', values: participacaoMundo, area: true }]
     });
 
@@ -804,6 +797,44 @@
       $('#table-comex-ncm-imp').innerHTML = '';
       $('#chart-comex-preco-medio').innerHTML = '';
     }
+  }
+
+  // Participação no mundo é pequena (décimos de ponto): duas casas decimais.
+  function pct2(n) {
+    return n == null || isNaN(n) ? '-' : n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
+  }
+
+  // Ranking mundial de exportadores (Comtrade) com seletor de ano próprio —
+  // não segue a régua de período do bloco, é um retrato de um ano.
+  function renderRankingMundial() {
+    const rk = csS().comtrade.ranking_exportadores || {};
+    const anos = Object.keys(rk).map(Number).sort((a, b) => b - a);
+    const sel = $('#comex-mundo-ano-select');
+    const atual = Number(sel.value);
+    sel.innerHTML = anos.map(a => `<option value="${a}">${a}</option>`).join('');
+    sel.value = anos.includes(atual) ? atual : anos[0];
+    if (!sel.dataset.wired) {
+      sel.addEventListener('change', renderRankingMundial);
+      sel.dataset.wired = '1';
+    }
+    const dado = rk[sel.value];
+    if (!dado) { $('#table-comex-ranking-mundial').innerHTML = '<div class="empty-note">Sem dados disponíveis.</div>'; return; }
+    const bra = dado.itens.find(r => r.iso2 === 'br');
+    $('#comex-ranking-mundial-sub').textContent = `Maiores exportadores do mundo dos produtos do segmento em ${sel.value} (Comtrade, ${dado.n_paises} países declarantes), US$ FOB e % do total mundial.`
+      + (bra ? ` Brasil em ${bra.pos}º lugar, com ${pct2(bra.pct_mundo)}.` : ' Brasil sem exportação declarada no ano.');
+    const bandeira = r => r.iso2
+      ? `<img class="flag" src="https://flagcdn.com/20x15/${r.iso2}.png" srcset="https://flagcdn.com/40x30/${r.iso2}.png 2x" width="20" height="15" alt="" loading="lazy">`
+      : '<span class="flag flag-vazia"></span>';
+    dataTable($('#table-comex-ranking-mundial'), {
+      columns: [
+        { key: 'pos', label: '#', align: 'right', format: n => n + 'º' },
+        { key: 'pais', label: 'País', html: (v, r) => `${bandeira(r)}${v}` },
+        { key: 'valor_usd', label: 'Exportação', align: 'right', format: fmt.usd },
+        { key: 'pct_mundo', label: '% do mundo', align: 'right', format: pct2 },
+      ],
+      rows: dado.itens,
+      rowClass: r => (r.iso2 === 'br' ? 'row-destaque' : ''),
+    });
   }
 
   // ---------------------------------------------------------------------
@@ -1983,7 +2014,7 @@
     // importações, ano mais recente completo (mesmo recorte do
     // detalhamento em Comércio Exterior).
     const paisesImp = sd.comex.top_paises_latest.importacao || [];
-    $('#exec-chart-paises-imp-sub').textContent = `Principais países de origem das importações, ${sd.comex.top_paises_latest.ano}`;
+    $('#exec-chart-paises-imp-sub').textContent = `Principais países de origem das importações brasileiras do segmento, ${sd.comex.top_paises_latest.ano}`;
     rankList($('#exec-chart-paises-imp'), paisesImp.map(p => ({ label: p.pais, value: p.valor_usd })), {
       formatVal: fmt.usd, color: 'var(--series-6)',
     });

@@ -819,10 +819,13 @@
         columns.forEach(col => {
           const td = document.createElement('td');
           const raw = r[col.key];
-          td.textContent = col.format ? col.format(raw) : (raw == null ? '-' : raw);
+          // col.html(raw, row): conteúdo HTML montado pelo chamador (ex.: bandeira + nome)
+          if (col.html) td.innerHTML = col.html(raw, r);
+          else td.textContent = col.format ? col.format(raw) : (raw == null ? '-' : raw);
           if (col.align) td.style.textAlign = col.align;
           tr.appendChild(td);
         });
+        if (opts.rowClass) { const cls = opts.rowClass(r); if (cls) tr.className = cls; }
         tbody.appendChild(tr);
       });
       table.appendChild(tbody);
