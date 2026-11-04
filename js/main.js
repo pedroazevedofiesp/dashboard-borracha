@@ -1621,6 +1621,17 @@
     });
     $('#exec-chart-margem-sub').textContent = `Margem operacional (%) e produtividade (VTI por trabalhador), grupo ${grupo}`;
     document.title = setorCfg().titulo;
+    $('#site-header-title').textContent = setorCfg().titulo;
+    updateHeaderMeta();
+  }
+
+  // Faixa vermelha do topo: título fixo + vista atual e data de atualização,
+  // pra quem rola a página saber onde está e de quando é o dado.
+  const VIEW_LABELS = { home: 'Painel Executivo', 'energia-industrial': 'Energia Industrial', relatorios: 'Relatórios', referencias: 'Referências' };
+  function updateHeaderMeta() {
+    const vista = isSectorView(state.view) ? rotuloCnae(state.view) : (VIEW_LABELS[state.view] || '');
+    const atualizado = state.data.meta.gerado_em ? 'Atualizado em ' + formatDataBr(state.data.meta.gerado_em) : '';
+    $('#site-header-meta').textContent = [vista, atualizado].filter(Boolean).join(' · ');
   }
 
   // view-tabs (home) + sector-tabs (um por CNAE) + foot-tabs-top/bottom
@@ -1658,6 +1669,7 @@
         renderAll();
       }
       applyVisibility();
+      updateHeaderMeta();
     }));
 
     setupSectionNav();
