@@ -369,11 +369,12 @@ a:hover { color: var(--accent); }
 
 .exhibit-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr)); /* minmax(0,…): tabela larga não estica a coluna */
   column-gap: 28px;
   row-gap: 44px;
 }
-.exhibit-grid.single { grid-template-columns: 1fr; }
+.exhibit-grid.single { grid-template-columns: minmax(0, 1fr); }
+.exhibit-grid > * { min-width: 0; }
 @media (max-width: 640px) { .exhibit-grid { grid-template-columns: 1fr; } }
 
 .exhibit-block + .exhibit-grid,

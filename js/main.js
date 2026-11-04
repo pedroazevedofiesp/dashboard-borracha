@@ -682,7 +682,7 @@
     }));
     seriesTopPaises.push({ label: 'Outros', color: 'var(--baseline)', values: filteredYearly.map(r => r.Outros || 0) });
     barChart($('#chart-comex-top-paises-tempo'), {
-      categories: filteredYearly.map(r => r.ano), formatY: fmt.usd, height: 280, stacked: true, series: seriesTopPaises
+      categories: filteredYearly.map(r => r.ano), formatY: fmt.usd, height: 280, stacked: true, shareInTooltip: true, series: seriesTopPaises
     });
 
     const topYImp = s.comex.top_paises_imp_yearly;
@@ -692,7 +692,7 @@
     }));
     seriesTopPaisesImp.push({ label: 'Outros', color: 'var(--baseline)', values: filteredYearlyImp.map(r => r.Outros || 0) });
     barChart($('#chart-comex-top-paises-imp-tempo'), {
-      categories: filteredYearlyImp.map(r => r.ano), formatY: fmt.usd, height: 280, stacked: true, series: seriesTopPaisesImp
+      categories: filteredYearlyImp.map(r => r.ano), formatY: fmt.usd, height: 280, stacked: true, shareInTooltip: true, series: seriesTopPaisesImp
     });
 
     const ctBr = filterAnnual(s.comtrade.brazil_yearly, bs.lo, bs.hi);
@@ -710,10 +710,6 @@
     });
 
     const top = s.comex.top_paises_latest;
-    $('#comex-paises-sub').textContent = 'Para onde o Brasil mais exporta, ' + top.ano;
-    rankList($('#rank-comex-paises'), top.exportacao.slice(0, 8).map(i => ({ label: i.pais, value: i.valor_usd })), { formatVal: fmt.usd, color: 'var(--series-4)' });
-    $('#comex-paises-imp-sub').textContent = 'De onde o Brasil mais importa, ' + top.ano;
-    rankList($('#rank-comex-paises-imp'), top.importacao.slice(0, 8).map(i => ({ label: i.pais, value: i.valor_usd })), { formatVal: fmt.usd, color: 'var(--series-6)' });
 
     $('#comex-paises-table-sub').textContent = 'Ano de ' + top.ano;
     const paisesSet = new Set([...top.exportacao.map(i => i.pais), ...top.importacao.map(i => i.pais)]);

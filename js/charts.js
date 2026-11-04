@@ -363,7 +363,9 @@
   // ---------------------------------------------------------------------
   function barChart(container, opts) {
     container.innerHTML = '';
-    const { series, categories, formatY = fmt.compact, formatX = (s => s), height = 220, stacked = false, tooltipExtra, onCategoryClick } = opts;
+    // shareInTooltip (só empilhado): mostra no tooltip o % de cada série no
+    // total da barra e uma linha de Total.
+    const { series, categories, formatY = fmt.compact, formatX = (s => s), height = 220, stacked = false, tooltipExtra, onCategoryClick, shareInTooltip = false } = opts;
     const n = categories.length;
     if (!n || !series.some(s => s.values.some(v => v != null))) {
       container.innerHTML = '<div class="empty-note">Sem dados disponíveis para o período selecionado.</div>';
@@ -417,6 +419,7 @@
       if (stacked) {
         const bx = slotX + (slotW - barW) / 2;
         let cum = 0;
+        const totalBarra = series.reduce((a, s) => a + Math.max(0, s.values[i] || 0), 0);
         series.forEach(s => {
           const v = s.values[i] || 0;
           if (s.values[i] != null && v !== 0) {
@@ -424,9 +427,11 @@
             cum += v;
             const y1 = yScale(cum);
             svg.appendChild(svgEl('rect', { x: bx, y: Math.min(y0, y1), width: barW, height: Math.max(1, Math.abs(y0 - y1)), fill: s.color, class: 'bar-mark' }));
-            rows.push({ label: s.label, color: s.color, value: formatY(v) });
+            const share = shareInTooltip && totalBarra ? ` (${fmtFull1.format((v / totalBarra) * 100)}%)` : '';
+            rows.push({ label: s.label, color: s.color, value: formatY(v) + share });
           }
         });
+        if (shareInTooltip && totalBarra) rows.push({ label: 'Total', value: formatY(totalBarra) });
       } else {
         const groupW = nSeries * barW + (nSeries - 1) * gap;
         let bx = slotX + (slotW - groupW) / 2;
