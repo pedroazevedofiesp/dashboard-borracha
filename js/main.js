@@ -1885,7 +1885,7 @@
 
   // Faixa vermelha do topo: título fixo + vista atual e data de atualização,
   // pra quem rola a página saber onde está e de quando é o dado.
-  const VIEW_LABELS = { home: 'Painel Executivo', cadeia: 'Cadeia Produtiva', 'energia-industrial': 'Energia Industrial', relatorios: 'Relatórios', referencias: 'Referências' };
+  const VIEW_LABELS = { home: 'Painel Executivo', diagnostico: 'Diagnóstico Setorial', cadeia: 'Cadeia Produtiva', 'energia-industrial': 'Energia Industrial', relatorios: 'Relatórios', referencias: 'Referências' };
   function updateHeaderMeta() {
     const vista = isSectorView(state.view) ? rotuloCnae(state.view) : (VIEW_LABELS[state.view] || '');
     const atualizado = state.data.meta.gerado_em ? 'Atualizado em ' + formatDataBr(state.data.meta.gerado_em) : '';
@@ -1904,6 +1904,7 @@
     const sectionNav = $('#section-nav-label'), sectionNavList = $('#section-nav');
     const energiaIndustrialView = $('#energia-industrial-view');
     const cadeiaView = $('#cadeia-view');
+    const diagnosticoView = $('#diagnostico-view');
     const relatoriosView = $('#relatorios-view');
     const referenciasView = $('#referencias-view');
 
@@ -1915,6 +1916,10 @@
       sectionNavList.style.display = isData ? '' : 'none';
       energiaIndustrialView.hidden = state.view !== 'energia-industrial';
       cadeiaView.hidden = state.view !== 'cadeia';
+      diagnosticoView.hidden = state.view !== 'diagnostico';
+      // O PDF (5,8 MB) só carrega quando a aba é aberta pela primeira vez.
+      const pdf = $('#diagnostico-pdf');
+      if (state.view === 'diagnostico' && !pdf.getAttribute('src')) pdf.setAttribute('src', pdf.dataset.src);
       relatoriosView.hidden = state.view !== 'relatorios';
       referenciasView.hidden = state.view !== 'referencias';
     }
@@ -2031,6 +2036,7 @@
   // esconde nada do painel de dados, é só uma porta de entrada mais simples.
   // ---------------------------------------------------------------------
   const EXEC_OUTRAS_SECOES = [
+    { view: 'diagnostico', title: 'Diagnóstico Setorial', sub: 'Apresentação completa do planejamento estratégico do setor (DECOMTEC - FIESP, 2026).' },
     { view: 'cadeia', title: 'Cadeia Produtiva', sub: 'De onde vêm os insumos da borracha e para quem ela vai (IBGE).' },
     { view: 'energia-industrial', title: 'Energia Industrial', sub: 'Consumo e custo de energia na indústria, por estado.' },
     { view: 'relatorios', title: 'Relatórios', sub: 'Em construção.' },

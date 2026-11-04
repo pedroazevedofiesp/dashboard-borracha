@@ -28,6 +28,7 @@
   <nav class="sidebar-nav sidebar-nav-sections" id="section-nav"></nav>
 
   <nav class="sidebar-nav sidebar-nav-foot" id="foot-tabs-top" role="tablist" aria-label="Outras seções">
+    <button type="button" data-view="diagnostico" role="tab" aria-selected="false">Diagnóstico Setorial</button>
     <button type="button" data-view="cadeia" role="tab" aria-selected="false">Cadeia Produtiva</button>
     <button type="button" data-view="energia-industrial" role="tab" aria-selected="false">Energia Industrial</button>
   </nav>
@@ -700,6 +701,23 @@
   <p class="dataview-sources">Dados consolidados de fontes públicas (IBGE, RAIS/CAGED, MDIC/Comex Stat, UN Comtrade, BNDES).</p>
 
 </div><!-- /#data-view -->
+
+<!-- ============ DIAGNÓSTICO SETORIAL (PDF) ============ -->
+<div id="diagnostico-view" hidden>
+  <header class="cad-cabeca">
+    <div class="cad-chapeu">Diagnóstico setorial · DECOMTEC - FIESP · junho de 2026</div>
+    <h2 class="cad-titulo">Planejamento estratégico setorial para o setor de borracha</h2>
+    <p class="cad-linha-fina">Apresentação completa do diagnóstico feito pelo Departamento de Competitividade e Tecnologia da FIESP, apresentada na Expobor e Pneushow 2026: estrutura do setor, competitividade, comércio exterior, concorrência internacional, mercado, análise SWOT, cenários e diretrizes de política.</p>
+  </header>
+  <div class="diag-acoes">
+    <a class="section-download" href="assets/docs/diagnostico-setorial-borracha.pdf" download>⬇ Baixar PDF (264 páginas, 5,8 MB)</a>
+    <a class="diag-abrir" href="assets/docs/diagnostico-setorial-borracha.pdf" target="_blank" rel="noopener">Abrir em tela cheia ↗</a>
+  </div>
+  <p class="cad-nota">Os números da apresentação foram calculados pela equipe da FIESP com recortes próprios (por exemplo, a cesta de produtos de comércio exterior) e podem diferir dos números do restante deste painel.</p>
+  <div class="diag-viewer">
+    <iframe id="diagnostico-pdf" title="Diagnóstico setorial do setor de borracha (PDF)" loading="lazy" data-src="assets/docs/diagnostico-setorial-borracha.pdf#view=FitH"></iframe>
+  </div>
+</div><!-- /#diagnostico-view -->
 
 <!-- ============ CADEIA PRODUTIVA ============ -->
 <div id="cadeia-view" hidden>
