@@ -1107,6 +1107,7 @@ def build_sector(cfg, fator_brl_2023, macro_rows=None):
         for r in bti.itertuples(index=False)
     ]
 
+    mercado = build_mercado_domestico(codes, ncm_df, macro_rows or [])
     return {
         'label': label,
         'cnae': cfg['cnae'],
@@ -1136,12 +1137,76 @@ def build_sector(cfg, fator_brl_2023, macro_rows=None):
             'ncm': comex_ncm,
         },
         'comtrade': comtrade,
-        'mercado': build_mercado_domestico(codes, ncm_df, macro_rows or []),
+        'mercado': mercado,
+        'simulador': build_simulador(mercado, importacao_china_resto_yearly),
         'bndes': {'yearly': bndes_yearly, 'uf_total': bndes_uf_total,
                   'porte_total': bndes_porte_total, 'table': bndes_table},
     }
 
 
+
+
+# ---------------------------------------------------------------------------
+# Simulador de mercado doméstico (projeção do consumo aparente)
+# ---------------------------------------------------------------------------
+SIMULADOR_ANO_HORIZONTE = 2040
+
+
+def _cagr(v0, v1, anos):
+    if not v0 or v0 <= 0 or v1 is None or v1 <= 0 or anos <= 0:
+        return None
+    return ((v1 / v0) ** (1 / anos) - 1) * 100
+
+
+def build_simulador(mercado, china_resto_yearly):
+    """Base do simulador: valores do último ano do mercado doméstico (R$ do
+    ano-base) e ritmo de crescimento anual (CAGR real) desde o primeiro ano,
+    para produção, exportação e importação (separando China e demais países
+    no segmento; por grupo de produto só há o total importado). Mesma lógica
+    da "Simulação de riscos da importação" do diagnóstico setorial; a
+    projeção em si é feita no navegador."""
+    if not mercado or not mercado.get('yearly'):
+        return None
+    anual = [r for r in mercado['yearly'] if r.get('producao_real')]
+    if len(anual) < 2:
+        return None
+    r0, r1 = anual[0], anual[-1]
+    n = r1['ano'] - r0['ano']
+    share = {r['ano']: (r['china_usd'] / (r['china_usd'] + r['resto_usd']))
+             for r in china_resto_yearly if (r['china_usd'] + r['resto_usd']) > 0}
+
+    def base(r0, r1, com_china):
+        d = {
+            'producao': r1['producao_real'], 'exportacao': r1['exportacao_real'],
+            'importacao': r1['importacao_real'],
+            'g_producao': _cagr(r0['producao_real'], r1['producao_real'], n),
+            'g_exportacao': _cagr(r0['exportacao_real'], r1['exportacao_real'], n),
+            'g_importacao': _cagr(r0['importacao_real'], r1['importacao_real'], n),
+        }
+        if com_china and r0['ano'] in share and r1['ano'] in share:
+            s0, s1 = share[r0['ano']], share[r1['ano']]
+            d['importacao_china'] = r1['importacao_real'] * s1
+            d['importacao_resto'] = r1['importacao_real'] * (1 - s1)
+            d['g_importacao_china'] = _cagr(r0['importacao_real'] * s0, d['importacao_china'], n)
+            d['g_importacao_resto'] = _cagr(r0['importacao_real'] * (1 - s0), d['importacao_resto'], n)
+        return d
+
+    segmento = base(r0, r1, True)
+    produtos = []
+    prod = mercado.get('produtos') or {}
+    ini = {i['componente']: i for i in prod.get('itens_inicial') or []}
+    if prod.get('ano') == r1['ano'] and prod.get('ano_inicial') == r0['ano']:
+        for it in prod.get('itens') or []:
+            i0 = ini.get(it['componente'])
+            # Só grupos com produção conhecida (sem sigilo) nos dois anos.
+            if not i0 or it.get('sigilo') or i0.get('sigilo') or not it.get('producao_real') or not i0.get('producao_real'):
+                continue
+            if not it.get('consumo_aparente_real') or it['consumo_aparente_real'] <= 0:
+                continue
+            produtos.append({'componente': it['componente'], 'grupo': it['descricao'],
+                             **base(i0, it, False)})
+    return {'ano_inicial': r0['ano'], 'ano_base': r1['ano'], 'ano_horizonte': SIMULADOR_ANO_HORIZONTE,
+            'segmento': segmento, 'produtos': produtos}
 
 # ---------------------------------------------------------------------------
 # SHARED: indicadores de desempenho (PIA-Empresa por classe, 2007-2023)

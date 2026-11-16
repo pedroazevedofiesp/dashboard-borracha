@@ -278,7 +278,9 @@
             svg.appendChild(svgEl('path', { d: areaD, fill: s.color, opacity: 0.1, stroke: 'none' }));
           }
         }
-        svg.appendChild(svgEl('path', { d: d.trim(), fill: 'none', stroke: s.color, 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
+        const attrs = { d: d.trim(), fill: 'none', stroke: s.color, 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' };
+        if (s.dashed) attrs['stroke-dasharray'] = '6 4';  // ex.: trecho projetado
+        svg.appendChild(svgEl('path', attrs));
 
         // end marker on last non-null point
         for (let i = s.values.length - 1; i >= 0; i--) {

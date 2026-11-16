@@ -713,3 +713,25 @@ table.pdi-table td.mono { font-variant-numeric: tabular-nums; white-space: nowra
 #table-mercado-produtos td:first-child { white-space: normal; min-width: 240px; max-width: 420px; }
 #table-mercado-produtos td:not(:first-child) { white-space: nowrap; }
 #table-mercado-produtos th { white-space: normal; vertical-align: bottom; }
+
+/* Simulador de mercado */
+.sim-controles { display: flex; flex-wrap: wrap; gap: 12px 20px; margin: 8px 0 16px; }
+.sim-campo { display: flex; flex-direction: column; gap: 4px; font-size: 0.72rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.sim-campo select { font: inherit; font-size: 0.85rem; text-transform: none; letter-spacing: 0; font-weight: 500; color: var(--text-primary); padding: 7px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-1); max-width: 100%; }
+.sim-campo-largo { flex: 1; min-width: 240px; }
+.sim-cenarios { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 20px; }
+.sim-cenarios .exec-seg-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.sim-livre { font-size: 0.75rem; color: var(--text-muted); margin-left: 6px; font-style: italic; }
+.sim-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); gap: 24px; margin-bottom: 24px; }
+@media (max-width: 900px) { .sim-grid { grid-template-columns: minmax(0, 1fr); } }
+.sim-sliders { background: var(--surface-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; display: flex; flex-direction: column; gap: 16px; }
+.sim-sliders-titulo { font-size: 0.72rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.sim-slider-top { display: flex; justify-content: space-between; gap: 8px; font-size: 0.82rem; color: var(--text-secondary); }
+.sim-slider-top strong { color: var(--text-primary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sim-slider input[type=range] { width: 100%; accent-color: var(--accent); margin: 6px 0 2px; }
+.sim-slider-hist { font-size: 0.7rem; color: var(--text-muted); }
+.sim-narrativa { font-size: 0.92rem; line-height: 1.5; color: var(--text-secondary); margin: 0 0 16px; padding: 12px 14px; border-left: 3px solid var(--accent); background: var(--surface-2); }
+.sim-narrativa strong { color: var(--text-primary); }
+.sim-cenario-desc { display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 6px; }
+.sim-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 0; }
+.sim-kpis .kpi-value { font-size: 1.35rem; }

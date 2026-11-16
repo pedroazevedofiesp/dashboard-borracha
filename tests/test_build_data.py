@@ -278,3 +278,20 @@ def test_indicadores_desempenho(data):
             linha = {r['recorte']: r for r in serie if r['ano'] == ano}
             soma = sum(linha[c]['pessoal_ocupado'] for c in AGREGADO['componentes'])
             assert linha[AGREGADO['codigo']]['pessoal_ocupado'] == soma
+
+
+@pytest.mark.parametrize('cnae', CNAES)
+def test_simulador(data, cnae):
+    s = data['sectors'][cnae]['simulador']
+    assert s is not None
+    assert s['ano_inicial'] < s['ano_base'] < s['ano_horizonte']
+    seg = s['segmento']
+    for k in ('producao', 'exportacao', 'importacao'):
+        assert seg[k] is not None and seg[k] >= 0
+    # Base do simulador = último ano do mercado doméstico.
+    ultimo = data['sectors'][cnae]['mercado']['yearly'][-1]
+    assert abs(seg['producao'] - ultimo['producao_real']) < 1
+    if 'importacao_china' in seg:
+        assert abs(seg['importacao_china'] + seg['importacao_resto'] - seg['importacao']) < 1
+    for p in s['produtos']:
+        assert p['producao'] > 0 and p['grupo']

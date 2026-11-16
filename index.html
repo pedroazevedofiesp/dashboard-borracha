@@ -29,6 +29,7 @@
 
   <nav class="sidebar-nav sidebar-nav-foot" id="foot-tabs-top" role="tablist" aria-label="Outras seções">
     <button type="button" data-view="diagnostico" role="tab" aria-selected="false">Diagnóstico Setorial</button>
+    <button type="button" data-view="simulador" role="tab" aria-selected="false">Simulador de Mercado</button>
     <button type="button" data-view="cadeia" role="tab" aria-selected="false">Cadeia Produtiva</button>
     <button type="button" data-view="energia-industrial" role="tab" aria-selected="false">Energia Industrial</button>
   </nav>
@@ -760,6 +761,40 @@
     <iframe id="diagnostico-pdf" title="Diagnóstico setorial do setor de borracha (PDF)" loading="lazy" data-src="assets/docs/diagnostico-setorial-borracha.pdf#view=FitH"></iframe>
   </div>
 </div><!-- /#diagnostico-view -->
+
+<!-- ============ SIMULADOR DE MERCADO ============ -->
+<div id="simulador-view" hidden>
+  <header class="cad-cabeca">
+    <div class="cad-chapeu">Simulador · mercado doméstico</div>
+    <h2 class="cad-titulo">E se o ritmo das importações continuar?</h2>
+    <p class="cad-linha-fina">Projeção do mercado brasileiro até <span class="sim-horizonte"></span>, no mesmo espírito da "Simulação de riscos da importação" do diagnóstico setorial: produção, exportação e importação crescem a uma taxa anual, e o painel mostra quanto do mercado passaria a ser atendido por importados. Comece pelo ritmo histórico e ajuste as taxas ou escolha um cenário.</p>
+  </header>
+
+  <div class="sim-controles">
+    <label class="sim-campo"><span>Segmento</span><select id="sim-segmento"></select></label>
+    <label class="sim-campo sim-campo-largo"><span>Recorte</span><select id="sim-recorte"></select></label>
+  </div>
+
+  <div class="sim-cenarios" id="sim-cenarios" role="group" aria-label="Cenários prontos"></div>
+
+  <div class="sim-grid">
+    <div class="sim-sliders" id="sim-sliders"></div>
+    <div class="sim-resultado">
+      <p class="sim-narrativa" id="sim-narrativa"></p>
+      <div class="kpi-grid sim-kpis" id="sim-kpis"></div>
+    </div>
+  </div>
+
+  <div class="exhibit-block">
+    <div id="sim-chart"></div>
+    <div class="exhibit-caption">
+      <div class="exhibit-title">Penetração da importação e participação chinesa no mercado</div>
+      <div class="exhibit-sub" id="sim-chart-sub"></div>
+    </div>
+  </div>
+
+  <p class="cad-nota" id="sim-nota">Simulação ilustrativa e não exaustiva: aplica taxas constantes de crescimento real sobre o último ano com dado de produção, sem considerar efeitos de preço, câmbio ou política comercial. Consumo aparente = produção + importação − exportação; penetração da importação = importação / consumo aparente; coeficiente de exportação = exportação / produção. Fonte: PIA/IBGE e Comexstat. Elaboração: DECAP/FIESP.</p>
+</div><!-- /#simulador-view -->
 
 <!-- ============ CADEIA PRODUTIVA ============ -->
 <div id="cadeia-view" hidden>
