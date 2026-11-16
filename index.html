@@ -515,10 +515,11 @@
     </div>
     <div class="exhibit-block" id="comex-ncm-wrap">
       <h4 style="font-size:0.75rem;margin:12px 0 4px;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.06em;">Produtos e preço médio</h4>
-      <p class="section-note" style="margin-bottom:16px;" id="comex-ncm-note">Preço médio = valor exportado ou importado dividido pelo peso líquido, por código NCM.</p>
+      <p class="section-note" style="margin-bottom:16px;" id="comex-ncm-note">Produtos agrupados como no diagnóstico setorial da FIESP (grupos de produto); o botão "Por NCM" mostra o detalhe por código. Preço médio = valor dividido pelo peso líquido.</p>
     </div>
-    <div class="exhibit-grid">
+    <div class="exhibit-grid single">
       <div class="exhibit">
+        <div class="exec-seg-toggle indicadores-toggle" id="comex-ncm-exp-toggle"><button type="button" class="exec-seg-btn active" data-modo="grupo">Por grupo de produto</button><button type="button" class="exec-seg-btn" data-modo="ncm">Por NCM</button></div>
         <div id="table-comex-ncm-exp"></div>
         <div class="exhibit-caption">
           <div class="exhibit-title">Principais produtos exportados</div>
@@ -526,6 +527,7 @@
         </div>
       </div>
       <div class="exhibit">
+        <div class="exec-seg-toggle indicadores-toggle" id="comex-ncm-imp-toggle"><button type="button" class="exec-seg-btn active" data-modo="grupo">Por grupo de produto</button><button type="button" class="exec-seg-btn" data-modo="ncm">Por NCM</button></div>
         <div id="table-comex-ncm-imp"></div>
         <div class="exhibit-caption">
           <div class="exhibit-title">Principais produtos importados</div>

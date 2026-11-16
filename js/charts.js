@@ -828,6 +828,8 @@
           if (col.html) td.innerHTML = col.html(raw, r);
           else td.textContent = col.format ? col.format(raw) : (raw == null ? '-' : raw);
           if (col.align) td.style.textAlign = col.align;
+          // col.wrap: texto longo quebra linha (com largura mínima) em vez de esticar a tabela
+          if (col.wrap) { td.style.whiteSpace = 'normal'; td.style.minWidth = col.wrap === true ? '220px' : col.wrap; }
           tr.appendChild(td);
         });
         if (opts.rowClass) { const cls = opts.rowClass(r); if (cls) tr.className = cls; }

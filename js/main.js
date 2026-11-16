@@ -855,19 +855,39 @@
       ncmWrap.style.display = '';
       const ncmCols = [
         { key: 'ncm', label: 'NCM' },
-        { key: 'descricao', label: 'Descrição' },
+        { key: 'descricao', label: 'Descrição', wrap: true },
         { key: 'valor_usd', label: 'Valor US$ FOB', align: 'right', format: fmt.usdFull },
         { key: 'kg', label: 'Quilograma líquido', align: 'right', format: fmt.full },
         { key: 'preco_medio_usd_kg', label: 'Preço médio (US$/kg)', align: 'right', format: n => n == null ? '-' : 'US$ ' + fmt.full1(n) },
       ];
-      if (ncm.exportacao) {
-        $('#comex-ncm-exp-sub').textContent = 'Por código NCM, ' + ncm.exportacao.latest.ano;
-        dataTable($('#table-comex-ncm-exp'), { columns: ncmCols, rows: ncm.exportacao.latest.itens, pageSize: 8 });
-      }
-      if (ncm.importacao) {
-        $('#comex-ncm-imp-sub').textContent = 'Por código NCM, ' + ncm.importacao.latest.ano;
-        dataTable($('#table-comex-ncm-imp'), { columns: ncmCols, rows: ncm.importacao.latest.itens, pageSize: 8 });
-      }
+      const grupoCols = [
+        { key: 'grupo', label: 'Grupo de produto', wrap: true },
+        { key: 'valor_usd', label: 'Valor US$ FOB', align: 'right', format: fmt.usdFull },
+        { key: 'pct_total', label: '% do total', align: 'right', format: n => fmt.pct(n) },
+        { key: 'preco_medio_usd_kg', label: 'Preço médio (US$/kg)', align: 'right', format: n => n == null ? '-' : 'US$ ' + fmt.full1(n) },
+      ];
+      // Padrão: agrupado por componente (grupo de produto) do diagnóstico
+      // FIESP; o botão "Por NCM" abre o detalhe por código.
+      const desenharProdutos = (dado, alvo, sub, toggle) => {
+        const porNcm = state.comexProdutosPorNcm || !dado.latest.grupos;
+        $(sub).textContent = (porNcm ? 'Por código NCM, ' : 'Por grupo de produto, ') + dado.latest.ano;
+        $(toggle).style.display = dado.latest.grupos ? '' : 'none';
+        $(toggle).querySelectorAll('button').forEach(b =>
+          b.classList.toggle('active', (b.dataset.modo === 'ncm') === porNcm));
+        dataTable($(alvo), porNcm
+          ? { columns: ncmCols, rows: dado.latest.itens, pageSize: 8 }
+          : { columns: grupoCols, rows: dado.latest.grupos, pageSize: 10 });
+      };
+      const desenharTodos = () => {
+        if (ncm.exportacao) desenharProdutos(ncm.exportacao, '#table-comex-ncm-exp', '#comex-ncm-exp-sub', '#comex-ncm-exp-toggle');
+        if (ncm.importacao) desenharProdutos(ncm.importacao, '#table-comex-ncm-imp', '#comex-ncm-imp-sub', '#comex-ncm-imp-toggle');
+      };
+      document.querySelectorAll('#comex-ncm-exp-toggle button, #comex-ncm-imp-toggle button').forEach(b => {
+        if (b.dataset.wired) return;
+        b.dataset.wired = '1';
+        b.addEventListener('click', () => { state.comexProdutosPorNcm = b.dataset.modo === 'ncm'; desenharTodos(); });
+      });
+      desenharTodos();
       const catPreco = annualCategories([
         (ncm.exportacao && ncm.exportacao.preco_medio_yearly) || [],
         (ncm.importacao && ncm.importacao.preco_medio_yearly) || [],

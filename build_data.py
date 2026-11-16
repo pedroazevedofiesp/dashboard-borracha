@@ -955,6 +955,39 @@ def build_sector(cfg, fator_brl_2023, macro_rows=None):
             })
         return itens
 
+    # Agrupamento por componente (grupo de produto) do diagnóstico da FIESP,
+    # via cesta_componentes.csv. NCM sem componente cai em "Outros".
+    mapa_comp_path = ROOT / 'cesta_componentes.csv'
+    comp_de_ncm, desc_comp = {}, {}
+    if mapa_comp_path.exists():
+        mapa_c = pd.read_csv(mapa_comp_path, sep=';', dtype=str, encoding='utf-8')
+        mapa_c = mapa_c[mapa_c['tipo'] == 'NCM']
+        comp_de_ncm = dict(zip(mapa_c['codigo'], mapa_c['componente']))
+        desc_comp = dict(zip(mapa_c['componente'], mapa_c['descricao_componente']))
+
+    def _grupos_ano(itens):
+        if not comp_de_ncm:
+            return None
+        total = sum(i['valor_usd'] or 0 for i in itens)
+        grupos = {}
+        for i in itens:
+            comp = comp_de_ncm.get(i['ncm'].zfill(8))
+            g = grupos.setdefault(comp, {'componente': comp,
+                                         'grupo': desc_comp.get(comp, 'Outros produtos da cesta'),
+                                         'valor_usd': 0.0, 'kg': 0.0, 'n_ncm': 0})
+            g['valor_usd'] += i['valor_usd'] or 0
+            g['kg'] += i['kg'] or 0
+            g['n_ncm'] += 1
+        out = sorted(grupos.values(), key=lambda g: -g['valor_usd'])
+        for g in out:
+            g['pct_total'] = g['valor_usd'] / total * 100 if total else None
+            g['preco_medio_usd_kg'] = round(g['valor_usd'] / g['kg'], 4) if g['kg'] else None
+        return out
+
+    def _ncm_latest(df, ano):
+        itens = _ncm_itens_ano(df, ano)
+        return {'ano': ano, 'itens': itens, 'grupos': _grupos_ano(itens)}
+
     def _ncm_preco_medio_yearly(df):
         by_year = df.groupby('Ano', as_index=False)[['Valor_US_FOB', 'Quilograma_Liquido']].sum()
         out = []
@@ -981,7 +1014,7 @@ def build_sector(cfg, fator_brl_2023, macro_rows=None):
         ano_latest = int(df_fluxo['Ano'].max())
         ano_latest = ano_latest - 1 if ano_latest == date.today().year else ano_latest
         comex_ncm[chave] = {
-            'latest': {'ano': ano_latest, 'itens': _ncm_itens_ano(df_fluxo, ano_latest)},
+            'latest': _ncm_latest(df_fluxo, ano_latest),
             'preco_medio_yearly': _ncm_preco_medio_yearly(df_fluxo),
         }
 
