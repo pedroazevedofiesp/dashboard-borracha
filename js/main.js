@@ -370,6 +370,51 @@
     });
   }
 
+  // Fonte simples no rodapé de cada gráfico/tabela, no padrão do diagnóstico
+  // setorial (sem detalhar tabelas, filtros ou metodologia).
+  const FONTES_EXHIBIT = {
+    'exec-chart-crescimento': 'PIM-PF/IBGE, PIA/IBGE e RAIS/MTE',
+    'exec-chart-comex': 'Comexstat', 'exec-chart-paises-imp': 'Comexstat',
+    'exec-chart-margem': 'PIA/IBGE',
+    'chart-producao-dessaz': 'PIM-PF/IBGE', 'chart-producao-indice': 'PIM-PF/IBGE',
+    'chart-producao-variacao': 'PIM-PF/IBGE', 'table-producao': 'PIM-PF/IBGE',
+    'table-indicadores-desempenho': 'PIA/IBGE',
+    'chart-financeiro-vti-po': 'PIA/IBGE', 'chart-financeiro-produtividade': 'PIA/IBGE',
+    'chart-financeiro-receita-custos': 'PIA/IBGE', 'chart-financeiro-waterfall': 'PIA/IBGE',
+    'table-financeiro': 'PIA/IBGE', 'table-financeiro-por-cnae': 'PIA/IBGE',
+    'chart-caged-saldo': 'CAGED/MTE', 'chart-caged-movimentacao': 'CAGED/MTE',
+    'chart-caged-tipo': 'CAGED/MTE', 'chart-caged-massa-salarial': 'CAGED/MTE',
+    'rank-caged-saldo-uf': 'CAGED/MTE', 'table-caged-uf': 'CAGED/MTE',
+    'chart-comex-participacao-mundial': 'Comtrade', 'comex-mundo-ano-select': 'Comtrade',
+    'chart-mercado-ca': 'PIA/IBGE e Comexstat', 'chart-mercado-coef': 'PIA/IBGE e Comexstat',
+    'table-mercado-produtos': 'PIA/IBGE e Comexstat',
+    'table-decom': 'DECOM/GECEX',
+    'ee-chart-exposicao-china': 'Comexstat e RAIS/MTE', 'ee-chart-bndes-percapita': 'BNDES e RAIS/MTE',
+    'ee-chart-porte': 'RAIS/MTE', 'ee-chart-export-uf': 'Comexstat',
+    'ee-chart-produtividade': 'PIA/IBGE', 'ee-chart-producao-emprego': 'PIM-PF/IBGE e RAIS/MTE',
+    'chart-ei-consumo': 'EPE', 'rank-ei-composicao': 'EPE',
+    'rank-ei-custo-estados': 'ANEEL', 'chart-ei-custo-tempo': 'ANEEL', 'table-ei-dados': 'EPE e ANEEL',
+  };
+  const FONTE_POR_PREFIXO = [['emprego', 'RAIS/MTE'], ['comex', 'Comexstat'], ['bndes', 'BNDES']];
+  function aplicarFontesExhibits() {
+    document.querySelectorAll('.exhibit, .exhibit-block').forEach(ex => {
+      const cap = ex.querySelector(':scope > .exhibit-caption');
+      if (!cap || cap.querySelector('.exhibit-fonte')) return;
+      const ids = [...ex.querySelectorAll('[id]')].map(e => e.id);
+      let fonte = ids.map(id => FONTES_EXHIBIT[id]).find(Boolean);
+      if (!fonte) {
+        const alvo = ids.find(id => /^(chart|rank|table)-/.test(id)) || '';
+        const pref = FONTE_POR_PREFIXO.find(([p]) => alvo.split('-')[1] === p);
+        fonte = pref && pref[1];
+      }
+      if (!fonte) return;
+      const div = document.createElement('div');
+      div.className = 'exhibit-fonte';
+      div.textContent = `Fonte: ${fonte}. Elaboração: DECAP/FIESP.`;
+      cap.appendChild(div);
+    });
+  }
+
   // Tabela "Pontos de destaque" do diagnóstico setorial (PIA-Empresa por
   // classe): variação entre o primeiro e o último ano, por recorte.
   function renderIndicadoresDesempenho(ind) {
@@ -379,10 +424,7 @@
     const a0 = ind.ano_inicial, a1 = ind.ano_final;
     $('#indicadores-desempenho-title').textContent = `Indicadores de desempenho: variação ${a0}/${a1}`;
     $('#indicadores-desempenho-sub').textContent =
-      `Mesmos indicadores do diagnóstico setorial da FIESP. Fonte: IBGE/PIA-Empresa por classe CNAE (SIDRA, tabelas 7241 a 7245). `
-      + `Valores em R$ corrigidos pelo IPCA de dezembro. Lucro bruto = valor adicionado − gastos de pessoal; `
-      + `margem bruta = lucro bruto / receita líquida de vendas; investimento líquido = aquisições + melhorias − baixas do ativo imobilizado; `
-      + `faturamento = receita líquida de vendas. ${a1 + 1} fica de fora por ser nova série da PIA.`;
+      `Valores em R$ constantes. ${a1 + 1} fica de fora por ser nova série da PIA.`;
     const fmtVal = (v, tipo) => {
       if (v == null || isNaN(v)) return '-';
       const n = (tipo !== 'nivel' && v > 0 ? '+' : '')
@@ -2459,7 +2501,7 @@
   }
 
   function renderCharts() {
-    renderProducao(); renderFinanceiro(); renderEmprego(); renderCaged();
+    aplicarFontesExhibits(); renderProducao(); renderFinanceiro(); renderEmprego(); renderCaged();
     renderComex(); renderMercado(); renderBndes(); renderDecom(); renderEstudosEspeciais();
     updateDownloadLinks();
   }

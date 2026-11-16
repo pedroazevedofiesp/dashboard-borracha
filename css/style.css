@@ -338,6 +338,7 @@ a:hover { color: var(--accent); }
 /* Ranking mundial (Comtrade): bandeira + destaque do Brasil */
 .flag { display: inline-block; width: 20px; height: 15px; margin-right: 8px; vertical-align: -2px; border: 1px solid var(--border); object-fit: cover; }
 .flag-vazia { background: var(--surface-2); }
+.exhibit-fonte { margin-top: 4px; font-size: 0.7rem; color: var(--text-muted); }
 .data-table .col-destaque { background: var(--surface-2); font-weight: 700; color: var(--text-primary); }
 table.data-table.tabela-indicadores th { white-space: normal; vertical-align: bottom; }
 table.data-table.tabela-indicadores td:first-child { white-space: normal; min-width: 170px; }
