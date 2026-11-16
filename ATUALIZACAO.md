@@ -25,7 +25,7 @@ Tudo o que muda de um setor para outro está em `2_Scripts/config_setor.R`.
 | Script | Fonte | Credencial | Periodicidade sugerida |
 |---|---|---|---|
 | `extrair_ibge.R` | IBGE/SIDRA e Banco Central (PIA, PIM-PF, IPCA, câmbio, IPP) | nenhuma | mensal (PIM, IPCA); anual (PIA) |
-| `obter_pia_produto.R` | IBGE, PIA-Produto (valor da produção por produto): arquivos do servidor ftp.ibge.gov.br; 2024+ pela API do SIDRA (tabela 10476) | nenhuma | anual |
+| `obter_pia_produto.R` | IBGE, PIA-Produto (valor da produção por produto): API do SIDRA de 2014 em diante (tabelas 7752 e 10476); arquivos do servidor ftp.ibge.gov.br para 2007–2013 | nenhuma | anual |
 | `obter_comex.R` | API do Comex Stat | nenhuma | mensal |
 | `obter_comtrade.R` | API do UN Comtrade | `COMTRADE_API_KEY` | semestral |
 | `obter_bndes.R` | CSVs do portal de dados abertos do BNDES | nenhuma | trimestral |
@@ -51,13 +51,19 @@ de outro painel.
 
 ## PIA-Produto e mercado doméstico
 
-`obter_pia_produto.R` baixa a Tabela 1 da PIA-Produto de cada ano (2007 em
-diante) do servidor de arquivos do IBGE, fica com a versão revisada mais
-recente e grava `PIA_Produto_<Rotulo>.csv` com o valor da produção dos produtos
-da cesta PRODLIST (`prodlist_cestas` em `config_setor.R`). A partir de 2024 o
-IBGE só publica a tabela completa no SIDRA (tabela 10476): o script usa a API
-quando `pia_produto_sidra$classificacao` está preenchido em `config_setor.R`
-(o número depois do "/c" no link da API da tabela, em sidra.ibge.gov.br).
+`obter_pia_produto.R` grava `PIA_Produto_<Rotulo>.csv` com o valor da produção
+dos produtos da cesta PRODLIST (`prodlist_cestas` em `config_setor.R`):
+
+- **2014 em diante:** API do SIDRA, tabelas 7752 (2014–2023) e 10476 (2024+),
+  variável 215 (valor da produção), classificação 1264 (produtos Prodlist),
+  configurados em `pia_produto_sidra` no `config_setor.R`. É a mesma série do
+  diagnóstico setorial da FIESP (bate com ela até 0,2%).
+- **2007 a 2013:** Tabela 1 dos arquivos anuais do servidor do IBGE (a tabela
+  5806 do SIDRA usa outra classificação). Diferença para a FIESP de até ~6%
+  em 2007–2011, por revisões das listas de produtos antigas.
+
+A PIA-Produto sai com cerca de dois anos de defasagem: o aviso de "sem dados"
+para o ano mais recente é esperado até o IBGE publicar.
 
 `cesta_componentes.csv` (neste repositório) liga cada NCM e cada PRODLIST ao
 mesmo produto ("componente" do algoritmo da FIESP), para a tabela por produto
