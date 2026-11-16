@@ -127,7 +127,7 @@ a:hover { color: var(--accent); }
 }
 .sidebar-credit { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
 .sidebar-credit-label { font-size: 0.6rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
-.sidebar-credit img { height: 22px; width: auto; display: block; }
+.sidebar-credit img { width: 100%; max-width: 210px; height: auto; display: block; }
 .sidebar-credit strong { color: var(--text-secondary); font-weight: 600; }
 
 .main-col { flex: 1; min-width: 0; display: flex; flex-direction: column; }
