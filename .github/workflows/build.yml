@@ -9,6 +9,7 @@ on:
       - 'build_downloads.py'
       - 'config_painel.json'
       - 'cadeia_config.json'
+      - 'cesta_componentes.csv'
       - 'requirements.txt'
       - 'index.html'
       - 'css/**'

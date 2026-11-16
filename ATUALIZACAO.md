@@ -25,6 +25,7 @@ Tudo o que muda de um setor para outro está em `2_Scripts/config_setor.R`.
 | Script | Fonte | Credencial | Periodicidade sugerida |
 |---|---|---|---|
 | `extrair_ibge.R` | IBGE/SIDRA e Banco Central (PIA, PIM-PF, IPCA, câmbio, IPP) | nenhuma | mensal (PIM, IPCA); anual (PIA) |
+| `obter_pia_produto.R` | IBGE, PIA-Produto (valor da produção por produto): arquivos do servidor ftp.ibge.gov.br; 2024+ pela API do SIDRA (tabela 10476) | nenhuma | anual |
 | `obter_comex.R` | API do Comex Stat | nenhuma | mensal |
 | `obter_comtrade.R` | API do UN Comtrade | `COMTRADE_API_KEY` | semestral |
 | `obter_bndes.R` | CSVs do portal de dados abertos do BNDES | nenhuma | trimestral |
@@ -47,6 +48,21 @@ Baixar a pasta pelo Google Drive pode converter os CSVs em planilhas. O script
 confere valor a valor. Os arquivos de energia **não** podem ser recuperados
 assim (a conversão do Drive corrompe o ponto decimal): use os CSVs originais
 de outro painel.
+
+## PIA-Produto e mercado doméstico
+
+`obter_pia_produto.R` baixa a Tabela 1 da PIA-Produto de cada ano (2007 em
+diante) do servidor de arquivos do IBGE, fica com a versão revisada mais
+recente e grava `PIA_Produto_<Rotulo>.csv` com o valor da produção dos produtos
+da cesta PRODLIST (`prodlist_cestas` em `config_setor.R`). A partir de 2024 o
+IBGE só publica a tabela completa no SIDRA (tabela 10476): o script usa a API
+quando `pia_produto_sidra$classificacao` está preenchido em `config_setor.R`
+(o número depois do "/c" no link da API da tabela, em sidra.ibge.gov.br).
+
+`cesta_componentes.csv` (neste repositório) liga cada NCM e cada PRODLIST ao
+mesmo produto ("componente" do algoritmo da FIESP), para a tabela por produto
+da seção Mercado doméstico. Ao mudar a cesta de NCM ou de PRODLIST, atualize
+os três lugares juntos: `ncm_cestas`, `prodlist_cestas` e este CSV.
 
 ## Cesta de produtos (NCM/HS)
 

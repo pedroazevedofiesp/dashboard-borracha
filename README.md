@@ -105,6 +105,16 @@ código novo.
 Um CNAE pode usar um prefixo próprio nos arquivos de RAIS/Comtrade com a chave
 opcional `rotulo_arquivo` dentro do item do CNAE.
 
+## Seção Mercado doméstico
+
+Consumo aparente (produção + importação − exportação), coeficiente de
+exportação (exportação ÷ produção) e penetração da importação (importação ÷
+consumo aparente), no método do diagnóstico setorial da FIESP. Produção: IBGE,
+PIA-Produto, valor da produção dos mesmos produtos da cesta do comércio
+exterior (`PIA_Produto_Borracha.csv`, de `obter_pia_produto.R`); comércio em R$
+pelo câmbio médio do ano. `cesta_componentes.csv` liga NCM e PRODLIST ao mesmo
+produto para a tabela por produto. Ver `ATUALIZACAO.md`.
+
 ## Aba Cadeia Produtiva
 
 Diagrama de onde vêm os insumos e para quem vai a borracha, com as Contas

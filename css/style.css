@@ -701,3 +701,8 @@ table.pdi-table td.mono { font-variant-numeric: tabular-nums; white-space: nowra
 .rank-list .rank-val { font-weight: 650; min-width: 84px; text-align: right; font-variant-numeric: tabular-nums; }
 .rank-list li.rank-clickable { cursor: pointer; border-radius: var(--radius-sm); }
 .rank-list li.rank-clickable:hover { background: var(--surface-2); }
+
+/* Mercado doméstico: nomes de produto longos quebram linha, para os números caberem */
+#table-mercado-produtos td:first-child { white-space: normal; min-width: 240px; max-width: 420px; }
+#table-mercado-produtos td:not(:first-child) { white-space: nowrap; }
+#table-mercado-produtos th { white-space: normal; vertical-align: bottom; }

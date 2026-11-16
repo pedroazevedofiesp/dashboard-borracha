@@ -1,0 +1,109 @@
+tipo;codigo;componente;descricao_componente;cnae
+NCM;40121100;792;Pneumáticos recauchutados, recondicionados, remoldados ou recapados;2212
+NCM;40121200;792;Pneumáticos recauchutados, recondicionados, remoldados ou recapados;2212
+NCM;40121300;792;Pneumáticos recauchutados, recondicionados, remoldados ou recapados;2212
+NCM;40121900;792;Pneumáticos recauchutados, recondicionados, remoldados ou recapados;2212
+PRODLIST;2212.2010;792;Pneumáticos recauchutados, recondicionados, remoldados ou recapados;2212
+NCM;40030000;773;Borracha regenerada, em formas primárias ou em chapas, folhas ou tiras;2219
+NCM;40040000;774;Resíduos, desperdícios e aparas de borracha não endurecida, mesmo reduzidos a pó ou a grânulos;2219
+NCM;40051010;775;Borracha misturada, não vulcanizada, em formas primárias ou em chapas, folhas ou tiras;2219
+NCM;40051090;775;Borracha misturada, não vulcanizada, em formas primárias ou em chapas, folhas ou tiras;2219
+NCM;40052000;775;Borracha misturada, não vulcanizada, em formas primárias ou em chapas, folhas ou tiras;2219
+NCM;40059110;775;Borracha misturada, não vulcanizada, em formas primárias ou em chapas, folhas ou tiras;2219
+NCM;40059190;775;Borracha misturada, não vulcanizada, em formas primárias ou em chapas, folhas ou tiras;2219
+NCM;40059910;775;Borracha misturada, não vulcanizada, em formas primárias ou em chapas, folhas ou tiras;2219
+NCM;40059990;775;Borracha misturada, não vulcanizada, em formas primárias ou em chapas, folhas ou tiras;2219
+NCM;40061000;776;Perfis de borracha para recauchutagem;2219
+NCM;40069000;777;Varetas, tubos, discos e arruelas de borracha não vulcanizada;2219
+NCM;40070011;778;Fios (sem revestimentos) e cordas de borracha vulcanizada;2219
+NCM;40070019;778;Fios (sem revestimentos) e cordas de borracha vulcanizada;2219
+NCM;40070020;778;Fios (sem revestimentos) e cordas de borracha vulcanizada;2219
+NCM;40081100;779;Blocos, chapas, folhas e tiras de borracha vulcanizada não endurecida;2219
+NCM;40081900;780;Varetas e perfis de borracha vulcanizada não endurecida;2219
+NCM;40082100;779;Blocos, chapas, folhas e tiras de borracha vulcanizada não endurecida;2219
+NCM;40082900;780;Varetas e perfis de borracha vulcanizada não endurecida;2219
+NCM;40091100;781;Tubos, canos e mangueiras de borracha vulcanizada não endurecida, não reforçados, com ou sem acessórios, inclusive mangueiras para veículos;2219
+NCM;40091210;781;Tubos, canos e mangueiras de borracha vulcanizada não endurecida, não reforçados, com ou sem acessórios, inclusive mangueiras para veículos;2219
+NCM;40091290;781;Tubos, canos e mangueiras de borracha vulcanizada não endurecida, não reforçados, com ou sem acessórios, inclusive mangueiras para veículos;2219
+NCM;40092110;782;Tubos, canos e mangueiras de borracha vulcanizada não endurecida, reforçados com outras matérias (exceto têxteis), com ou sem acessórios;2219
+NCM;40092190;782;Tubos, canos e mangueiras de borracha vulcanizada não endurecida, reforçados com outras matérias (exceto têxteis), com ou sem acessórios;2219
+NCM;40092210;782;Tubos, canos e mangueiras de borracha vulcanizada não endurecida, reforçados com outras matérias (exceto têxteis), com ou sem acessórios;2219
+NCM;40092290;782;Tubos, canos e mangueiras de borracha vulcanizada não endurecida, reforçados com outras matérias (exceto têxteis), com ou sem acessórios;2219
+NCM;40093100;783;Tubos, canos e mangueiras de borracha vulcanizada não endurecida, reforçados com matérias têxteis, com ou sem acessórios, inclusive mangueiras para veículos;2219
+NCM;40093210;783;Tubos, canos e mangueiras de borracha vulcanizada não endurecida, reforçados com matérias têxteis, com ou sem acessórios, inclusive mangueiras para veículos;2219
+NCM;40093290;783;Tubos, canos e mangueiras de borracha vulcanizada não endurecida, reforçados com matérias têxteis, com ou sem acessórios, inclusive mangueiras para veículos;2219
+NCM;40094100;782;Tubos, canos e mangueiras de borracha vulcanizada não endurecida, reforçados com outras matérias (exceto têxteis), com ou sem acessórios;2219
+NCM;40094210;782;Tubos, canos e mangueiras de borracha vulcanizada não endurecida, reforçados com outras matérias (exceto têxteis), com ou sem acessórios;2219
+NCM;40094290;782;Tubos, canos e mangueiras de borracha vulcanizada não endurecida, reforçados com outras matérias (exceto têxteis), com ou sem acessórios;2219
+NCM;40101100;784;Correias transportadoras de borracha vulcanizada, reforçadas com metal, plástico ou outro material;2219
+NCM;40101200;784;Correias transportadoras de borracha vulcanizada, reforçadas com metal, plástico ou outro material;2219
+NCM;40101900;784;Correias transportadoras de borracha vulcanizada, reforçadas com metal, plástico ou outro material;2219
+NCM;40103100;785;Correias de transmissão de borracha vulcanizada;2219
+NCM;40103200;785;Correias de transmissão de borracha vulcanizada;2219
+NCM;40103300;785;Correias de transmissão de borracha vulcanizada;2219
+NCM;40103400;785;Correias de transmissão de borracha vulcanizada;2219
+NCM;40103500;785;Correias de transmissão de borracha vulcanizada;2219
+NCM;40103600;785;Correias de transmissão de borracha vulcanizada;2219
+NCM;40103900;785;Correias de transmissão de borracha vulcanizada;2219
+NCM;40129010;793;"Protetores, bandas de rodagem amovíveis para pneumáticos (camelbacks) e ""flaps"" de borracha";2219
+NCM;40129090;793;"Protetores, bandas de rodagem amovíveis para pneumáticos (camelbacks) e ""flaps"" de borracha";2219
+NCM;40131010;794;Câmaras-de-ar usadas em ônibus e caminhões;2219
+NCM;40131090;795;Câmaras-de-ar usadas em automóveis, camionetas ou utilitários;2219
+NCM;40132000;796;Câmaras-de-ar usadas em bicicletas e motociclos;2219
+NCM;40139000;797;Câmaras-de-ar;2219
+NCM;40141000;798;Preservativos de borracha;2219
+NCM;40149010;799;Artigos de borracha de farmácia;2219
+NCM;40149090;799;Artigos de borracha de farmácia;2219
+NCM;40151100;800;Luvas de borracha para segurança e proteção, inclusive para uso doméstico;2219
+NCM;40151200;800;Luvas de borracha para segurança e proteção, inclusive para uso doméstico;2219
+NCM;40151900;800;Luvas de borracha para segurança e proteção, inclusive para uso doméstico;2219
+NCM;40159000;801;Vestuário e acessórios de borracha para segurança e proteção, exceto capacetes e luvas;2219
+NCM;40161010;802;Peças e acessórios de borracha;2219
+NCM;40161090;803;Acessórios de borracha para uso industrial e outros n.e;2219
+NCM;40169100;803;Acessórios de borracha para uso industrial e outros n.e;2219
+NCM;40169200;804;Borrachas de apagar;2219
+NCM;40169300;803;Acessórios de borracha para uso industrial e outros n.e;2219
+NCM;40169400;803;Acessórios de borracha para uso industrial e outros n.e;2219
+NCM;40169510;803;Acessórios de borracha para uso industrial e outros n.e;2219
+NCM;40169590;803;Acessórios de borracha para uso industrial e outros n.e;2219
+NCM;40169910;803;Acessórios de borracha para uso industrial e outros n.e;2219
+NCM;40169990;803;Acessórios de borracha para uso industrial e outros n.e;2219
+NCM;40170000;805;Artigos diversos de borracha endurecida;2219
+PRODLIST;2211.2010;795;Câmaras-de-ar usadas em automóveis, camionetas ou utilitários;2219
+PRODLIST;2211.2020;797;Câmaras-de-ar;2219
+PRODLIST;2211.2030;796;Câmaras-de-ar usadas em bicicletas e motociclos;2219
+PRODLIST;2211.2040;797;Câmaras-de-ar;2219
+PRODLIST;2211.2050;797;Câmaras-de-ar;2219
+PRODLIST;2211.2060;794;Câmaras-de-ar usadas em ônibus e caminhões;2219
+PRODLIST;2211.2070;776;Perfis de borracha para recauchutagem;2219
+PRODLIST;2211.2140;793;"Protetores, bandas de rodagem amovíveis para pneumáticos (camelbacks) e ""flaps"" de borracha";2219
+PRODLIST;2219.2010;799;Artigos de borracha de farmácia;2219
+PRODLIST;2219.2020;803;Acessórios de borracha para uso industrial e outros n.e;2219
+PRODLIST;2219.2030;805;Artigos diversos de borracha endurecida;2219
+PRODLIST;2219.2040;805;Artigos diversos de borracha endurecida;2219
+PRODLIST;2219.2050;775;Borracha misturada, não vulcanizada, em formas primárias ou em chapas, folhas ou tiras;2219
+PRODLIST;2219.2060;773;Borracha regenerada, em formas primárias ou em chapas, folhas ou tiras;2219
+PRODLIST;2219.2070;803;Acessórios de borracha para uso industrial e outros n.e;2219
+PRODLIST;2219.2080;779;Blocos, chapas, folhas e tiras de borracha vulcanizada não endurecida;2219
+PRODLIST;2219.2090;799;Artigos de borracha de farmácia;2219
+PRODLIST;2219.2100;785;Correias de transmissão de borracha vulcanizada;2219
+PRODLIST;2219.2110;784;Correias transportadoras de borracha vulcanizada, reforçadas com metal, plástico ou outro material;2219
+PRODLIST;2219.2120;778;Fios (sem revestimentos) e cordas de borracha vulcanizada;2219
+PRODLIST;2219.2125;803;Acessórios de borracha para uso industrial e outros n.e;2219
+PRODLIST;2219.2130;803;Acessórios de borracha para uso industrial e outros n.e;2219
+PRODLIST;2219.2140;802;Peças e acessórios de borracha;2219
+PRODLIST;2219.2150;802;Peças e acessórios de borracha;2219
+PRODLIST;2219.2160;803;Acessórios de borracha para uso industrial e outros n.e;2219
+PRODLIST;2219.2170;798;Preservativos de borracha;2219
+PRODLIST;2219.2185;774;Resíduos, desperdícios e aparas de borracha não endurecida, mesmo reduzidos a pó ou a grânulos;2219
+PRODLIST;2219.2190;803;Acessórios de borracha para uso industrial e outros n.e;2219
+PRODLIST;2219.2200;803;Acessórios de borracha para uso industrial e outros n.e;2219
+PRODLIST;2219.2210;783;Tubos, canos e mangueiras de borracha vulcanizada não endurecida, reforçados com matérias têxteis, com ou sem acessórios, inclusive mangueiras para veículos;2219
+PRODLIST;2219.2220;782;Tubos, canos e mangueiras de borracha vulcanizada não endurecida, reforçados com outras matérias (exceto têxteis), com ou sem acessórios;2219
+PRODLIST;2219.2230;781;Tubos, canos e mangueiras de borracha vulcanizada não endurecida, não reforçados, com ou sem acessórios, inclusive mangueiras para veículos;2219
+PRODLIST;2219.2240;780;Varetas e perfis de borracha vulcanizada não endurecida;2219
+PRODLIST;2219.2250;777;Varetas, tubos, discos e arruelas de borracha não vulcanizada;2219
+PRODLIST;3292.2010;801;Vestuário e acessórios de borracha para segurança e proteção, exceto capacetes e luvas;2219
+PRODLIST;3292.2070;803;Acessórios de borracha para uso industrial e outros n.e;2219
+PRODLIST;3292.2100;800;Luvas de borracha para segurança e proteção, inclusive para uso doméstico;2219
+PRODLIST;3299.2060;804;Borrachas de apagar;2219

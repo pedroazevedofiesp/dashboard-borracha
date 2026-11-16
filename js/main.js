@@ -834,6 +834,71 @@
   }
 
   // ---------------------------------------------------------------------
+  // Mercado doméstico: consumo aparente, coeficiente de exportação e
+  // penetração da importação (método do diagnóstico setorial da FIESP).
+  // Produção da PIA-Produto (IBGE) na mesma cesta de produtos do comércio
+  // exterior. Série completa, sem filtro de período (PIA é anual e curta).
+  // ---------------------------------------------------------------------
+  function renderMercado() {
+    const m = csS().mercado;
+    const bloco = $('#block-mercado');
+    bloco.hidden = !m;
+    if (!m) return;
+    const y = m.yearly;
+    const anos = y.map(r => r.ano);
+    const base = m.ano_base_real;
+    const sigilos = Math.max(...y.map(r => r.produtos_sigilo));
+    $('#mercado-section-note').textContent =
+      `Consumo aparente = produção nacional + importação − exportação: o tamanho do mercado brasileiro dos produtos do segmento, venha a oferta de onde vier. `
+      + `Coeficiente de exportação = exportação ÷ produção; penetração da importação = importação ÷ consumo aparente. `
+      + `Produção: IBGE, PIA-Produto, valor da produção dos mesmos produtos da cesta do comércio exterior (sem serviços e sem pneus novos); comércio: MDIC/Comex Stat, convertido pelo câmbio médio do ano. `
+      + (sigilos ? `Alguns produtos têm valor em sigilo no IBGE em certos anos (até ${sigilos} por ano) e ficam fora da produção, o que puxa o consumo aparente um pouco para baixo. ` : '')
+      + `Mesmo método do diagnóstico setorial da FIESP.`;
+    $('#mercado-ca-sub').textContent = `Produção + importação − exportação, R$ de ${base} (IPCA), ${anos[0]}–${last(anos)}`;
+    lineChart($('#chart-mercado-ca'), {
+      categories: anos, formatY: fmt.brl, height: 280,
+      series: [
+        { label: 'Consumo aparente', color: 'var(--series-1)', values: y.map(r => r.consumo_aparente_real), area: true },
+        { label: 'Produção nacional', color: 'var(--series-2)', values: y.map(r => r.producao_real) },
+        { label: 'Importação', color: 'var(--series-6)', values: y.map(r => r.importacao_real) },
+        { label: 'Exportação', color: 'var(--series-4)', values: y.map(r => r.exportacao_real) },
+      ],
+    });
+    lineChart($('#chart-mercado-coef'), {
+      categories: anos, formatY: n => fmt.pct(n), height: 280,
+      series: [
+        { label: 'Penetração da importação', color: 'var(--series-6)', values: y.map(r => r.penetracao_importacao) },
+        { label: 'Coeficiente de exportação', color: 'var(--series-4)', values: y.map(r => r.coef_exportacao) },
+      ],
+    });
+
+    const pr = m.produtos;
+    const ini = new Map(pr.itens_inicial.map(i => [i.componente, i]));
+    $('#mercado-produtos-sub').textContent = `${pr.ano}, R$ correntes, ordenado pelo consumo aparente. `
+      + `Variação da penetração em pontos percentuais desde ${pr.ano_inicial}. * produção parcial: parte dos subprodutos em sigilo no IBGE. Clique no cabeçalho para ordenar.`;
+    dataTable($('#table-mercado-produtos'), {
+      columns: [
+        { key: 'descricao_tab', label: 'Produto' },
+        { key: 'consumo_aparente', label: 'Consumo aparente', align: 'right', format: fmt.brl },
+        { key: 'producao', label: 'Produção', align: 'right', format: fmt.brl },
+        { key: 'coef_exportacao', label: 'Coef. exportação', align: 'right', format: n => fmt.pct(n) },
+        { key: 'penetracao_importacao', label: 'Penetração importação', align: 'right', format: n => fmt.pct(n) },
+        { key: 'var_penetracao', label: `Var. penetração desde ${pr.ano_inicial}`, align: 'right',
+          format: n => n == null ? '-' : (n > 0 ? '+' : '') + fmt.full1(n) + ' p.p.' },
+      ],
+      rows: pr.itens.map(i => {
+        const a = ini.get(i.componente);
+        return {
+          ...i, descricao_tab: i.descricao + (i.sigilo ? ' *' : ''),
+          var_penetracao: (a && a.penetracao_importacao != null && i.penetracao_importacao != null)
+            ? i.penetracao_importacao - a.penetracao_importacao : null,
+        };
+      }),
+      pageSize: 10,
+    });
+  }
+
+  // ---------------------------------------------------------------------
   // 06 — BNDES
   // ---------------------------------------------------------------------
   const PORTES_ORDEM = ['GRANDE', 'MÉDIA', 'PEQUENA', 'MICRO'];
@@ -1979,6 +2044,7 @@
     { target: 'block-emprego', title: 'Emprego formal', sub: 'Vínculos, escolaridade, ocupação e remuneração (RAIS).' },
     { target: 'block-caged', title: 'CAGED', sub: 'Admissões e desligamentos mensais.' },
     { target: 'block-comex', title: 'Comércio exterior', sub: 'Exportação e importação, Comex e Comtrade.' },
+    { target: 'block-mercado', title: 'Mercado doméstico', sub: 'Consumo aparente, coeficiente de exportação e penetração da importação.', opcional: () => !!(state.data && csS().mercado) },
     { target: 'block-bndes', title: 'BNDES', sub: 'Desembolsos por UF, porte e instrumento.' },
     { target: 'block-decom', title: 'DECOM', sub: 'Medidas de defesa comercial em vigor.', opcional: () => temDecom() },
     { target: 'block-estudos-especiais', title: 'Estudos especiais', sub: 'Panorama do setor: concorrência, crédito, estrutura, produtividade e emprego.' },
@@ -2032,6 +2098,7 @@
       caged: mesAno(cAno, cMes),
       comex: comexAno === CURRENT_YEAR ? `${comexAno} (ano parcial)` : String(comexAno),
       comtrade: String(ultAno(s.comtrade.brazil_yearly)),
+      mercado: s.mercado ? String(last(s.mercado.yearly).ano) : null,
       bndes: ultAno(s.bndes.yearly) === CURRENT_YEAR ? `${CURRENT_YEAR} (ano parcial)` : String(ultAno(s.bndes.yearly)),
     };
   }
@@ -2041,6 +2108,7 @@
     caged: 'CAGED',
     comex: 'MDIC/Comex Stat + UN Comtrade',
     bndes: 'BNDES',
+    mercado: 'IBGE — PIA-Produto + MDIC/Comex Stat',
     decom: 'DECOM/GECEX',
     'estudos-especiais': 'RAIS, Comex, BNDES e PIA/IBGE (mesmas bases do restante do painel)',
   };
@@ -2347,7 +2415,7 @@
 
   function renderCharts() {
     renderProducao(); renderFinanceiro(); renderEmprego(); renderCaged();
-    renderComex(); renderBndes(); renderDecom(); renderEstudosEspeciais();
+    renderComex(); renderMercado(); renderBndes(); renderDecom(); renderEstudosEspeciais();
     updateDownloadLinks();
   }
   function renderAll() {

@@ -226,3 +226,33 @@ def test_cadeia_config(data):
     assert 'produto' in centros, 'algum botão de elo precisa abrir o próprio produto'
     # os setores de RAIS citados precisam existir no painel
     assert set(cfg.get('empregos_rais', [])) <= set(data['sectors'])
+
+
+@pytest.mark.parametrize('cnae', CNAES)
+def test_mercado_domestico(data, cnae):
+    # Consumo aparente = produção + importação - exportação; coeficientes em %.
+    m = data['sectors'][cnae]['mercado']
+    if m is None:
+        pytest.skip('sem PIA_Produto_<Rotulo>.csv')
+    assert m['yearly'], 'série vazia'
+    for r in m['yearly']:
+        assert r['consumo_aparente'] == pytest.approx(r['producao'] + r['importacao'] - r['exportacao'])
+        if r['producao']:
+            assert r['coef_exportacao'] == pytest.approx(r['exportacao'] / r['producao'] * 100)
+        if r['consumo_aparente']:
+            assert r['penetracao_importacao'] == pytest.approx(r['importacao'] / r['consumo_aparente'] * 100)
+    anos = [r['ano'] for r in m['yearly']]
+    assert anos == sorted(anos)
+    assert m['produtos']['itens']
+
+
+@pytest.mark.skipif(not AGREGADO, reason='painel sem recorte agregado')
+def test_mercado_total_e_soma(data):
+    tot = data['sectors'][AGREGADO['codigo']]['mercado']
+    comps = [data['sectors'][c]['mercado'] for c in AGREGADO['componentes']]
+    if tot is None:
+        pytest.skip('sem PIA_Produto_<Rotulo>.csv')
+    for i, r in enumerate(tot['yearly']):
+        for campo in ('producao', 'exportacao', 'importacao'):
+            soma = sum(next(x[campo] for x in c['yearly'] if x['ano'] == r['ano']) for c in comps)
+            assert r[campo] == pytest.approx(soma), (campo, r['ano'])

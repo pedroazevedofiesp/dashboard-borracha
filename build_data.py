@@ -505,6 +505,100 @@ def build_cadeia():
 
 
 # ---------------------------------------------------------------------------
+# Mercado doméstico: consumo aparente (produção + importação - exportação),
+# coeficiente de exportação (exportação / produção) e penetração da importação
+# (importação / consumo aparente), no método do diagnóstico setorial da FIESP.
+# Produção: PIA-Produto (IBGE), valor da produção dos produtos da cesta PRODLIST
+# (PIA_Produto_<Rotulo>.csv, de Setor <Nome>/2_Scripts/obter_pia_produto.R).
+# Comércio: Comex Stat da cesta de NCM, em R$ pelo câmbio médio do ano.
+# cesta_componentes.csv liga NCM e PRODLIST ao mesmo produto (componente da
+# FIESP), para a tabela por produto. Sem o CSV da PIA-Produto, o bloco não existe.
+# ---------------------------------------------------------------------------
+def build_mercado_domestico(codes, ncm_df, macro_rows):
+    arquivo = SRC_DIR / f'PIA_Produto_{ROTULO_ARQUIVO}.csv'
+    mapa_path = ROOT / 'cesta_componentes.csv'
+    if not arquivo.exists() or not mapa_path.exists():
+        return None
+    pia = read_csv(arquivo.name, dtype={'Codigo_Prodlist': str, 'cnae_subclasse': str})
+    pia = pia[pia['cnae_subclasse'].isin(codes)].copy()
+    pia['Valor_Producao_mil_R'] = pd.to_numeric(pia['Valor_Producao_mil_R'], errors='coerce')
+    pia['sigilo'] = is_true_col(pia['Sigilo'])
+    mapa = pd.read_csv(mapa_path, sep=';', dtype=str, encoding='utf-8')
+    mapa = mapa[mapa['cnae'].isin(codes)]
+    comp_prod = dict(zip(mapa.loc[mapa.tipo == 'PRODLIST', 'codigo'], mapa.loc[mapa.tipo == 'PRODLIST', 'componente']))
+    comp_ncm = dict(zip(mapa.loc[mapa.tipo == 'NCM', 'codigo'], mapa.loc[mapa.tipo == 'NCM', 'componente']))
+    desc = dict(zip(mapa['componente'], mapa['descricao_componente']))
+    pia['comp'] = pia['Codigo_Prodlist'].map(comp_prod)
+
+    tr = ncm_df.copy()
+    tr['comp'] = tr['Codigo_NCM'].astype(str).str.replace(r'\.0$', '', regex=True).str.zfill(8).map(comp_ncm)
+
+    # Câmbio médio anual (R$/US$) e fator IPCA para preços do último ano da série.
+    dol, ipca = {}, {}
+    for r in macro_rows:
+        if r['dolar'] is not None:
+            dol.setdefault(r['ano'], []).append(r['dolar'])
+        if r['ipca'] is not None:
+            ipca.setdefault(r['ano'], []).append(r['ipca'])
+    dol = {a: sum(v) / len(v) for a, v in dol.items()}
+    anos_pia = set(int(a) for a in pia['Ano'].unique())
+    anos_tr = set(int(a) for a in tr['Ano'].unique() if int(a) < date.today().year)  # ano corrente é parcial
+    anos = sorted(a for a in anos_pia & anos_tr if a in dol)
+    if not anos:
+        return None
+    ano_base = anos[-1]
+    fator_ipca = build_fator_ipca(macro_rows, ano_base)
+
+    def trade(ano, fluxo, comp=None):
+        sub = tr[(tr['Ano'] == ano) & (tr['Fluxo'] == fluxo)]
+        if comp is not None:
+            sub = sub[sub['comp'] == comp]
+        return float(sub['Valor_US_FOB'].sum()) * dol[ano]  # R$ correntes
+
+    def linha(ano, prod, exp, imp, n_sigilo):
+        ca = prod + imp - exp if prod is not None else None
+        f = fator_ipca.get(ano)
+        real = (lambda v: v * f if (v is not None and f) else None)
+        return {
+            'ano': ano, 'producao': prod, 'exportacao': exp, 'importacao': imp, 'consumo_aparente': ca,
+            'producao_real': real(prod), 'exportacao_real': real(exp), 'importacao_real': real(imp),
+            'consumo_aparente_real': real(ca),
+            'coef_exportacao': (exp / prod * 100) if prod else None,
+            'penetracao_importacao': (imp / ca * 100) if ca else None,
+            'produtos_sigilo': n_sigilo,
+        }
+
+    yearly = []
+    for ano in anos:
+        p = pia[pia['Ano'] == ano]
+        prod = float(p['Valor_Producao_mil_R'].sum()) * 1000
+        yearly.append(linha(ano, prod, trade(ano, 'Exportação'), trade(ano, 'Importação'), int(p['sigilo'].sum())))
+
+    def produtos(ano):
+        itens = []
+        p_ano = pia[pia['Ano'] == ano]
+        for comp in sorted(set(mapa['componente'])):
+            p = p_ano[p_ano['comp'] == comp]
+            # Subproduto em sigilo: soma o que o IBGE divulga e marca como parcial
+            # (só fica sem produção se todos os subprodutos estiverem em sigilo).
+            sig = bool(p['sigilo'].any())
+            prod = None if p.empty or p['sigilo'].all() else float(p['Valor_Producao_mil_R'].sum()) * 1000
+            it = linha(ano, prod, trade(ano, 'Exportação', comp), trade(ano, 'Importação', comp), int(p['sigilo'].sum()))
+            it.update({'componente': comp, 'descricao': (desc.get(comp) or '').strip(), 'sigilo': sig})
+            if (it['producao'] or 0) + it['exportacao'] + it['importacao'] > 0 or sig:
+                itens.append(it)
+        itens.sort(key=lambda x: -((x['consumo_aparente'] if x['consumo_aparente'] is not None else x['importacao']) or 0))
+        return itens
+
+    return {
+        'ano_base_real': ano_base,
+        'yearly': yearly,
+        'produtos': {'ano': ano_base, 'itens': produtos(ano_base), 'ano_inicial': anos[0],
+                     'itens_inicial': produtos(anos[0])},
+    }
+
+
+# ---------------------------------------------------------------------------
 # Por setor (um bloco por CNAE de config_painel.json)
 # ---------------------------------------------------------------------------
 def latest_breakdown(df):
@@ -515,7 +609,7 @@ def latest_breakdown(df):
     return {'ano': ano_max, 'items': items}
 
 
-def build_sector(cfg, fator_brl_2023):
+def build_sector(cfg, fator_brl_2023, macro_rows=None):
     cnae, label = cfg['codigo'], cfg['rotulo']
     # Um recorte é um CNAE ou a soma de vários (agregado, com 'componentes').
     # Os arquivos são sempre por CNAE: lê os de cada componente e soma.
@@ -1009,6 +1103,7 @@ def build_sector(cfg, fator_brl_2023):
             'ncm': comex_ncm,
         },
         'comtrade': comtrade,
+        'mercado': build_mercado_domestico(codes, ncm_df, macro_rows or []),
         'bndes': {'yearly': bndes_yearly, 'uf_total': bndes_uf_total,
                   'porte_total': bndes_porte_total, 'table': bndes_table},
     }
@@ -1030,7 +1125,7 @@ def main():
     decom = build_decom(CONFIG.get('blocos_opcionais', {}).get('decom'))
     energia_industrial = build_energia_industrial(macro)
 
-    sectors = {c['codigo']: build_sector(c, fator_brl_2023) for c in SETORES}
+    sectors = {c['codigo']: build_sector(c, fator_brl_2023, macro) for c in SETORES}
     if AGREGADO:
         # PIA 2024 por classe: o agregado é a soma das linhas dos componentes.
         comp = [r for r in fin_por_cnae if r['cnae'] in AGREGADO['componentes']]
