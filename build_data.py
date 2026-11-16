@@ -37,6 +37,10 @@ SETORES = ([AGREGADO] if AGREGADO else []) + CNAES
 # ---------------------------------------------------------------------------
 # Helpers genéricos
 # ---------------------------------------------------------------------------
+# Ano-base único de todas as séries em R$ constantes do painel.
+ANO_BASE_PRECOS = int(SETOR.get('ano_base_precos', 2024))
+
+
 def read_csv(name, **kwargs):
     return pd.read_csv(SRC_DIR / name, sep=';', decimal=',', encoding='utf-8-sig', **kwargs)
 
@@ -252,11 +256,10 @@ def build_fator_ipca(macro_rows, ano_base):
     return {ano: ipca_base / v for ano, v in ipca_avg.items() if v}
 
 
-def build_fator_brl_2023(macro_rows):
-    """Fator anual USD -> R$ de 2023: câmbio médio do ano x deflator IPCA
-    (base = média de 2023). Usado só na balança comercial (comex), pra dar
-    a mesma leitura 'R$ constante' que aparece em relatórios do setor,
-    sem trocar a unidade (US$ FOB) do resto do bloco de comércio exterior."""
+def build_fator_brl(macro_rows, ano_base):
+    """Fator anual USD -> R$ constantes de ano_base: câmbio médio do ano x
+    deflator IPCA (médias anuais). Usado na balança comercial (comex), sem
+    trocar a unidade (US$ FOB) do resto do bloco de comércio exterior."""
     dolar_by_year, ipca_by_year = {}, {}
     for r in macro_rows:
         if r['dolar'] is not None:
@@ -265,11 +268,11 @@ def build_fator_brl_2023(macro_rows):
             ipca_by_year.setdefault(r['ano'], []).append(r['ipca'])
     dolar_avg = {ano: sum(v) / len(v) for ano, v in dolar_by_year.items()}
     ipca_avg = {ano: sum(v) / len(v) for ano, v in ipca_by_year.items()}
-    ipca_2023 = ipca_avg.get(2023)
-    if not ipca_2023:
+    ipca_base = ipca_avg.get(ano_base)
+    if not ipca_base:
         return {}
     return {
-        ano: dolar_avg[ano] * (ipca_2023 / ipca_avg[ano])
+        ano: dolar_avg[ano] * (ipca_base / ipca_avg[ano])
         for ano in dolar_avg
         if ano in ipca_avg and ipca_avg[ano]
     }
@@ -386,7 +389,7 @@ def build_energia_industrial(macro_rows):
     # inflação acumulada de 14 anos com variação real de custo.
     meses_por_ano = df.groupby('ANO')['MES'].nunique()
     ano_max = int(df['ANO'].max())
-    ano_base_energia = ano_max if meses_por_ano.get(ano_max, 0) >= 12 else ano_max - 1
+    ano_base_energia = ANO_BASE_PRECOS
     fator_ipca_energia = build_fator_ipca(macro_rows, ano_base_energia)
     df['fator_ipca'] = df['ANO'].map(fator_ipca_energia)
     df['CUSTO_REAL_RS_MWH'] = df['CUSTO_TOTAL_RS_MWH'] * df['fator_ipca']
@@ -546,7 +549,7 @@ def build_mercado_domestico(codes, ncm_df, macro_rows):
     anos = sorted(a for a in anos_pia & anos_tr if a in dol)
     if not anos:
         return None
-    ano_base = anos[-1]
+    ano_base = ANO_BASE_PRECOS
     fator_ipca = build_fator_ipca(macro_rows, ano_base)
 
     def trade(ano, fluxo, comp=None):
@@ -609,7 +612,7 @@ def latest_breakdown(df):
     return {'ano': ano_max, 'items': items}
 
 
-def build_sector(cfg, fator_brl_2023, macro_rows=None):
+def build_sector(cfg, fator_brl, macro_rows=None):
     cnae, label = cfg['codigo'], cfg['rotulo']
     # Um recorte é um CNAE ou a soma de vários (agregado, com 'componentes').
     # Os arquivos são sempre por CNAE: lê os de cada componente e soma.
@@ -831,19 +834,19 @@ def build_sector(cfg, fator_brl_2023, macro_rows=None):
         })
     comex_yearly.sort(key=lambda r: r['ano'])
 
-    # Balança comercial em R$ milhões de 2023 (câmbio médio do ano + IPCA),
+    # Balança comercial em R$ milhões constantes (ANO_BASE_PRECOS) (câmbio médio do ano + IPCA),
     # pra comparar com relatórios do setor que reportam em real constante
     # em vez de US$ FOB corrente.
     for row in comex_yearly:
-        f = fator_brl_2023.get(row['ano'])
+        f = fator_brl.get(row['ano'])
         if f:
-            row['exportacao_brl_2023'] = row['exportacao_usd'] * f / 1e6
-            row['importacao_brl_2023'] = row['importacao_usd'] * f / 1e6
-            row['saldo_brl_2023'] = row['exportacao_brl_2023'] - row['importacao_brl_2023']
+            row['exportacao_brl_real'] = row['exportacao_usd'] * f / 1e6
+            row['importacao_brl_real'] = row['importacao_usd'] * f / 1e6
+            row['saldo_brl_real'] = row['exportacao_brl_real'] - row['importacao_brl_real']
         else:
-            row['exportacao_brl_2023'] = None
-            row['importacao_brl_2023'] = None
-            row['saldo_brl_2023'] = None
+            row['exportacao_brl_real'] = None
+            row['importacao_brl_real'] = None
+            row['saldo_brl_real'] = None
 
     # Ranking por UF: mesma extração por NCM, aberta por UF.
     uf_df = read_multi(lambda c, r: f'Comex_{c}_NCM_UF.csv')
@@ -1298,7 +1301,8 @@ def build_indicadores_desempenho(macro_rows):
     a0, a1 = anos[0], anos[-1]
 
     def derivados(v, ano):
-        f = ipca_dez[a1] / ipca_dez[ano] if ano in ipca_dez and a1 in ipca_dez else None
+        ab = ANO_BASE_PRECOS
+        f = ipca_dez[ab] / ipca_dez[ano] if ano in ipca_dez and ab in ipca_dez else None
         real = lambda x: None if x is None or f is None else x * f
         va, gp, rlv = v.get('valor_adicionado'), v.get('gastos_pessoal'), v.get('receita_liquida')
         lb = None if va is None or gp is None else va - gp
@@ -1358,7 +1362,7 @@ def build_indicadores_desempenho(macro_rows):
 
     serie = [{'ano': a, 'recorte': rc, **v, **derivados(v, a)}
              for (a, rc), v in sorted(linhas.items(), key=lambda kv: (kv[0][1], kv[0][0]))]
-    return {'ano_inicial': a0, 'ano_final': a1, 'ano_base_precos': a1, 'colunas': colunas,
+    return {'ano_inicial': a0, 'ano_final': a1, 'ano_base_precos': ANO_BASE_PRECOS, 'colunas': colunas,
             'tabelas': tabelas, 'linhas': tabelas[-1]['linhas'], 'serie': serie}
 
 # ---------------------------------------------------------------------------
@@ -1373,11 +1377,11 @@ def main():
     codigos = '_'.join(c['codigo'] for c in CNAES)
     fin_por_cnae = read_financeiro_por_cnae(f'Dados_Financeiros_CNAE_{codigos}_2024_SerieNova.csv')
     macro = build_macro()
-    fator_brl_2023 = build_fator_brl_2023(macro)
+    fator_brl = build_fator_brl(macro, ANO_BASE_PRECOS)
     decom = build_decom(CONFIG.get('blocos_opcionais', {}).get('decom'))
     energia_industrial = build_energia_industrial(macro)
 
-    sectors = {c['codigo']: build_sector(c, fator_brl_2023, macro) for c in SETORES}
+    sectors = {c['codigo']: build_sector(c, fator_brl, macro) for c in SETORES}
     if AGREGADO:
         # PIA 2024 por classe: o agregado é a soma das linhas dos componentes.
         comp = [r for r in fin_por_cnae if r['cnae'] in AGREGADO['componentes']]

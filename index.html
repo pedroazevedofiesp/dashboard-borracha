@@ -82,7 +82,7 @@
         <div id="exec-chart-comex"></div>
         <div class="exhibit-caption">
           <div class="exhibit-title">2. As importações estão crescendo?</div>
-          <div class="exhibit-sub" id="exec-chart-comex-sub">Exportação x importação, R$ milhões de 2023</div>
+          <div class="exhibit-sub" id="exec-chart-comex-sub">Exportação x importação, R$ milhões de 2024</div>
         </div>
       </div>
       <div class="exhibit">
@@ -440,7 +440,7 @@
         <div id="chart-comex-balanca"></div>
         <div class="exhibit-caption">
           <div class="exhibit-title">Balança comercial</div>
-          <div class="exhibit-sub" id="comex-balanca-sub">Exportação, importação e saldo, em milhões de R$ de 2023, Brasil</div>
+          <div class="exhibit-sub" id="comex-balanca-sub">Exportação, importação e saldo, em milhões de R$ de 2024, Brasil</div>
         </div>
       </div>
       <div class="exhibit">
@@ -950,7 +950,7 @@
   <!-- Limitações específicas do setor (PIA, produção física, cestas de NCM): geradas por js/main.js a partir de config_painel.json -->
   <div id="referencias-limitacoes-setor"></div>
   <p class="pdi-note">• Energia Industrial — custo: o R$/MWh é a <strong>tarifa média realmente faturada</strong> da classe Industrial (não uma estimativa de modelo), publicada anualmente pelo Ministério de Minas e Energia com dados da ANEEL — MME, <em>Informativo Tarifário do Setor Elétrico</em> (edições 2023-2025) e <em>Informativo Gestão do Setor Elétrico</em> (edições 2017-2022), Tabela "Tarifa Média Faturada por Classe de Consumo e Região", disponíveis em gov.br/mme/pt-br/assuntos/secretarias/secretaria-nacional-energia-eletrica/publicacoes/informativo-setor-eletrico. É aberta por região (Norte, Nordeste, Centro-Oeste, Sudeste, Sul), não por estado nem por divisão CNAE — todo estado da mesma região e toda divisão CNAE compartilham o mesmo valor no mesmo mês. Anos sem edição publicada com essa tabela (2012-2016, 2018, 2020-2021, 2026) são interpolados linearmente entre os anos com dado real mais próximos, ou extrapolados pela variação do IPCA fora desse intervalo — nesses anos o valor é uma aproximação, não o dado publicado. A conta real de uma empresa específica ainda pode divergir dessa média (depende do subgrupo tarifário, do mercado livre ou cativo, e da bandeira tarifária do mês). Consumo (MWh): EPE, <em>Consumo Mensal de Energia Elétrica por Classe</em> (epe.gov.br/pt/publicacoes-dados-abertos/publicacoes/consumo-de-energia-eletrica).</p>
-  <p class="pdi-note">• Deflação: onde indicado como "R$ constantes" ou "R$ de [ano]", o valor nominal foi multiplicado por um fator = IPCA médio do ano-base ÷ IPCA médio do ano da observação (série do IPCA: IBGE, Sistema Nacional de Índices de Preços ao Consumidor). Onde a série original é em US$ (comércio exterior), o fator inclui também a taxa de câmbio (PTAX venda, Banco Central) média do ano antes da correção pelo IPCA. É a mesma fórmula em todos os blocos deflacionados do painel (Energia Industrial; remuneração real, bloco Emprego formal).</p>
+  <p class="pdi-note">• Deflação: onde indicado como "R$ constantes" ou "R$ de [ano]", o valor nominal foi multiplicado por um fator = IPCA médio do ano-base ÷ IPCA médio do ano da observação (série do IPCA: IBGE, Sistema Nacional de Índices de Preços ao Consumidor). Onde a série original é em US$ (comércio exterior), o fator inclui também a taxa de câmbio (PTAX venda, Banco Central) média do ano antes da correção pelo IPCA. Todas as séries em valores constantes usam o mesmo ano-base, 2024 (definido em <code>config_painel.json</code>): balança comercial, mercado doméstico, simulador, Energia Industrial e remuneração real. A remuneração real da RAIS e os indicadores de desempenho da PIA usam o IPCA de dezembro; o faturamento real e a produtividade do Painel Executivo usam o IPP da divisão borracha e plástico.</p>
   <p class="pdi-note">• Todos os valores monetários estão em valores correntes (nominais), exceto onde explicitamente indicado como deflacionado (remuneração real no bloco Emprego formal; custo de energia no bloco Energia Industrial).</p>
 </div><!-- /#referencias-view -->
 

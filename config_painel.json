@@ -14,7 +14,8 @@
     "producao_descricao": "Índice de produção física da divisão 22 do IBGE (PIM-PF, \"3.22 Fabricação de produtos de borracha e de material plástico\"). O IBGE não publica série só de borracha: o índice inclui plástico e é o mesmo para os dois segmentos.",
     "ipp_rotulo": "IPP da divisão borracha e plástico",
     "divisao_energia": 22,
-    "periodo_slider_padrao": {"inicio": 2016, "fim": 2026}
+    "periodo_slider_padrao": {"inicio": 2016, "fim": 2026},
+    "ano_base_precos": 2024
   },
   "cnaes": [
     {

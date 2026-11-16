@@ -74,6 +74,8 @@
   // usam o último ano fechado.
   function anoFechado(ano) { return ano === CURRENT_YEAR ? ano - 1 : ano; }
   function csS() { return state.data.sectors[state.sector]; }
+  // Ano-base único das séries em R$ constantes (config_painel.json).
+  function anoBasePrecos() { return state.data.meta.config.setor.ano_base_precos || 2024; }
   function shared() { return state.data.shared; }
 
   // Tudo o que é específico do setor (CNAEs, rótulos, textos) vem de
@@ -870,7 +872,7 @@
       return row ? row.ipca : null;
     }
     const massaRows = filterAnnual(s.rais.massa_nacional_yearly, bs.lo, bs.hi);
-    const anoRefMassa = last(massaRows) ? last(massaRows).ano : null;
+    const anoRefMassa = anoBasePrecos();
     const ipcaRef = ipcaDezembro(anoRefMassa);
     const remReal = massaRows.map(r => {
       const ipcaAno = ipcaDezembro(r.ano);
@@ -1050,14 +1052,14 @@
 
     const rowsBalanca = filterAnnual(s.comex.yearly, bs.lo, bs.hi);
     const balancaTemAnoParcial = rowsBalanca.some(r => r.ano === CURRENT_YEAR);
-    $('#comex-balanca-sub').textContent = 'Exportação, importação e saldo, em milhões de R$ de 2023, Brasil'
+    $('#comex-balanca-sub').textContent = `Exportação, importação e saldo, em milhões de R$ de ${anoBasePrecos()}, Brasil`
       + (balancaTemAnoParcial ? ` (${CURRENT_YEAR} é ano parcial)` : '');
     lineChart($('#chart-comex-balanca'), {
       categories: rowsBalanca.map(r => r.ano), formatY: fmt.full, formatEndLabel: fmt.full, height: 280, endLabels: true,
       series: [
-        { label: 'Exportação', color: 'var(--series-4)', values: rowsBalanca.map(r => r.exportacao_brl_2023) },
-        { label: 'Importação', color: 'var(--series-6)', values: rowsBalanca.map(r => r.importacao_brl_2023) },
-        { label: 'Saldo', color: 'var(--series-3)', values: rowsBalanca.map(r => r.saldo_brl_2023) },
+        { label: 'Exportação', color: 'var(--series-4)', values: rowsBalanca.map(r => r.exportacao_brl_real) },
+        { label: 'Importação', color: 'var(--series-6)', values: rowsBalanca.map(r => r.importacao_brl_real) },
+        { label: 'Saldo', color: 'var(--series-3)', values: rowsBalanca.map(r => r.saldo_brl_real) },
       ]
     });
 
@@ -1785,7 +1787,7 @@
       [TODOS, 'Comércio exterior', 'MDIC, Comex Stat (exportação/importação por NCM, país e UF)', `${anos(secs[0].comex.yearly)} (anual)`, 'Dado oficial brasileiro, por cesta de NCMs de cada segmento (ver limitações abaixo). Ano corrente parcial.'],
       [TODOS, 'Comércio exterior', 'UN Comtrade (comércio mundial por código HS)', `${anos(secs[0].comtrade.brazil_yearly)} (anual)`, 'Proxy por HS (não existe CNAE em bases internacionais); usado só para contexto Brasil x Mundo. Valores do Brasil batem com o Comex Stat.'],
       [TODOS, 'BNDES', 'BNDES, desembolsos por UF/porte/instrumento (operações automáticas e não automáticas)', `${anos(secs[0].bndes.yearly)} (anual)`, 'Específico por subclasse CNAE. Valores em R$ correntes.'],
-      [TODOS, 'Contexto', `Indicadores macro (IPCA, dólar, ${sc.ipp_rotulo})`, `1990–${last(data.shared.macro).ano} (mensal)`, 'IPCA usado para deflacionar a remuneração real (bloco Emprego formal) e a balança comercial em R$ de 2023; demais indicadores só como pano de fundo.'],
+      [TODOS, 'Contexto', `Indicadores macro (IPCA, dólar, ${sc.ipp_rotulo})`, `1990–${last(data.shared.macro).ano} (mensal)`, `Todas as séries em R$ constantes estão em R$ de ${anoBasePrecos()}, corrigidas pelo IPCA (remuneração real, balança comercial, mercado doméstico, indicadores de desempenho, energia); faturamento real e produtividade do Painel Executivo usam o ${sc.ipp_rotulo}.`],
       ['Energia Industrial (aba própria)', 'Energia', 'Consumo e custo de energia da indústria de transformação, 27 estados + Brasil', '2012–2026 (mensal)', 'Consumo (MWh): nível de divisão CNAE (24 divisões, fonte EPE). Custo (R$/MWh): tarifa média REAL faturada da classe Industrial, por região (5 regiões, não por estado nem por divisão CNAE) — MME/ANEEL, "Informativo Tarifário/Gestão do Setor Elétrico", Tabela 7. Anos sem edição publicada são interpolados/extrapolados a partir dos anos com dado real, ajustados pelo IPCA. Detalhe completo e citação em "Limitações gerais" abaixo.'],
     ];
     const anosCadeia = data.cadeia.produto.oferta.map(o => o.ano);
@@ -2718,10 +2720,11 @@
     const medias = {};
     Object.entries(porAno).forEach(([a, v]) => { if (v.length === 12) medias[a] = v.reduce((x, y) => x + y, 0) / 12; });
     const anos = Object.keys(medias).map(Number).sort((a, b) => a - b);
-    const base = medias[anos[anos.length - 1]];
+    const anoBase = medias[anoBasePrecos()] ? anoBasePrecos() : anos[anos.length - 1];
+    const base = medias[anoBase];
     const fator = {};
     anos.forEach(a => { fator[a] = base / medias[a]; });
-    return { fator, anoBase: anos[anos.length - 1], primeiroAno: anos[0] };
+    return { fator, anoBase, primeiroAno: anos[0] };
   }
 
   function indexarBase100(vals) {
@@ -2760,18 +2763,18 @@
     });
 
     // 2) Importações estão crescendo? Exportação x importação do segmento
-    // selecionado, em R$ constantes de 2023 (mesma unidade da balança
+    // selecionado, em R$ constantes do ano-base (mesma unidade da balança
     // comercial do detalhamento, pra não misturar nominal com real). Corta
     // o ano corrente se vier parcial, senão o fim da linha cai artificial.
     const comexCompleto = sd.comex.yearly.filter(r => r.ano !== CURRENT_YEAR);
     const catComex = comexCompleto.map(r => r.ano);
-    $('#exec-chart-comex-sub').textContent = 'Exportação x importação, R$ milhões de 2023'
+    $('#exec-chart-comex-sub').textContent = `Exportação x importação, R$ milhões de ${anoBasePrecos()}`
       + ((cnaeCfg(execSector) || {}).comex_residual ? ' — comércio exterior residual neste segmento' : '');
     lineChart($('#exec-chart-comex'), {
       categories: catComex, formatY: fmt.brl, height: 260,
       series: [
-        { label: 'Exportação', color: 'var(--series-4)', values: comexCompleto.map(r => r.exportacao_brl_2023) },
-        { label: 'Importação', color: 'var(--series-6)', values: comexCompleto.map(r => r.importacao_brl_2023) },
+        { label: 'Exportação', color: 'var(--series-4)', values: comexCompleto.map(r => r.exportacao_brl_real) },
+        { label: 'Importação', color: 'var(--series-6)', values: comexCompleto.map(r => r.importacao_brl_real) },
       ],
     });
 

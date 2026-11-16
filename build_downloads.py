@@ -12,7 +12,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
-from build_data import (CNAES, CONFIG, ROTULO_ARQUIVO, SETOR, SETORES, SLUG, UF_REGIAO, build_fator_ipca,
+from build_data import (ANO_BASE_PRECOS, CNAES, CONFIG, ROTULO_ARQUIVO, SETOR, SETORES, SLUG, UF_REGIAO, build_fator_ipca,
                         build_indicadores_desempenho, build_macro, tarifa_industrial_regiao_ano)
 
 ROOT = Path(__file__).resolve().parent
@@ -348,7 +348,7 @@ def build_energia_download():
 
     meses_por_ano = df_energia.groupby('ANO')['MES'].nunique()
     ano_max = int(df_energia['ANO'].max())
-    ano_base_energia = ano_max if meses_por_ano.get(ano_max, 0) >= 12 else ano_max - 1
+    ano_base_energia = ANO_BASE_PRECOS
     fator_ipca_energia = build_fator_ipca(macro, ano_base_energia)
     df_energia['FATOR_IPCA'] = df_energia['ANO'].map(fator_ipca_energia)
     df_energia[f'CUSTO_REAL_RS_MWH_{ano_base_energia}'] = df_energia['CUSTO_TOTAL_RS_MWH'] * df_energia['FATOR_IPCA']
