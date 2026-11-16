@@ -256,3 +256,22 @@ def test_mercado_total_e_soma(data):
         for campo in ('producao', 'exportacao', 'importacao'):
             soma = sum(next(x[campo] for x in c['yearly'] if x['ano'] == r['ano']) for c in comps)
             assert r[campo] == pytest.approx(soma), (campo, r['ano'])
+
+
+def test_indicadores_desempenho(data):
+    ind = data['shared']['financeiro']['indicadores']
+    assert ind is not None
+    codigos = [c['codigo'] for c in ind['colunas']]
+    assert codigos[0] == 'ind_transformacao'
+    assert all(c in codigos for c in CNAES)
+    assert len(ind['linhas']) == 8
+    assert {l['tipo'] for l in ind['linhas']} == {'var', 'pp', 'nivel'}
+    for l in ind['linhas']:
+        assert set(l['valores']) == set(codigos)
+    if AGREGADO:
+        # Pessoal ocupado do total = soma das classes, nos dois anos extremos.
+        serie = ind['serie']
+        for ano in (ind['ano_inicial'], ind['ano_final']):
+            linha = {r['recorte']: r for r in serie if r['ano'] == ano}
+            soma = sum(linha[c]['pessoal_ocupado'] for c in AGREGADO['componentes'])
+            assert linha[AGREGADO['codigo']]['pessoal_ocupado'] == soma

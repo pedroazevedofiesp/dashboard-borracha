@@ -24,7 +24,7 @@ Tudo o que muda de um setor para outro está em `2_Scripts/config_setor.R`.
 
 | Script | Fonte | Credencial | Periodicidade sugerida |
 |---|---|---|---|
-| `extrair_ibge.R` | IBGE/SIDRA e Banco Central (PIA, PIM-PF, IPCA, câmbio, IPP) | nenhuma | mensal (PIM, IPCA); anual (PIA) |
+| `extrair_ibge.R` | IBGE/SIDRA e Banco Central (PIA-Empresa do grupo e por classe, PIM-PF, IPCA, câmbio, IPP) | nenhuma | mensal (PIM, IPCA); anual (PIA) |
 | `obter_pia_produto.R` | IBGE, PIA-Produto (valor da produção por produto): API do SIDRA de 2014 em diante (tabelas 7752 e 10476); arquivos do servidor ftp.ibge.gov.br para 2007–2013 | nenhuma | anual |
 | `obter_comex.R` | API do Comex Stat | nenhuma | mensal |
 | `obter_comtrade.R` | API do UN Comtrade | `COMTRADE_API_KEY` | semestral |
@@ -48,6 +48,19 @@ Baixar a pasta pelo Google Drive pode converter os CSVs em planilhas. O script
 confere valor a valor. Os arquivos de energia **não** podem ser recuperados
 assim (a conversão do Drive corrompe o ponto decimal): use os CSVs originais
 de outro painel.
+
+## Indicadores de desempenho (PIA-Empresa por classe)
+
+`extrair_ibge.R` (função `obter_pia_indicadores`) grava
+`PIA_Empresa_Indicadores_<Rotulo>.csv`: PIA-Empresa por classe CNAE, 2007–2023,
+das tabelas SIDRA 7241 a 7245 (classificação 12762), para as classes do setor
+(`cnae_sidra`), o grupo (`cnae_grupo_sidra`) e a indústria de transformação
+(`cnae_comparacao_sidra`, código 116910). `build_data.py` calcula a tabela
+"Pontos de destaque" do diagnóstico setorial da FIESP (seção Financeiro), com a
+metodologia da planilha DRE: R$ pelo IPCA de dezembro, lucro bruto = valor
+adicionado − gastos de pessoal, margem bruta = lucro bruto / receita líquida,
+investimento líquido = aquisições + melhorias − baixas. 2024 é nova série da
+PIA e fica fora da comparação.
 
 ## PIA-Produto e mercado doméstico
 

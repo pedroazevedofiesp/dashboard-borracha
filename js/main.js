@@ -349,6 +349,8 @@
       pageSize: 20,
     });
 
+    renderIndicadoresDesempenho(sh.financeiro.indicadores);
+
     dataTable($('#table-financeiro-por-cnae'), {
       columns: [
         { key: 'cnae_label', label: 'Classe' },
@@ -366,6 +368,35 @@
           ? ((r.receita_liquida_total - r.custos_despesas_totais) / r.receita_liquida_total) * 100 : null,
       })),
     });
+  }
+
+  // Tabela "Pontos de destaque" do diagnóstico setorial (PIA-Empresa por
+  // classe): variação entre o primeiro e o último ano, por recorte.
+  function renderIndicadoresDesempenho(ind) {
+    const bloco = $('#bloco-indicadores-desempenho');
+    if (!ind || !ind.linhas || !ind.linhas.length) { bloco.style.display = 'none'; return; }
+    bloco.style.display = '';
+    const a0 = ind.ano_inicial, a1 = ind.ano_final;
+    $('#indicadores-desempenho-title').textContent = `Indicadores de desempenho: variação ${a0}/${a1}`;
+    $('#indicadores-desempenho-sub').textContent =
+      `Mesmos indicadores do diagnóstico setorial da FIESP. Fonte: IBGE/PIA-Empresa por classe CNAE (SIDRA, tabelas 7241 a 7245). `
+      + `Valores em R$ corrigidos pelo IPCA de dezembro. Lucro bruto = valor adicionado − gastos de pessoal; `
+      + `margem bruta = lucro bruto / receita líquida de vendas; investimento líquido = aquisições + melhorias − baixas do ativo imobilizado; `
+      + `faturamento = receita líquida de vendas. ${a1 + 1} fica de fora por ser nova série da PIA.`;
+    const fmtVal = (v, tipo) => {
+      if (v == null || isNaN(v)) return '-';
+      const n = (tipo !== 'nivel' && v > 0 ? '+' : '')
+        + v.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+      return n + (tipo === 'pp' ? ' p.p.' : '%');
+    };
+    const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const destaque = c => c.codigo === state.sector ? ' class="col-destaque"' : '';
+    const cab = ind.colunas.map(c => `<th style="text-align:right"${destaque(c)}>${esc(c.rotulo)}</th>`).join('');
+    const corpo = ind.linhas.map(l => `<tr><td>${esc(l.indicador)}</td>`
+      + ind.colunas.map(c => `<td style="text-align:right"${destaque(c)}>${fmtVal(l.valores[c.codigo], l.tipo)}</td>`).join('')
+      + '</tr>').join('');
+    $('#table-indicadores-desempenho').innerHTML =
+      `<div class="data-table-wrap"><table class="data-table tabela-indicadores"><thead><tr><th>Variável</th>${cab}</tr></thead><tbody>${corpo}</tbody></table></div>`;
   }
 
   // ---------------------------------------------------------------------

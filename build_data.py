@@ -1109,6 +1109,92 @@ def build_sector(cfg, fator_brl_2023, macro_rows=None):
     }
 
 
+
+# ---------------------------------------------------------------------------
+# SHARED: indicadores de desempenho (PIA-Empresa por classe, 2007-2023)
+# ---------------------------------------------------------------------------
+def build_indicadores_desempenho(macro_rows):
+    """Mesmos indicadores da tabela "Pontos de destaque" do diagnóstico setorial
+    da FIESP (metodologia da planilha DRE da PIA-Empresa): variação entre o
+    primeiro e o último ano da série 2007-2023 (tabelas SIDRA 7241-7245).
+    Valores em R$ deflacionados pelo IPCA de dezembro (como na planilha).
+    Lucro bruto = valor adicionado - gastos de pessoal; margem bruta = lucro
+    bruto / receita líquida; investimento líquido = aquisições + melhorias -
+    baixas do ativo imobilizado. 2024 fica de fora (nova série da PIA)."""
+    arquivo = SRC_DIR / f'PIA_Empresa_Indicadores_{ROTULO_ARQUIVO}.csv'
+    if not arquivo.exists():
+        return None
+    df = read_csv(arquivo.name, dtype={'recorte': str})
+    campos = [c for c in df.columns if c not in ('ano', 'recorte')]
+    linhas = {(int(r['ano']), str(r['recorte'])): {c: to_num(r[c]) for c in campos}
+              for _, r in df.iterrows()}
+    anos = sorted({a for a, _ in linhas})
+    if AGREGADO:
+        for a in anos:
+            comp = [linhas.get((a, c)) for c in AGREGADO['componentes']]
+            if all(comp):
+                linhas[(a, AGREGADO['codigo'])] = {
+                    c: (None if any(x[c] is None for x in comp) else sum(x[c] for x in comp))
+                    for c in campos}
+
+    ipca_dez = {r['ano']: r['ipca'] for r in macro_rows if r['mes'] == 12 and r['ipca']}
+    a0, a1 = anos[0], anos[-1]
+
+    def derivados(v, ano):
+        f = ipca_dez[a1] / ipca_dez[ano] if ano in ipca_dez and a1 in ipca_dez else None
+        real = lambda x: None if x is None or f is None else x * f
+        va, gp, rlv = v.get('valor_adicionado'), v.get('gastos_pessoal'), v.get('receita_liquida')
+        lb = None if va is None or gp is None else va - gp
+        aq = v.get('aquisicoes')
+        il = None if aq is None else aq + (v.get('melhorias') or 0) - (v.get('baixas') or 0)
+        return {
+            'pessoal_ocupado': v.get('pessoal_ocupado'),
+            'gastos_pessoal_real': real(gp), 'lucro_bruto_real': real(lb),
+            'margem_bruta': lb / rlv if lb is not None and rlv else None,
+            'investimento_liquido_real': real(il),
+            'invest_liquido_rlv': il / rlv if il is not None and rlv else None,
+        }
+
+    colunas = [{'codigo': 'ind_transformacao', 'rotulo': 'Indústria de transformação'}]
+    if AGREGADO:
+        colunas.append({'codigo': AGREGADO['codigo'], 'rotulo': AGREGADO['rotulo']})
+    colunas += [{'codigo': c['codigo'], 'rotulo': c.get('rotulo_exec') or c['rotulo']} for c in CNAES]
+
+    def var(x0, x1):
+        return None if x0 in (None, 0) or x1 is None else (x1 / abs(x0) - 1) * 100
+
+    def pp(x0, x1):
+        return None if x0 is None or x1 is None else (x1 - x0) * 100
+
+    def pct(x):
+        return None if x is None else x * 100
+
+    defs = [
+        ('Pessoal ocupado', 'var', 'pessoal_ocupado'),
+        ('Gasto com pessoal', 'var', 'gastos_pessoal_real'),
+        ('Lucro bruto', 'var', 'lucro_bruto_real'),
+        (f'Margem bruta ({a1})', 'nivel', 'margem_bruta'),
+        ('Margem bruta (variação)', 'pp', 'margem_bruta'),
+        ('Investimento líquido', 'var', 'investimento_liquido_real'),
+        (f'Investimento líquido / faturamento ({a1})', 'nivel', 'invest_liquido_rlv'),
+        ('Investimento líquido / faturamento (variação)', 'pp', 'invest_liquido_rlv'),
+    ]
+    tabela = []
+    for nome, tipo, chave in defs:
+        valores = {}
+        for col in colunas:
+            v0, v1 = linhas.get((a0, col['codigo'])), linhas.get((a1, col['codigo']))
+            if not v0 or not v1:
+                valores[col['codigo']] = None
+                continue
+            x0, x1 = derivados(v0, a0)[chave], derivados(v1, a1)[chave]
+            valores[col['codigo']] = {'var': var, 'pp': pp}[tipo](x0, x1) if tipo != 'nivel' else pct(x1)
+        tabela.append({'indicador': nome, 'tipo': tipo, 'valores': valores})
+
+    serie = [{'ano': a, 'recorte': rc, **v, **derivados(v, a)}
+             for (a, rc), v in sorted(linhas.items(), key=lambda kv: (kv[0][1], kv[0][0]))]
+    return {'ano_inicial': a0, 'ano_final': a1, 'colunas': colunas, 'linhas': tabela, 'serie': serie}
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -1147,7 +1233,8 @@ def main():
         },
         'shared': {
             'producao': {'indice': producao_indice},
-            'financeiro': {'grupo': fin_grupo, 'por_cnae_2024': fin_por_cnae},
+            'financeiro': {'grupo': fin_grupo, 'por_cnae_2024': fin_por_cnae,
+                           'indicadores': build_indicadores_desempenho(macro)},
             'macro': macro,
             'decom': decom,
         },

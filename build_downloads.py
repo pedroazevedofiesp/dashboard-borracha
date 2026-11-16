@@ -13,7 +13,7 @@ from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
 from build_data import (CNAES, CONFIG, ROTULO_ARQUIVO, SETOR, SETORES, SLUG, UF_REGIAO, build_fator_ipca,
-                        build_macro, tarifa_industrial_regiao_ano)
+                        build_indicadores_desempenho, build_macro, tarifa_industrial_regiao_ano)
 
 ROOT = Path(__file__).resolve().parent
 SRC_DIR = ROOT / '3_Dados_Tratados_CSV'
@@ -170,6 +170,31 @@ def build_financeiro_download():
     _add_sheet(wb, 'Por CNAE (2024)', _read(f'Dados_Financeiros_CNAE_{codigos}_2024_SerieNova.csv'),
                title=f'Financeiro — {rotulos}',
                note='Só 2024 — primeira vez com essa abertura por classe. Fonte: IBGE/PIA-Empresa.')
+    ind = build_indicadores_desempenho(build_macro())
+    if ind:
+        a0, a1 = ind['ano_inicial'], ind['ano_final']
+        unid = {'var': 'variação %', 'pp': 'p.p.', 'nivel': '%'}
+        tabela = pd.DataFrame([
+            {'Variável': l['indicador'], 'Unidade': unid[l['tipo']],
+             **{c['rotulo']: (None if l['valores'][c['codigo']] is None else round(l['valores'][c['codigo']], 1))
+                for c in ind['colunas']}}
+            for l in ind['linhas']])
+        _add_sheet(wb, f'Indicadores {a0}-{a1}', tabela,
+                   title=f'Indicadores de desempenho — variação {a0}/{a1}',
+                   note='Mesmos indicadores do diagnóstico setorial da FIESP. Fonte: IBGE/PIA-Empresa por classe '
+                        '(SIDRA 7241-7245). R$ corrigidos pelo IPCA de dezembro. Lucro bruto = valor adicionado - '
+                        'gastos de pessoal; margem bruta = lucro bruto / receita líquida; investimento líquido = '
+                        'aquisições + melhorias - baixas do ativo imobilizado; faturamento = receita líquida.')
+        rot = {c['codigo']: c['rotulo'] for c in ind['colunas']}
+        rot['grupo'] = f"Grupo {grupo}"
+        serie = pd.DataFrame(ind['serie'])
+        serie.insert(1, 'recorte_nome', serie['recorte'].map(lambda r: rot.get(r, r)))
+        for c in ('margem_bruta', 'invest_liquido_rlv'):
+            serie[c] = serie[c] * 100
+        _add_sheet(wb, 'PIA por classe', serie,
+                   title=f'PIA-Empresa por classe, {a0}-{a1}',
+                   note=f'Valores originais em mil R$ correntes; colunas *_real em mil R$ de {a1} (IPCA de dezembro); '
+                        'margem_bruta e invest_liquido_rlv em %. O total soma as classes do setor.')
     _save(wb, 'Financeiro.xlsx')
 
 
