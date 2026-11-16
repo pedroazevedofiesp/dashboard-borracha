@@ -29,7 +29,7 @@
 
   <nav class="sidebar-nav sidebar-nav-foot" id="foot-tabs-top" role="tablist" aria-label="Outras seções">
     <button type="button" data-view="diagnostico" role="tab" aria-selected="false">Diagnóstico Setorial</button>
-    <button type="button" data-view="simulador" role="tab" aria-selected="false">Simulador de Mercado</button>
+    <button type="button" data-view="simulador" role="tab" aria-selected="false">Simulador de Mercado <span class="badge-provisorio">em construção</span></button>
     <button type="button" data-view="cadeia" role="tab" aria-selected="false">Cadeia Produtiva</button>
     <button type="button" data-view="energia-industrial" role="tab" aria-selected="false">Energia Industrial</button>
   </nav>
@@ -766,6 +766,7 @@
 <div id="simulador-view" hidden>
   <header class="cad-cabeca">
     <div class="cad-chapeu">Simulador · mercado doméstico</div>
+    <div class="aviso-provisorio"><span class="badge-provisorio">Em construção</span> Versão provisória: os cálculos e a apresentação ainda estão em validação e podem mudar.</div>
     <h2 class="cad-titulo">E se o ritmo das importações continuar?</h2>
     <p class="cad-linha-fina">Projeção do mercado brasileiro até <span class="sim-horizonte"></span>, no mesmo espírito da "Simulação de riscos da importação" do diagnóstico setorial: produção, exportação e importação crescem a uma taxa anual, e o painel mostra quanto do mercado passaria a ser atendido por importados. Comece pelo ritmo histórico e ajuste as taxas ou escolha um cenário.</p>
   </header>
@@ -794,7 +795,7 @@
   </div>
 
   <section class="imp-bloco" id="imp-bloco">
-    <h3 class="imp-titulo">E se parte das importações fosse produzida aqui, ou as exportações crescessem?</h3>
+    <h3 class="imp-titulo"><span class="badge-provisorio">Em construção</span> E se parte das importações fosse produzida aqui, ou as exportações crescessem?</h3>
     <p class="imp-linha-fina">Impacto anual na produção, no emprego e na renda do segmento e da cadeia de fornecedores, para o recorte escolhido acima.</p>
     <div class="exec-seg-toggle sim-cenarios" id="imp-tipo" role="group" aria-label="Tipo de simulação">
       <button type="button" class="exec-seg-btn active" data-tipo="importacao">Substituir importações</button>

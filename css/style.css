@@ -741,3 +741,8 @@ table.pdi-table td.mono { font-variant-numeric: tabular-nums; white-space: nowra
 .imp-linha-fina { font-size: 0.85rem; color: var(--text-secondary); margin: 0 0 16px; }
 .imp-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 @media (max-width: 900px) { .imp-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.badge-provisorio { display: inline-block; font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 2px 7px; border-radius: 999px; background: #F5A623; color: #1E2329; vertical-align: middle; white-space: nowrap; }
+.sidebar-nav .badge-provisorio { font-size: 0.55rem; padding: 1px 5px; margin-left: 4px; }
+.imp-titulo .badge-provisorio { margin-right: 6px; vertical-align: 2px; }
+.aviso-provisorio { margin: 6px 0 10px; font-size: 0.8rem; color: var(--text-secondary); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
