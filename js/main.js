@@ -286,10 +286,10 @@
     $('#financeiro-table-sub').textContent = `${catFin[0]}–${last(catFin)}, valores correntes, clique no cabeçalho para ordenar`;
     $('#financeiro-por-cnae-title').textContent = cfg().cnaes.map(c => rotuloCnae(c.codigo)).join(' x ');
 
-    dualAxisLineChart($('#chart-financeiro-vbpi-vti'), {
-      categories: catFin, formatYLeft: fmt.brl, formatYRight: fmt.brl, height: 280,
-      seriesLeft: { label: 'VBPI', color: 'var(--series-2)', values: finG.map(r => r.vbpi != null ? r.vbpi * 1000 : null) },
-      seriesRight: { label: 'VTI', color: 'var(--series-3)', values: finG.map(r => r.vti != null ? r.vti * 1000 : null) },
+    dualAxisLineChart($('#chart-financeiro-vti-po'), {
+      categories: catFin, formatYLeft: fmt.brl, formatYRight: fmt.compact, height: 280, plainAxis: true,
+      seriesLeft: { label: 'VTI', color: 'var(--series-3)', values: finG.map(r => r.vti != null ? r.vti * 1000 : null) },
+      seriesRight: { label: 'Pessoal ocupado', color: 'var(--series-2)', values: finG.map(r => r.pessoal_ocupado) },
     });
 
     const produtividade = finG.map(r => (r.vti != null && r.pessoal_ocupado) ? (r.vti * 1000) / r.pessoal_ocupado : null);
@@ -2040,7 +2040,7 @@
   // sem dado; '·' = seção sem número.
   const SECTION_META = [
     { target: 'block-producao', title: 'Produção física', sub: 'Índice de produção física da divisão (IBGE), mensal.' },
-    { target: 'block-financeiro', title: 'Financeiro', sub: 'VBPI, VTI, receita e custos, PIA/IBGE.' },
+    { target: 'block-financeiro', title: 'Financeiro', sub: 'VTI, pessoal ocupado, receita e custos, PIA/IBGE.' },
     { target: 'block-emprego', title: 'Emprego formal', sub: 'Vínculos, escolaridade, ocupação e remuneração (RAIS).' },
     { target: 'block-caged', title: 'CAGED', sub: 'Admissões e desligamentos mensais.' },
     { target: 'block-comex', title: 'Comércio exterior', sub: 'Exportação e importação, Comex e Comtrade.' },
