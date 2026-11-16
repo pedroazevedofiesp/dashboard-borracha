@@ -996,7 +996,7 @@
   // ---------------------------------------------------------------------
   function rankList(container, items, opts) {
     container.innerHTML = '';
-    const { formatVal = fmt.compact, color = 'var(--series-1)', onClick } = opts || {};
+    const { formatVal = fmt.compact, color = 'var(--series-1)', onClick, total } = opts || {};
     if (!items.length) {
       container.innerHTML = '<div class="empty-note">Sem dados disponíveis.</div>';
       return;
@@ -1018,12 +1018,22 @@
       barWrap.className = 'rank-bar-wrap';
       const bar = document.createElement('span');
       bar.className = 'rank-bar';
-      bar.style.width = Math.max(2, (Math.abs(it.value || 0) / max) * 100) + '%';
+      // Com `total`, a barra é a participação no total (0–100%); sem ele,
+      // é relativa ao maior item da lista.
+      const base = total || max;
+      bar.style.width = Math.min(100, Math.max(1, (Math.abs(it.value || 0) / base) * 100)) + '%';
       bar.style.background = it.color || color;
       barWrap.appendChild(bar);
       const val = document.createElement('span');
       val.className = 'rank-val';
       val.textContent = formatVal(it.value);
+      if (total) {
+        const pct = document.createElement('span');
+        pct.className = 'rank-pct';
+        pct.textContent = ((it.value || 0) / total * 100).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
+        val.appendChild(pct);
+        name.title = `${it.label} · ${formatVal(it.value)} · ${pct.textContent} do total`;
+      }
       li.appendChild(name); li.appendChild(barWrap); li.appendChild(val);
       ul.appendChild(li);
     });

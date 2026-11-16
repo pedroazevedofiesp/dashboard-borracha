@@ -2392,8 +2392,12 @@
     // detalhamento em Comércio Exterior).
     const paisesImp = sd.comex.top_paises_latest.importacao || [];
     $('#exec-chart-paises-imp-sub').textContent = `Principais países de origem das importações brasileiras do segmento, ${sd.comex.top_paises_latest.ano}`;
+    const anoImp = sd.comex.top_paises_latest.ano;
+    const totalImp = (sd.comex.yearly.find(r => r.ano === anoImp) || {}).importacao_usd;
+    $('#exec-chart-paises-imp-sub').textContent += totalImp
+      ? ` — barra = participação no total importado (${fmt.usd(totalImp)})` : '';
     rankList($('#exec-chart-paises-imp'), paisesImp.map(p => ({ label: p.pais, value: p.valor_usd })), {
-      formatVal: fmt.usd, color: 'var(--series-6)',
+      formatVal: fmt.usd, color: 'var(--series-6)', total: totalImp || undefined,
     });
 
     // 4) Competitividade e produtividade: margem operacional e produtividade

@@ -700,7 +700,9 @@ table.pdi-table td.mono { font-variant-numeric: tabular-nums; white-space: nowra
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .rank-list .rank-bar-wrap { flex: 2; background: var(--gridline); height: 8px; overflow: hidden; }
-.rank-list .rank-bar { height: 100%; background: var(--series-1); }
+.rank-list .rank-bar { display: block; height: 100%; background: var(--series-1); }
+.rank-list li:has(.rank-pct) .rank-name { flex: 0 0 auto; min-width: 7.5em; max-width: 40%; }
+.rank-list .rank-pct { display: inline-block; min-width: 46px; margin-left: 8px; font-weight: 500; color: var(--text-muted); }
 .rank-list .rank-val { font-weight: 650; min-width: 84px; text-align: right; font-variant-numeric: tabular-nums; }
 .rank-list li.rank-clickable { cursor: pointer; border-radius: var(--radius-sm); }
 .rank-list li.rank-clickable:hover { background: var(--surface-2); }
