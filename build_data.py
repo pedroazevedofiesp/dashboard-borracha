@@ -1152,6 +1152,17 @@ def build_sector(cfg, fator_brl_2023, macro_rows=None):
 SIMULADOR_ANO_HORIZONTE = 2040
 
 
+def _cnae_do_componente():
+    path = ROOT / 'cesta_componentes.csv'
+    if not path.exists():
+        return {}
+    m = pd.read_csv(path, sep=';', dtype=str, encoding='utf-8')
+    return dict(zip(m['componente'], m['cnae']))
+
+
+CNAE_DO_COMPONENTE = _cnae_do_componente()
+
+
 def _cagr(v0, v1, anos):
     if not v0 or v0 <= 0 or v1 is None or v1 <= 0 or anos <= 0:
         return None
@@ -1204,6 +1215,7 @@ def build_simulador(mercado, china_resto_yearly):
             if not it.get('consumo_aparente_real') or it['consumo_aparente_real'] <= 0:
                 continue
             produtos.append({'componente': it['componente'], 'grupo': it['descricao'],
+                             'cnae': CNAE_DO_COMPONENTE.get(it['componente']),
                              **base(i0, it, False)})
     return {'ano_inicial': r0['ano'], 'ano_base': r1['ano'], 'ano_horizonte': SIMULADOR_ANO_HORIZONTE,
             'segmento': segmento, 'produtos': produtos}
@@ -1211,6 +1223,49 @@ def build_simulador(mercado, china_resto_yearly):
 # ---------------------------------------------------------------------------
 # SHARED: indicadores de desempenho (PIA-Empresa por classe, 2007-2023)
 # ---------------------------------------------------------------------------
+
+def build_simulador_impacto(indicadores, cadeia, macro_rows):
+    """Coeficientes do bloco "impacto" do simulador: quanto cada R$ milhão a
+    mais de produção gera de emprego, massa salarial e valor adicionado no
+    próprio segmento (PIA-Empresa por classe, último ano) e, na cadeia de
+    fornecedores, pelo multiplicador de produção da MIP 2015 da atividade do
+    setor e pelo emprego médio por R$ dos fornecedores diretos (TRU, ponderado
+    pelo que a atividade compra de cada um, sem a própria atividade)."""
+    if not indicadores or not indicadores.get('serie'):
+        return None
+    ano = indicadores['ano_final']
+    diretos = {}
+    for r in indicadores['serie']:
+        if r['ano'] != ano or r['recorte'] in ('grupo', 'ind_transformacao'):
+            continue
+        vbp, po = r.get('vbp'), r.get('pessoal_ocupado')
+        if not vbp or not po:
+            continue
+        diretos[r['recorte']] = {
+            # vbp em mil R$ -> por R$ milhão
+            'empregos_por_milhao': po / (vbp / 1000),
+            'salario_medio_anual': (r['salarios_total'] or 0) * 1000 / po,
+            'va_sobre_vbp': (r['valor_adicionado'] or 0) / vbp,
+        }
+    out = {'ano': ano, 'diretos': diretos, 'cadeia': None}
+    if cadeia:
+        cod = cadeia['config']['atividade']
+        ativs = cadeia['atividades']
+        idx = next((i for i, a in enumerate(ativs) if a['cod'] == cod), None)
+        if idx is not None and ativs[idx].get('multiplicador'):
+            compras = [(o, v) for o, d, v in cadeia['fluxos'] if d == idx and o != idx and v and v > 0]
+            total = sum(v for _, v in compras)
+            coef = sum(v / total * (ativs[o]['ocupacoes'] / ativs[o]['vbp'])
+                       for o, v in compras if ativs[o].get('vbp')) if total else None
+            # TRU em R$ milhões do ano da tabela -> R$ do ano dos coeficientes diretos (IPCA médio)
+            fator = build_fator_ipca(macro_rows, ano).get(cadeia['ano'])
+            out['cadeia'] = {
+                'atividade': cod, 'nome': ativs[idx]['nome'], 'ano_tru': cadeia['ano'],
+                'multiplicador': ativs[idx]['multiplicador'],
+                'empregos_indiretos_por_milhao': coef / fator if coef and fator else None,
+            }
+    return out
+
 ULTIMO_ANO_PIA_ANTIGA = 2023  # de 2024 em diante a PIA-Empresa é uma nova série
 
 
@@ -1333,6 +1388,8 @@ def main():
                 soma[k] = None if any(v is None for v in vals) else sum(vals)
         fin_por_cnae.append(soma)
 
+    indicadores = build_indicadores_desempenho(macro)
+    cadeia = build_cadeia()
     uf_lista = sorted(({'uf': uf, 'nome': nome} for _, uf, nome in UF_TABLE), key=lambda x: x['nome'])
 
     data = {
@@ -1345,13 +1402,14 @@ def main():
         'shared': {
             'producao': {'indice': producao_indice},
             'financeiro': {'grupo': fin_grupo, 'por_cnae_2024': fin_por_cnae,
-                           'indicadores': build_indicadores_desempenho(macro)},
+                           'indicadores': indicadores},
+            'simulador_impacto': build_simulador_impacto(indicadores, cadeia, macro),
             'macro': macro,
             'decom': decom,
         },
         'sectors': sectors,
         'energia_industrial': energia_industrial,
-        'cadeia': build_cadeia(),
+        'cadeia': cadeia,
     }
 
     OUT_DIR.mkdir(exist_ok=True)

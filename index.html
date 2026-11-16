@@ -793,7 +793,29 @@
     </div>
   </div>
 
-  <p class="cad-nota" id="sim-nota">Simulação ilustrativa e não exaustiva: aplica taxas constantes de crescimento real sobre o último ano com dado de produção, sem considerar efeitos de preço, câmbio ou política comercial. Consumo aparente = produção + importação − exportação; penetração da importação = importação / consumo aparente; coeficiente de exportação = exportação / produção. Fonte: PIA/IBGE e Comexstat. Elaboração: DECAP/FIESP.</p>
+  <section class="imp-bloco" id="imp-bloco">
+    <h3 class="imp-titulo">E se parte das importações fosse produzida aqui, ou as exportações crescessem?</h3>
+    <p class="imp-linha-fina">Impacto anual na produção, no emprego e na renda do segmento e da cadeia de fornecedores, para o recorte escolhido acima.</p>
+    <div class="exec-seg-toggle sim-cenarios" id="imp-tipo" role="group" aria-label="Tipo de simulação">
+      <button type="button" class="exec-seg-btn active" data-tipo="importacao">Substituir importações</button>
+      <button type="button" class="exec-seg-btn" data-tipo="exportacao">Ampliar exportações</button>
+    </div>
+    <div class="sim-grid">
+      <div class="sim-sliders">
+        <div class="sim-slider">
+          <div class="sim-slider-top"><span id="imp-pct-label"></span><strong id="imp-pct-val"></strong></div>
+          <input type="range" id="imp-pct" min="1" max="100" step="1" value="10" aria-label="Percentual simulado">
+          <div class="sim-slider-hist">Arraste para simular de 1% a 100%.</div>
+        </div>
+      </div>
+      <div class="sim-resultado">
+        <p class="sim-narrativa" id="imp-narrativa"></p>
+      </div>
+    </div>
+    <div class="kpi-grid sim-kpis imp-kpis" id="imp-kpis"></div>
+  </section>
+
+  <p class="cad-nota" id="sim-nota">Simulação ilustrativa e não exaustiva: aplica taxas constantes de crescimento real sobre o último ano com dado de produção, sem considerar efeitos de preço, câmbio ou política comercial. No bloco de impacto, cada real a mais de produção do segmento gera emprego, salários e valor adicionado na mesma proporção do último ano da PIA-Empresa; o efeito na cadeia usa o multiplicador de produção da Matriz Insumo-Produto e o emprego médio dos fornecedores, sem contar o efeito-renda. Consumo aparente = produção + importação − exportação; penetração da importação = importação / consumo aparente; coeficiente de exportação = exportação / produção. Fonte: PIA/IBGE, Comexstat e Contas Nacionais/IBGE. Elaboração: DECAP/FIESP.</p>
 </div><!-- /#simulador-view -->
 
 <!-- ============ CADEIA PRODUTIVA ============ -->

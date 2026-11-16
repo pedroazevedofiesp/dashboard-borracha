@@ -295,3 +295,18 @@ def test_simulador(data, cnae):
         assert abs(seg['importacao_china'] + seg['importacao_resto'] - seg['importacao']) < 1
     for p in s['produtos']:
         assert p['producao'] > 0 and p['grupo']
+
+
+def test_simulador_impacto(data):
+    imp = data['shared']['simulador_impacto']
+    assert imp is not None
+    for c in CNAES:
+        d = imp['diretos'][c]
+        assert d['empregos_por_milhao'] > 0 and d['salario_medio_anual'] > 0
+        assert 0 < d['va_sobre_vbp'] < 1
+    cad = imp['cadeia']
+    assert cad and cad['multiplicador'] > 1 and cad['empregos_indiretos_por_milhao'] > 0
+    # Grupos de produto do simulador sabem a qual CNAE pertencem (coeficiente direto).
+    for c in CNAES:
+        for p in data['sectors'][c]['simulador']['produtos']:
+            assert p['cnae'] in imp['diretos']

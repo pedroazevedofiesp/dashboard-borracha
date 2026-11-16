@@ -735,3 +735,9 @@ table.pdi-table td.mono { font-variant-numeric: tabular-nums; white-space: nowra
 .sim-cenario-desc { display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 6px; }
 .sim-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 0; }
 .sim-kpis .kpi-value { font-size: 1.35rem; }
+
+.imp-bloco { margin: 36px 0 24px; padding-top: 28px; border-top: 1px solid var(--border); }
+.imp-titulo { font-size: 1.15rem; font-weight: 700; color: var(--text-primary); margin: 0 0 6px; }
+.imp-linha-fina { font-size: 0.85rem; color: var(--text-secondary); margin: 0 0 16px; }
+.imp-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 900px) { .imp-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

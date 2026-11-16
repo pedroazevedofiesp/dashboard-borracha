@@ -558,6 +558,7 @@
     });
     document.querySelectorAll('.sim-horizonte').forEach(el => { el.textContent = state.data.sectors[sim.segmento].simulador.ano_horizonte; });
     simPreencherRecortes();
+    setupImpacto();
     simAplicarCenario('historico');
   }
 
@@ -576,6 +577,7 @@
     sim.taxas = simTaxasCenario(b, id);
     simRenderControles(b);
     simRenderResultado();
+    renderImpacto();
   }
 
   function simMarcarLivre() {
@@ -664,6 +666,102 @@
     lineChart($('#sim-chart'), { categories: cats, formatY: v => fmtPctSim(v, 0), height: 300, series });
     $('#sim-chart-sub').textContent = `${recorteNome}, % do consumo aparente. Linha cheia = realizado; tracejada = projeção ${a0}–${ah}`
       + (sim.recorte === 'segmento' ? '.' : ' (por grupo de produto, só a projeção).');
+  }
+
+  // ---------------------------------------------------------------------
+  // Simulador, bloco 2: impacto de substituir importações ou ampliar
+  // exportações. O valor adicional vira produção no segmento (1 para 1) e,
+  // com os coeficientes de shared.simulador_impacto, empregos diretos,
+  // massa salarial, valor adicionado e o efeito na cadeia de fornecedores.
+  // Usa o mesmo segmento/recorte escolhido no topo da aba.
+  // ---------------------------------------------------------------------
+  const imp = { tipo: 'importacao', pct: 10 };
+
+  function simDolarMedio(ano) {
+    const v = (state.data.shared.macro || []).filter(r => r.ano === ano && r.dolar).map(r => r.dolar);
+    return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
+  }
+
+  function arred(n) {
+    if (n == null || !isFinite(n)) return '-';
+    const r = n >= 1000 ? Math.round(n / 100) * 100 : n >= 100 ? Math.round(n / 10) * 10 : Math.round(n);
+    return r.toLocaleString('pt-BR');
+  }
+
+  function setupImpacto() {
+    const box = $('#imp-tipo');
+    if (!box) return;
+    box.addEventListener('click', e => {
+      const b = e.target.closest('button[data-tipo]');
+      if (!b) return;
+      imp.tipo = b.dataset.tipo;
+      box.querySelectorAll('button').forEach(x => x.classList.toggle('active', x === b));
+      renderImpacto();
+    });
+    const sl = $('#imp-pct');
+    sl.addEventListener('input', () => { imp.pct = +sl.value; renderImpacto(); });
+  }
+
+  function renderImpacto() {
+    const bloco = $('#imp-bloco');
+    const coefs = state.data.shared.simulador_impacto;
+    const b = simBase();
+    if (!bloco || !coefs || !b) { if (bloco) bloco.style.display = 'none'; return; }
+    bloco.style.display = '';
+    const cnaeCoef = sim.recorte === 'segmento' ? sim.segmento : (b.item.cnae || sim.segmento);
+    const dir = coefs.diretos[cnaeCoef] || coefs.diretos[sim.segmento];
+    if (!dir) { bloco.style.display = 'none'; return; }
+    const cad = coefs.cadeia;
+    const a0 = b.s.ano_base;
+    const recorteNome = sim.recorte === 'segmento' ? rotuloCnae(sim.segmento) : b.item.grupo;
+    const baseValor = imp.tipo === 'importacao' ? b.item.importacao : b.item.exportacao;
+    const dolar = simDolarMedio(a0);
+
+    $('#imp-pct-val').textContent = imp.pct + '%';
+    $('#imp-pct-label').textContent = imp.tipo === 'importacao'
+      ? `Parcela das importações de ${a0} produzida no Brasil`
+      : `Aumento das exportações sobre o valor de ${a0}`;
+
+    const delta = baseValor * imp.pct / 100;            // R$ de a0
+    const mi = delta / 1e6;                              // R$ milhões
+    const empDir = mi * dir.empregos_por_milhao;
+    const massa = empDir * dir.salario_medio_anual;
+    const va = delta * dir.va_sobre_vbp;
+    const prodInd = cad ? delta * (cad.multiplicador - 1) : null;
+    const empInd = cad && cad.empregos_indiretos_por_milhao ? (prodInd / 1e6) * cad.empregos_indiretos_por_milhao : null;
+
+    const tile = (label, valor, sub) => `<div class="kpi-tile no-click">
+      <span class="kpi-label">${label}</span><span class="kpi-value">${valor}</span><span class="kpi-sub">${sub}</span></div>`;
+    $('#imp-kpis').innerHTML = [
+      tile('Produção adicional no segmento', fmt.brl(delta), `por ano, R$ de ${a0}` + (dolar ? ` · cerca de ${fmt.usd(delta / dolar)}` : '')),
+      tile('Empregos diretos', arred(empDir), 'no próprio segmento'),
+      tile('Massa salarial', fmt.brl(massa), 'salários por ano, empregos diretos'),
+      tile('Valor adicionado', fmt.brl(va), 'no próprio segmento, por ano'),
+      cad ? tile('Produção adicional na cadeia', fmt.brl(prodInd), 'fornecedores, efeito indireto') : null,
+      empInd != null ? tile('Empregos na cadeia', arred(empInd), 'fornecedores, efeito indireto') : null,
+    ].filter(Boolean).join('');
+
+    // Efeito no mercado do ano-base (consumo aparente constante na substituição).
+    const ca = b.item.producao + b.item.importacao - b.item.exportacao;
+    let efeito = '';
+    if (imp.tipo === 'importacao' && ca > 0) {
+      efeito = ` A penetração da importação cairia de ${fmtPctSim(b.item.importacao / ca * 100)} para ${fmtPctSim((b.item.importacao - delta) / ca * 100)}.`;
+    } else if (imp.tipo === 'exportacao' && b.item.producao > 0) {
+      efeito = ` O coeficiente de exportação passaria de ${fmtPctSim(b.item.exportacao / b.item.producao * 100)} para ${fmtPctSim((b.item.exportacao + delta) / (b.item.producao + delta) * 100)}.`;
+    }
+    const acao = imp.tipo === 'importacao'
+      ? `Produzir no Brasil ${imp.pct}% do que se importa`
+      : `Aumentar em ${imp.pct}% as exportações`;
+    let txt = `<strong>${escSim(recorteNome)}:</strong> ${acao} (${fmt.brl(delta)} por ano) geraria cerca de <strong>${arred(empDir)} empregos diretos</strong>`
+      + (empInd != null ? ` e mais <strong>${arred(empInd)} na cadeia de fornecedores</strong>` : '')
+      + `, com ${fmt.brl(massa)} em salários.` + efeito;
+    if (dolar) {
+      const por100 = 100e6 * dolar / 1e6;  // R$ milhões equivalentes a US$ 100 mi
+      const e100 = por100 * dir.empregos_por_milhao;
+      const i100 = cad && cad.empregos_indiretos_por_milhao ? por100 * (cad.multiplicador - 1) * cad.empregos_indiretos_por_milhao : null;
+      txt += ` <span class="sim-cenario-desc" style="margin-top:8px">Referência: cada US$ 100 milhões ${imp.tipo === 'importacao' ? 'importados' : 'exportados'} equivalem a cerca de ${arred(e100)} empregos diretos${i100 != null ? ` e ${arred(i100)} indiretos` : ''} (câmbio médio de ${a0}).</span>`;
+    }
+    $('#imp-narrativa').innerHTML = txt;
   }
 
   // ---------------------------------------------------------------------
