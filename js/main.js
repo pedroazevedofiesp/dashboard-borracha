@@ -82,6 +82,14 @@
   function setorCfg() { return cfg().setor; }
   // CNAEs reais (cada um com seus arquivos) e recortes do painel: o agregado
   // opcional (ex.: "Borracha - Total", soma dos CNAEs) vem primeiro.
+  // Como a margem operacional é calculada — mesmo texto no Painel Executivo,
+  // no Financeiro e nas Referências.
+  function margemFormula() {
+    return `Margem operacional = (receita líquida total − total de custos e despesas) ÷ receita líquida total, `
+      + `com os dados da PIA-Empresa (IBGE) para o grupo CNAE ${setorCfg().grupo_cnae} inteiro. `
+      + `Os dois totais são variáveis publicadas pela própria PIA (não há ajuste do painel); por isso a margem não é igual à de um balanço contábil. `
+      + `O IBGE não divulga essa conta por classe CNAE, só para o grupo (por classe, só existe 2024).`;
+  }
   function cnaeCodigos() { return cfg().cnaes.map(c => c.codigo); }
   function setores() { return (cfg().agregado ? [cfg().agregado] : []).concat(cfg().cnaes); }
   function cnaeCfg(codigo) { return setores().find(c => c.codigo === (codigo || state.sector)); }
@@ -280,7 +288,7 @@
     const finG = sh.financeiro.grupo;
     const catFin = finG.map(r => r.ano);
 
-    $('#financeiro-section-note').textContent = `Fonte: IBGE/PIA-Empresa, ${catFin[0]}–${last(catFin)}, sempre em série completa (sem filtro de período). `
+    $('#financeiro-section-note').textContent = `Fonte: IBGE/PIA-Empresa, ${catFin[0]}–${last(catFin)}, sempre em série completa (sem filtro de período). ${margemFormula()} `
       + `O grupo ${sc.grupo_cnae} (${sc.grupo_descricao.toLowerCase()}) reúne todos os segmentos sem abertura entre eles e é o mesmo nos dois recortes do painel. `
       + (sc.grupo_nota || '');
     $('#financeiro-table-sub').textContent = `${catFin[0]}–${last(catFin)}, valores correntes, clique no cabeçalho para ordenar`;
@@ -1373,6 +1381,7 @@
     $('#referencias-table tbody').innerHTML = rows.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td class="mono">${r[3]}</td><td>${r[4]}</td></tr>`).join('');
 
     const lim = [
+      margemFormula(),
       `Dados financeiros (PIA/IBGE): o grupo ${sc.grupo_cnae} (${sc.grupo_descricao.toLowerCase()}) reúne todos os segmentos sem abertura entre eles; é usado nos dois recortes com a mesma ressalva. ${sc.grupo_nota || ''} A abertura por classe CNAE só existe para 2024 (série nova do IBGE).`,
       `Produção física: ${sc.producao_descricao}`,
       ...cfg().cnaes.map(c => `Cesta de produtos de ${rotuloCnae(c.codigo)}: ${c.cesta_ncm} Não existe correspondência oficial entre atividade (CNAE) e produto (NCM); a cesta é uma escolha metodológica.${c.comex_residual ? ' ' + c.nota_comex : ''}`),
@@ -2372,6 +2381,7 @@
         produtividade: (r.vti * 1000 * ipp.fator[r.ano]) / r.pessoal_ocupado,
       }));
     $('#exec-chart-margem-sub').textContent = `Margem operacional (%) e produtividade (VTI por trabalhador, R$ de ${ipp.anoBase} pelo ${sc.ipp_rotulo}), grupo ${sc.grupo_cnae}`;
+    $('#exec-margem-nota').textContent = margemFormula();
     dualAxisLineChart($('#exec-chart-margem'), {
       categories: finComp.map(r => r.ano), height: 260,
       seriesLeft: { label: 'Margem operacional (%)', color: 'var(--series-8)', values: finComp.map(r => r.margem) },
