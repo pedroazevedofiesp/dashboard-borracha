@@ -265,6 +265,9 @@ def test_indicadores_desempenho(data):
     assert codigos[0] == 'ind_transformacao'
     assert all(c in codigos for c in CNAES)
     assert len(ind['linhas']) == 8
+    assert ind['tabelas'] and ind['tabelas'][-1]['ano_final'] == ind['ano_final']
+    for tab in ind['tabelas']:
+        assert len(tab['linhas']) == 8
     assert {l['tipo'] for l in ind['linhas']} == {'var', 'pp', 'nivel'}
     for l in ind['linhas']:
         assert set(l['valores']) == set(codigos)

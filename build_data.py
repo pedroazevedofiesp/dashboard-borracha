@@ -1113,14 +1113,18 @@ def build_sector(cfg, fator_brl_2023, macro_rows=None):
 # ---------------------------------------------------------------------------
 # SHARED: indicadores de desempenho (PIA-Empresa por classe, 2007-2023)
 # ---------------------------------------------------------------------------
+ULTIMO_ANO_PIA_ANTIGA = 2023  # de 2024 em diante a PIA-Empresa é uma nova série
+
+
 def build_indicadores_desempenho(macro_rows):
     """Mesmos indicadores da tabela "Pontos de destaque" do diagnóstico setorial
     da FIESP (metodologia da planilha DRE da PIA-Empresa): variação entre o
-    primeiro e o último ano da série 2007-2023 (tabelas SIDRA 7241-7245).
+    primeiro ano (2007) e 2023 (fim da série antiga, tabelas SIDRA 7241-7245)
+    ou o último ano disponível (nova série, tabela 10473, a partir de 2024).
     Valores em R$ deflacionados pelo IPCA de dezembro (como na planilha).
     Lucro bruto = valor adicionado - gastos de pessoal; margem bruta = lucro
     bruto / receita líquida; investimento líquido = aquisições + melhorias -
-    baixas do ativo imobilizado. 2024 fica de fora (nova série da PIA)."""
+    baixas do ativo imobilizado."""
     arquivo = SRC_DIR / f'PIA_Empresa_Indicadores_{ROTULO_ARQUIVO}.csv'
     if not arquivo.exists():
         return None
@@ -1169,31 +1173,40 @@ def build_indicadores_desempenho(macro_rows):
     def pct(x):
         return None if x is None else x * 100
 
-    defs = [
-        ('Pessoal ocupado', 'var', 'pessoal_ocupado'),
-        ('Gasto com pessoal', 'var', 'gastos_pessoal_real'),
-        ('Lucro bruto', 'var', 'lucro_bruto_real'),
-        (f'Margem bruta ({a1})', 'nivel', 'margem_bruta'),
-        ('Margem bruta (variação)', 'pp', 'margem_bruta'),
-        ('Investimento líquido', 'var', 'investimento_liquido_real'),
-        (f'Investimento líquido / faturamento ({a1})', 'nivel', 'invest_liquido_rlv'),
-        ('Investimento líquido / faturamento (variação)', 'pp', 'invest_liquido_rlv'),
-    ]
-    tabela = []
-    for nome, tipo, chave in defs:
-        valores = {}
-        for col in colunas:
-            v0, v1 = linhas.get((a0, col['codigo'])), linhas.get((a1, col['codigo']))
-            if not v0 or not v1:
-                valores[col['codigo']] = None
-                continue
-            x0, x1 = derivados(v0, a0)[chave], derivados(v1, a1)[chave]
-            valores[col['codigo']] = {'var': var, 'pp': pp}[tipo](x0, x1) if tipo != 'nivel' else pct(x1)
-        tabela.append({'indicador': nome, 'tipo': tipo, 'valores': valores})
+    def montar_tabela(af):
+        defs = [
+            ('Pessoal ocupado', 'var', 'pessoal_ocupado'),
+            ('Gasto com pessoal', 'var', 'gastos_pessoal_real'),
+            ('Lucro bruto', 'var', 'lucro_bruto_real'),
+            (f'Margem bruta ({af})', 'nivel', 'margem_bruta'),
+            ('Margem bruta (variação)', 'pp', 'margem_bruta'),
+            ('Investimento líquido', 'var', 'investimento_liquido_real'),
+            (f'Investimento líquido / faturamento ({af})', 'nivel', 'invest_liquido_rlv'),
+            ('Investimento líquido / faturamento (variação)', 'pp', 'invest_liquido_rlv'),
+        ]
+        tabela = []
+        for nome, tipo, chave in defs:
+            valores = {}
+            for col in colunas:
+                v0, v1 = linhas.get((a0, col['codigo'])), linhas.get((af, col['codigo']))
+                if not v0 or not v1:
+                    valores[col['codigo']] = None
+                    continue
+                x0, x1 = derivados(v0, a0)[chave], derivados(v1, af)[chave]
+                valores[col['codigo']] = {'var': var, 'pp': pp}[tipo](x0, x1) if tipo != 'nivel' else pct(x1)
+            tabela.append({'indicador': nome, 'tipo': tipo, 'valores': valores})
+        return tabela
+
+    # Último ano da série antiga (comparável com o diagnóstico) e último ano
+    # disponível (pode ser da nova série da PIA, a partir de 2024).
+    finais = sorted({a for a in (ULTIMO_ANO_PIA_ANTIGA, a1) if a in anos})
+    tabelas = [{'ano_final': af, 'nova_serie': af > ULTIMO_ANO_PIA_ANTIGA, 'linhas': montar_tabela(af)}
+               for af in finais]
 
     serie = [{'ano': a, 'recorte': rc, **v, **derivados(v, a)}
              for (a, rc), v in sorted(linhas.items(), key=lambda kv: (kv[0][1], kv[0][0]))]
-    return {'ano_inicial': a0, 'ano_final': a1, 'colunas': colunas, 'linhas': tabela, 'serie': serie}
+    return {'ano_inicial': a0, 'ano_final': a1, 'ano_base_precos': a1, 'colunas': colunas,
+            'tabelas': tabelas, 'linhas': tabelas[-1]['linhas'], 'serie': serie}
 
 # ---------------------------------------------------------------------------
 # Main

@@ -174,17 +174,17 @@ def build_financeiro_download():
     if ind:
         a0, a1 = ind['ano_inicial'], ind['ano_final']
         unid = {'var': 'variação %', 'pp': 'p.p.', 'nivel': '%'}
-        tabela = pd.DataFrame([
-            {'Variável': l['indicador'], 'Unidade': unid[l['tipo']],
-             **{c['rotulo']: (None if l['valores'][c['codigo']] is None else round(l['valores'][c['codigo']], 1))
-                for c in ind['colunas']}}
-            for l in ind['linhas']])
-        _add_sheet(wb, f'Indicadores {a0}-{a1}', tabela,
-                   title=f'Indicadores de desempenho — variação {a0}/{a1}',
-                   note='Mesmos indicadores do diagnóstico setorial da FIESP. Fonte: IBGE/PIA-Empresa por classe '
-                        '(SIDRA 7241-7245). R$ corrigidos pelo IPCA de dezembro. Lucro bruto = valor adicionado - '
-                        'gastos de pessoal; margem bruta = lucro bruto / receita líquida; investimento líquido = '
-                        'aquisições + melhorias - baixas do ativo imobilizado; faturamento = receita líquida.')
+        for tab in ind['tabelas']:
+            af = tab['ano_final']
+            tabela = pd.DataFrame([
+                {'Variável': l['indicador'], 'Unidade': unid[l['tipo']],
+                 **{c['rotulo']: (None if l['valores'][c['codigo']] is None else round(l['valores'][c['codigo']], 1))
+                    for c in ind['colunas']}}
+                for l in tab['linhas']])
+            _add_sheet(wb, f'Indicadores {a0}-{af}', tabela,
+                       title=f'Indicadores de desempenho — variação {a0}/{af}',
+                       note=f'Fonte: PIA/IBGE. Elaboração: DECAP/FIESP. R$ constantes de {a1}.'
+                            + (f' {af} é da nova série da PIA (quebra metodológica).' if tab['nova_serie'] else ''))
         rot = {c['codigo']: c['rotulo'] for c in ind['colunas']}
         rot['grupo'] = f"Grupo {grupo}"
         serie = pd.DataFrame(ind['serie'])
@@ -193,8 +193,8 @@ def build_financeiro_download():
             serie[c] = serie[c] * 100
         _add_sheet(wb, 'PIA por classe', serie,
                    title=f'PIA-Empresa por classe, {a0}-{a1}',
-                   note=f'Valores originais em mil R$ correntes; colunas *_real em mil R$ de {a1} (IPCA de dezembro); '
-                        'margem_bruta e invest_liquido_rlv em %. O total soma as classes do setor.')
+                   note=f'Fonte: PIA/IBGE. Elaboração: DECAP/FIESP. Valores em mil R$ correntes; colunas *_real '
+                        f'em mil R$ de {a1}; margem_bruta e invest_liquido_rlv em %. O total soma as classes do setor.')
     _save(wb, 'Financeiro.xlsx')
 
 

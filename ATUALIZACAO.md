@@ -52,15 +52,16 @@ de outro painel.
 ## Indicadores de desempenho (PIA-Empresa por classe)
 
 `extrair_ibge.R` (função `obter_pia_indicadores`) grava
-`PIA_Empresa_Indicadores_<Rotulo>.csv`: PIA-Empresa por classe CNAE, 2007–2023,
-das tabelas SIDRA 7241 a 7245 (classificação 12762), para as classes do setor
+`PIA_Empresa_Indicadores_<Rotulo>.csv`: PIA-Empresa por classe CNAE, das
+tabelas SIDRA 7241 a 7245 (2007–2023) e 10473 (2024 em diante, nova série),
+classificação 12762, para as classes do setor
 (`cnae_sidra`), o grupo (`cnae_grupo_sidra`) e a indústria de transformação
 (`cnae_comparacao_sidra`, código 116910). `build_data.py` calcula a tabela
 "Pontos de destaque" do diagnóstico setorial da FIESP (seção Financeiro), com a
 metodologia da planilha DRE: R$ pelo IPCA de dezembro, lucro bruto = valor
 adicionado − gastos de pessoal, margem bruta = lucro bruto / receita líquida,
-investimento líquido = aquisições + melhorias − baixas. 2024 é nova série da
-PIA e fica fora da comparação.
+investimento líquido = aquisições + melhorias − baixas. O painel mostra
+2007/2023 (como no diagnóstico) e 2007/último ano (nova série, com quebra).
 
 ## PIA-Produto e mercado doméstico
 

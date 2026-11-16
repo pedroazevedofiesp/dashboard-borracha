@@ -417,14 +417,23 @@
 
   // Tabela "Pontos de destaque" do diagnóstico setorial (PIA-Empresa por
   // classe): variação entre o primeiro e o último ano, por recorte.
+  let indicadoresAnoFinal = null;  // escolha do usuário (2023 ou último ano)
   function renderIndicadoresDesempenho(ind) {
     const bloco = $('#bloco-indicadores-desempenho');
-    if (!ind || !ind.linhas || !ind.linhas.length) { bloco.style.display = 'none'; return; }
+    if (!ind || !ind.tabelas || !ind.tabelas.length) { bloco.style.display = 'none'; return; }
     bloco.style.display = '';
-    const a0 = ind.ano_inicial, a1 = ind.ano_final;
+    const tabs = ind.tabelas;
+    const tab = tabs.find(t => t.ano_final === indicadoresAnoFinal) || tabs[tabs.length - 1];
+    const a0 = ind.ano_inicial, a1 = tab.ano_final;
     $('#indicadores-desempenho-title').textContent = `Indicadores de desempenho: variação ${a0}/${a1}`;
-    $('#indicadores-desempenho-sub').textContent =
-      `Valores em R$ constantes. ${a1 + 1} fica de fora por ser nova série da PIA.`;
+    $('#indicadores-desempenho-sub').textContent = `Valores em R$ constantes de ${ind.ano_base_precos}. `
+      + (tab.nova_serie
+        ? `${a1} é da nova série da PIA (IBGE), que tem quebra metodológica em relação aos anos anteriores.`
+        : `Mesmo período do diagnóstico setorial.`);
+    const seletor = tabs.length > 1
+      ? `<div class="exec-seg-toggle indicadores-toggle">` + tabs.map(t =>
+          `<button type="button" data-ano="${t.ano_final}" class="exec-seg-btn${t === tab ? ' active' : ''}">${a0}/${t.ano_final}${t.nova_serie ? ' (nova série)' : ''}</button>`).join('') + `</div>`
+      : '';
     const fmtVal = (v, tipo) => {
       if (v == null || isNaN(v)) return '-';
       const n = (tipo !== 'nivel' && v > 0 ? '+' : '')
@@ -434,11 +443,13 @@
     const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     const destaque = c => c.codigo === state.sector ? ' class="col-destaque"' : '';
     const cab = ind.colunas.map(c => `<th style="text-align:right"${destaque(c)}>${esc(c.rotulo)}</th>`).join('');
-    const corpo = ind.linhas.map(l => `<tr><td>${esc(l.indicador)}</td>`
+    const corpo = tab.linhas.map(l => `<tr><td>${esc(l.indicador)}</td>`
       + ind.colunas.map(c => `<td style="text-align:right"${destaque(c)}>${fmtVal(l.valores[c.codigo], l.tipo)}</td>`).join('')
       + '</tr>').join('');
-    $('#table-indicadores-desempenho').innerHTML =
+    $('#table-indicadores-desempenho').innerHTML = seletor +
       `<div class="data-table-wrap"><table class="data-table tabela-indicadores"><thead><tr><th>Variável</th>${cab}</tr></thead><tbody>${corpo}</tbody></table></div>`;
+    $('#table-indicadores-desempenho').querySelectorAll('.indicadores-toggle button').forEach(b =>
+      b.addEventListener('click', () => { indicadoresAnoFinal = +b.dataset.ano; renderIndicadoresDesempenho(ind); }));
   }
 
   // ---------------------------------------------------------------------
