@@ -294,7 +294,7 @@ a:hover { color: var(--accent); }
   border: 1px solid var(--border); background: var(--surface-1); color: var(--text-secondary);
 }
 .exec-seg-btn:hover { border-color: var(--accent); color: var(--accent); }
-.exec-seg-btn.active { background: var(--text-primary); border-color: var(--text-primary); color: #fff; }
+.exec-seg-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 
 .kpi-grid {
   display: grid;

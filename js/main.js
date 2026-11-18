@@ -1007,21 +1007,21 @@
     ],
     cambio: [
       { id: 'dolar', texto: 'Para onde vai o dólar?', opcoes: [
-        { id: 'baixo', rotulo: 'Cai para cerca de R$ 5,00' },
-        { id: 'atual', rotulo: 'Fica perto de R$ 5,50, como hoje' },
-        { id: 'alto', rotulo: 'Sobe para cerca de R$ 6,00' },
+        { id: 'baixo', rotulo: 'Cai para cerca de R$ 5,00', v: 5.0 },
+        { id: 'atual', rotulo: 'Fica perto de R$ 5,50, como hoje', v: 5.5 },
+        { id: 'alto', rotulo: 'Sobe para cerca de R$ 6,00', v: 6.0 },
       ] },
     ],
     demanda: [
       { id: 'veic', texto: 'Como fica a demanda de veículos e transporte (montadoras, autopeças, transportadoras) até 2030?', opcoes: [
-        { id: 'retracao', rotulo: 'Retração (−10% no período)', v: -10 },
-        { id: 'estavel', rotulo: 'Estável', v: 0 },
-        { id: 'crescimento', rotulo: 'Crescimento (+10% no período)', v: 10 },
+        { id: 'retracao', rotulo: 'Desacelera (2 p.p. ao ano abaixo do ritmo atual)', v: -2 },
+        { id: 'estavel', rotulo: 'Segue o ritmo atual', v: 0 },
+        { id: 'crescimento', rotulo: 'Acelera (2 p.p. ao ano acima do ritmo atual)', v: 2 },
       ] },
       { id: 'fam', texto: 'E o consumo das famílias (reposição de peças, artigos de borracha)?', opcoes: [
-        { id: 'retracao', rotulo: 'Retração (−5%)', v: -5 },
-        { id: 'estavel', rotulo: 'Estável', v: 0 },
-        { id: 'crescimento', rotulo: 'Crescimento (+5%)', v: 5 },
+        { id: 'retracao', rotulo: 'Desacelera (1 p.p. ao ano abaixo)', v: -1 },
+        { id: 'estavel', rotulo: 'Segue o ritmo atual', v: 0 },
+        { id: 'crescimento', rotulo: 'Acelera (1 p.p. ao ano acima)', v: 1 },
       ] },
     ],
   };
@@ -1113,6 +1113,31 @@
     const pctImp = cad && cad.pct_insumos_importados ? cad.pct_insumos_importados * 100 : null;
     const ult = anos[anos.length - 1];
     const r = cen.resp.cambio.dolar;
+    // Sensibilidade da importação ao dólar observada no histórico do segmento:
+    // inclinação de Δln(importação US$) contra Δln(dólar médio), ano a ano.
+    const pares = [];
+    for (let i = 1; i < anos.length; i++) {
+      const a0 = anos[i - 1], a1 = anos[i];
+      if (a1.ano - a0.ano === 1 && a0.importacao_usd > 0 && a1.importacao_usd > 0)
+        pares.push([Math.log(dMed(a1.ano) / dMed(a0.ano)), Math.log(a1.importacao_usd / a0.importacao_usd)]);
+    }
+    let elast = null;
+    if (pares.length >= 15) {
+      const mx = pares.reduce((p, q) => p + q[0], 0) / pares.length, my = pares.reduce((p, q) => p + q[1], 0) / pares.length;
+      const sxy = pares.reduce((p, q) => p + (q[0] - mx) * (q[1] - my), 0), sxx = pares.reduce((p, q) => p + (q[0] - mx) ** 2, 0), syy = pares.reduce((p, q) => p + (q[1] - my) ** 2, 0);
+      const corr = sxy / Math.sqrt(sxx * syy);
+      if (sxx > 0 && corr <= -0.4) elast = sxy / sxx;
+    }
+    const alvo = CEN_PERGUNTAS.cambio[0].opcoes.find(o => o.id === r).v;
+    const dAtual = ult ? dMed(ult.ano) : null;
+    const varDol = dAtual ? (alvo / dAtual - 1) * 100 : null;
+    const impEst = elast != null && ult ? ult.importacao_usd * Math.pow(alvo / dAtual, elast) : null;
+    const varImp = impEst != null ? (impEst / ult.importacao_usd - 1) * 100 : null;
+    const varCusto = pctImp != null && varDol != null ? pctImp / 100 * varDol : null;
+    const numeros = varDol == null ? null
+      : `Com o dólar a R$ ${alvo.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (${pctL(varDol, 1, true)} em relação à média de ${ult.ano}), `
+        + (varImp != null ? `a importação do segmento tenderia a ${varImp >= 0 ? 'subir' : 'cair'} cerca de <strong>${pctL(Math.abs(varImp), 0)}</strong>, para ${fmt.usd(impEst)} por ano` : 'não há histórico suficiente neste segmento para estimar o efeito na importação')
+        + (varCusto != null ? `, e o custo dos insumos ${varCusto >= 0 ? 'subiria' : 'cairia'} cerca de ${pctL(Math.abs(varCusto), 1)}` : '') + '.';
     const textos = {
       baixo: [
         'Com o dólar mais barato, o produto importado chega mais barato em reais: a <strong>pressão sobre a produção nacional aumenta</strong> e a penetração da importação tende a subir mais rápido que no ritmo atual.',
@@ -1135,10 +1160,11 @@
         'O histórico mostra que, nos anos de dólar em alta, a importação em dólares recuou, mas voltou a crescer quando o câmbio se estabilizou.',
       ],
     };
-    $('#cen-cambio-resultado').innerHTML = cenResultado('Se isso acontecer:', textos[r], [
-      ult ? cardL({ rotulo: `Dólar médio · ${ult.ano}`, valor: 'R$ ' + dMed(ult.ano).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), serie: anos.map(x => dMed(x.ano)), sub: 'PTAX, média do ano' }) : null,
-      ult ? cardL({ rotulo: `Importação · ${ult.ano}`, valor: fmt.usd(ult.importacao_usd), serie: anos.map(x => x.importacao_usd), sub: 'US$ FOB' }) : null,
-      pctImp ? cardL({ rotulo: 'Insumos importados', valor: pctL(pctImp, 0), serie: [], sub: 'atividade borracha e plástico (MIP 2015)' }) : null,
+    const notaElast = elast != null ? `Estimativa pela relação observada entre ${anos[0].ano} e ${ult.ano}: em média, cada 10% de alta do dólar veio acompanhada de queda de ${pctL(Math.abs(elast) * 10, 0)} na importação do segmento no mesmo ano. É uma tendência, não uma previsão: preços externos, demanda e frete também pesam.` : null;
+    $('#cen-cambio-resultado').innerHTML = cenResultado('Se isso acontecer:', [numeros].concat(textos[r], [notaElast]), [
+      cardL({ rotulo: 'Dólar no cenário', valor: 'R$ ' + alvo.toLocaleString('pt-BR', { minimumFractionDigits: 2 }), serie: [], sub: dAtual ? `média de ${ult.ano}: R$ ${dAtual.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '' }),
+      impEst != null ? cardL({ rotulo: 'Importação estimada', valor: fmt.usd(impEst), serie: [], delta: varImp, deltaRuim: true, sub: `vs ${fmt.usd(ult.importacao_usd)} em ${ult.ano}` }) : null,
+      varCusto != null ? cardL({ rotulo: 'Custo dos insumos', valor: pctL(varCusto, 1, true), serie: [], sub: `${pctL(pctImp, 0)} dos insumos são importados` }) : null,
     ]);
     dualAxisLineChart($('#cen-cambio-chart'), {
       categories: anos.map(x => x.ano), formatYLeft: fmt.usd, formatYRight: v => 'R$ ' + v.toLocaleString('pt-BR', { maximumFractionDigits: 1 }), height: 260, plainAxis: true,
@@ -1162,24 +1188,31 @@
     const shVeic = share(['2991', '2992', '4900', '4500']);
     const shFam = ds.filter(x => x.tipo === 'demanda_final' && x.cod === 'familias').reduce((p, q) => p + q.valor, 0) / tot;
     const r = cen.resp.demanda;
-    const vV = CEN_PERGUNTAS.demanda[0].opcoes.find(o => o.id === r.veic).v;
-    const vF = CEN_PERGUNTAS.demanda[1].opcoes.find(o => o.id === r.fam).v;
-    const dDem = shVeic * vV + shFam * vF;  // % da demanda total de artigos de borracha
-    const { g, s } = b;
+    const dV = CEN_PERGUNTAS.demanda[0].opcoes.find(o => o.id === r.veic).v;
+    const dF = CEN_PERGUNTAS.demanda[1].opcoes.find(o => o.id === r.fam).v;
+    const { g, s, sd, n } = b;
+    // Ritmo atual = crescimento médio anual real do consumo aparente do segmento.
+    const m = (sd.mercado || {}).yearly || [];
+    const gCA = m.length > 1 ? (Math.pow(m[m.length - 1].consumo_aparente_real / m[0].consumo_aparente_real, 1 / (m[m.length - 1].ano - m[0].ano)) - 1) * 100 : 0;
+    const gTot = gCA + shVeic * dV + shFam * dF;          // % ao ano da demanda total
     const ca = g.producao + g.importacao - g.exportacao;
     const partNac = ca > 0 ? Math.max(0, 1 - g.importacao / ca) : 1;
-    const dProd = ca * dDem / 100 * partNac;
+    const caRef = ca * Math.pow(1 + gCA / 100, n), caCen = ca * Math.pow(1 + gTot / 100, n);
+    const dDem = (caCen / caRef - 1) * 100;              // diferença em relação ao ritmo atual, em 2030
+    const dProd = (caCen - caRef) * partNac;
+    const dProdTot = (caCen - ca) * partNac;
     const emp = cenEmpregos(dProd);
-    const sentido = dDem > 0.05 ? 'cresce' : dDem < -0.05 ? 'cai' : 'fica praticamente estável';
+    const sentido = dDem > 0.05 ? 'acima do' : dDem < -0.05 ? 'abaixo do' : 'igual ao';
     el.innerHTML = cenResultado(`Até ${CEN_HORIZONTE}, nesse cenário:`, [
-      `A demanda total por artigos de borracha ${sentido} (${pctL(dDem, 1, true)}): veículos e transporte respondem por ${pctL(shVeic * 100, 0)} das vendas do produto e o consumo das famílias por ${pctL(shFam * 100, 0)}.`,
-      Math.abs(dProd) > 1 ? `Mantida a fatia atual da produção nacional no mercado (${pctL(partNac * 100, 0)}), isso significa ${fmt.brl(Math.abs(dProd))} ${dProd >= 0 ? 'a mais' : 'a menos'} de produção por ano${emp ? `, cerca de <strong>${arredE(emp.dir)} empregos diretos</strong>${emp.ind != null ? ` e ${arredE(emp.ind)} na cadeia` : ''} ${dProd >= 0 ? 'a mais' : 'a menos'}` : ''}.` : 'Sem variação relevante de produção ou emprego.',
+      `O mercado do segmento cresceria ${pctL(gTot, 1, true)} ao ano, ${sentido} ritmo atual (${pctL(gCA, 1, true)} ao ano). Veículos e transporte respondem por ${pctL(shVeic * 100, 0)} das vendas de artigos de borracha e o consumo das famílias por ${pctL(shFam * 100, 0)}.`,
+      `Mantida a fatia atual da produção nacional no mercado (${pctL(partNac * 100, 0)}), a produção chegaria a ${CEN_HORIZONTE} com ${fmt.brl(Math.abs(dProdTot))} ${dProdTot >= 0 ? 'a mais' : 'a menos'} que em ${s.ano_base}.`,
+      Math.abs(dProd) > 1 ? `Em relação ao ritmo atual, são ${fmt.brl(Math.abs(dProd))} ${dProd >= 0 ? 'a mais' : 'a menos'} de produção por ano${emp ? `, cerca de <strong>${arredE(emp.dir)} empregos diretos</strong>${emp.ind != null ? ` e ${arredE(emp.ind)} na cadeia` : ''} ${dProd >= 0 ? 'a mais' : 'a menos'}` : ''}.` : 'Com as duas demandas no ritmo atual, este é o cenário de referência.',
       dDem > 0 ? 'Atenção: se a importação mantiver o ritmo do cenário 1, parte desse crescimento pode ir para o produto importado, e não para a produção nacional.' : dDem < 0 ? 'Com demanda menor, a concorrência com o importado tende a ficar mais acirrada, o que pode ampliar a perda.' : null,
       `Pesos dos clientes: Contas Nacionais/IBGE (${anoD}), para todos os artigos de borracha, inclusive pneus novos; servem como aproximação para o segmento.`,
     ], [
-      cardL({ rotulo: 'Variação da demanda', valor: pctL(dDem, 1, true), serie: [], sub: 'artigos de borracha, no período' }),
-      cardL({ rotulo: 'Produção nacional', valor: (dProd >= 0 ? '+' : '−') + fmt.brl(Math.abs(dProd)), serie: [], sub: `por ano · R$ de ${anoBasePrecos()}` }),
-      emp ? cardL({ rotulo: 'Empregos diretos', valor: (dProd >= 0 ? '+' : '−') + arredE(emp.dir), serie: [], sub: 'variação estimada no segmento' }) : null,
+      cardL({ rotulo: 'Crescimento do mercado', valor: pctL(gTot, 1, true), serie: [], sub: `ao ano · ritmo atual ${pctL(gCA, 1, true)}` }),
+      cardL({ rotulo: `Produção vs ritmo atual · ${CEN_HORIZONTE}`, valor: (dProd >= 0 ? '+' : '−') + fmt.brl(Math.abs(dProd)), serie: [], sub: `por ano · R$ de ${anoBasePrecos()}` }),
+      emp ? cardL({ rotulo: 'Empregos diretos', valor: (dProd >= 0 ? '+' : '−') + arredE(emp.dir), serie: [], sub: 'em relação ao ritmo atual' }) : null,
     ]);
   }
 
