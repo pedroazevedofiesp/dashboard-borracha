@@ -1464,6 +1464,18 @@ def build_comex_externas():
         out.append({'cesta': cesta, 'rotulo': nome, 'serie': [serie[k] for k in sorted(serie) if k < ano_atual]})
     return out
 
+
+def build_focus():
+    """Expectativas de mercado (boletim Focus do Banco Central), pesquisa mais recente."""
+    arq = SRC_DIR / 'Focus_Expectativas.csv'
+    if not arq.exists():
+        return None
+    df = read_csv(arq.name)
+    ind = {}
+    for r in df.itertuples(index=False):
+        ind.setdefault(r.indicador, {})[str(int(r.ano))] = to_num(r.mediana)
+    return {'data': str(df['data_boletim'].iloc[0]), 'indicadores': ind}
+
 # ---------------------------------------------------------------------------
 # Simulador de mercado doméstico (projeção do consumo aparente)
 # ---------------------------------------------------------------------------
@@ -1758,6 +1770,7 @@ def main():
         'shared': {
             'producao': {'indice': producao_indice, 'comparativos': build_producao_comparativos()},
             'comex_externas': build_comex_externas(),
+            'focus': build_focus(),
             'financeiro': {'grupo': fin_grupo, 'por_cnae_2024': fin_por_cnae,
                            'indicadores': indicadores},
             'simulador_impacto': build_simulador_impacto(indicadores, cadeia, macro),

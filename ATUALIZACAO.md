@@ -24,7 +24,7 @@ Tudo o que muda de um setor para outro está em `2_Scripts/config_setor.R`.
 
 | Script | Fonte | Credencial | Periodicidade sugerida |
 |---|---|---|---|
-| `extrair_ibge.R` | IBGE/SIDRA e Banco Central (PIA-Empresa do grupo e por classe, PIM-PF, IPCA, câmbio, IPP) | nenhuma | mensal (PIM, IPCA); anual (PIA) |
+| `extrair_ibge.R` | IBGE/SIDRA e Banco Central (PIA-Empresa do grupo e por classe, CEMPRE, PIM-PF, IPCA, câmbio, IPP e expectativas do boletim Focus) | nenhuma | mensal (PIM, IPCA); anual (PIA) |
 | `obter_rais_municipio_ftp.R` | Microdados públicos da RAIS no FTP do PDET (estabelecimentos de todos os anos baixados; vínculos do ano em `ano_vinculos`, ~3,6 GB) | nenhuma | anual |
 | `obter_pia_produto.R` | IBGE, PIA-Produto (valor da produção por produto): API do SIDRA de 2014 em diante (tabelas 7752 e 10476); arquivos do servidor ftp.ibge.gov.br para 2007–2013 | nenhuma | anual |
 | `obter_comex.R` | API do Comex Stat | nenhuma | mensal |

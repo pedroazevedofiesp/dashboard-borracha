@@ -866,3 +866,17 @@ table.pdi-table td.mono { font-variant-numeric: tabular-nums; white-space: nowra
 .cx-ncm-res { margin: 0; }
 .cx-fora { display: inline-block; vertical-align: middle; margin-left: 8px; font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 2px 8px; border-radius: 999px; border: 1px dashed #5b7fa6; color: #3f6590; background: color-mix(in srgb, #5b7fa6 10%, transparent); }
 :root[data-theme="dark"] .cx-fora { color: #9cc0e6; }
+
+/* Focus e pontos de atenção */
+.focus-bloco { background: var(--surface-card); border: 1px solid var(--border); border-left: 4px solid var(--series-2); border-radius: 10px; padding: 14px 18px; margin: 4px 0 18px; }
+.focus-cab { display: flex; align-items: center; gap: 10px; font-size: .8rem; color: var(--text-muted); font-weight: 600; margin-bottom: 8px; flex-wrap: wrap; }
+.focus-bloco .leitura-tag { background: var(--series-2); }
+.focus-tab td:first-child { white-space: normal; }
+.focus-juros { font-size: .86rem; line-height: 1.5; color: var(--text-secondary); margin: 10px 0 4px; }
+.focus-nota { font-size: .72rem; color: var(--text-muted); margin: 6px 0 0; }
+.emp-pontos { margin-bottom: 14px; }
+.emp-pontos-cab { font-size: .72rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; }
+.emp-pontos ul { margin: 0; padding-left: 0; list-style: none; display: grid; gap: 6px; }
+.emp-pontos li { font-size: .88rem; line-height: 1.45; padding: 6px 10px; border-radius: 6px; color: var(--text-primary); }
+.emp-pontos li.ruim { background: color-mix(in srgb, var(--bad) 10%, transparent); border-left: 3px solid var(--bad); }
+.emp-pontos li.bom { background: color-mix(in srgb, var(--good) 10%, transparent); border-left: 3px solid var(--good); }

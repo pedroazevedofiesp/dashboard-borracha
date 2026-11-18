@@ -391,3 +391,11 @@ def test_comex_municipio(data):
     nac = {r['ano']: r for r in data['sectors'][CNAES[0]]['comex']['yearly']}[m['ano']]
     assert abs(m['total_exp'] - nac['exportacao_usd']) <= 0.02 * nac['exportacao_usd']
     assert all(len(x['id']) == 7 and not x['nome'].startswith('Município ') for x in m['itens'][:50])
+
+
+def test_focus(data):
+    f = data['shared'].get('focus')
+    if not f:
+        pytest.skip('sem Focus')
+    assert {'Selic', 'IPCA', 'Câmbio'} <= set(f['indicadores'])
+    assert all(v is not None for v in f['indicadores']['Selic'].values())

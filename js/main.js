@@ -1228,12 +1228,15 @@
     const shVeic = share(['2991', '2992', '4900', '4500']);
     const shFam = ds.filter(x => x.tipo === 'demanda_final' && x.cod === 'familias').reduce((p, q) => p + q.valor, 0) / tot;
     const r = cen.resp.demanda;
-    const dV = CEN_PERGUNTAS.demanda[0].opcoes.find(o => o.id === r.veic).v;
-    const dF = CEN_PERGUNTAS.demanda[1].opcoes.find(o => o.id === r.fam).v;
+    const opV = CEN_PERGUNTAS.demanda[0].opcoes.find(o => o.id === r.veic);
+    const opF = CEN_PERGUNTAS.demanda[1].opcoes.find(o => o.id === r.fam);
     const { g, s, sd, n } = b;
     // Ritmo atual = crescimento médio anual real do consumo aparente do segmento.
     const m = (sd.mercado || {}).yearly || [];
     const gCA = m.length > 1 ? (Math.pow(m[m.length - 1].consumo_aparente_real / m[0].consumo_aparente_real, 1 / (m[m.length - 1].ano - m[0].ano)) - 1) * 100 : 0;
+    // "Segue o Focus": o bloco cresce no ritmo esperado pelo mercado (diferença em relação ao ritmo atual)
+    const dV = opV.focus != null ? opV.focus - gCA : opV.v;
+    const dF = opF.focus != null ? opF.focus - gCA : opF.v;
     const gTot = gCA + shVeic * dV + shFam * dF;          // % ao ano da demanda total
     const ca = g.producao + g.importacao - g.exportacao;
     const partNac = ca > 0 ? Math.max(0, 1 - g.importacao / ca) : 1;
@@ -1263,7 +1266,7 @@
   // a indústria de transformação no município (RAIS), no estado (CEMPRE) e
   // no Brasil (CEMPRE e PIA). Nada é gravado nem enviado: tudo no navegador.
   // ---------------------------------------------------------------------
-  const emp = { uf: null, mun: '', func: '', sal: '', fat: '', exp: '' };
+  const emp = { uf: null, mun: '', func: '', sal: '', fat: '', exp: '', custos: '', inv: '' };
 
   function setupEmpresa() {
     const box = $('#cen-empresa-form');
@@ -1292,6 +1295,8 @@
         <label class="emp-campo"><span>Número de empregados</span><input type="number" min="1" step="1" inputmode="numeric" data-campo="func" value="${emp.func}" placeholder="ex.: 45"></label>
         <label class="emp-campo"><span>Salário médio mensal (R$)</span><input type="number" min="0" step="50" inputmode="decimal" data-campo="sal" value="${emp.sal}" placeholder="ex.: 3500"></label>
         <label class="emp-campo"><span>Faturamento anual (R$, opcional)</span><input type="number" min="0" step="10000" inputmode="decimal" data-campo="fat" value="${emp.fat}" placeholder="ex.: 12000000"></label>
+        <label class="emp-campo"><span>Custos e despesas totais no ano (R$, opcional)</span><input type="number" min="0" step="10000" inputmode="decimal" data-campo="custos" value="${emp.custos}" placeholder="ex.: 27000000"></label>
+        <label class="emp-campo"><span>Investimento no ano (R$, opcional)</span><input type="number" min="0" step="10000" inputmode="decimal" data-campo="inv" value="${emp.inv}" placeholder="ex.: 900000"></label>
         <label class="emp-campo"><span>Exportação anual (US$, opcional)</span><input type="number" min="0" step="10000" inputmode="decimal" data-campo="exp" value="${emp.exp}" placeholder="ex.: 500000"></label>
         <p class="emp-privado">🔒 Os valores ficam só no seu navegador: nada é salvo nem enviado.</p>`;
       box.dataset.pronto = '1';
@@ -1325,10 +1330,21 @@
           ref: [null, null, null, null, coefSeg ? coefSeg.coef_exportacao : null] };
       })(),
     ];
+    // Indicadores de gestão contra a média do segmento no Brasil (PIA-Empresa, último ano)
+    const custos = +emp.custos || null, inv = +emp.inv || null;
+    const rlv = pia && pia.receita_liquida ? pia.receita_liquida : null;
+    const margSeg = rlv && pia.custos_despesas_total != null ? (pia.receita_liquida - pia.custos_despesas_total) / rlv * 100 : null;
+    const folhaSeg = rlv && pia.salarios_total ? pia.salarios_total / rlv * 100 : null;
+    const invSeg = rlv && pia.aquisicoes != null ? (pia.aquisicoes + (pia.melhorias || 0)) / rlv * 100 : null;
+    linhas.push(
+      { nome: 'Margem operacional', pp: true, sua: fat && custos != null ? (fat - custos) / fat * 100 : null, fmtv: v => pctL(v), ref: [null, null, null, null, margSeg] },
+      { nome: 'Salários / faturamento', pp: true, sua: fat && sal && func ? sal * 13 * func / fat * 100 : null, fmtv: v => pctL(v), ref: [null, null, null, null, folhaSeg], menorMelhor: true },
+      { nome: 'Investimento / faturamento', pp: true, sua: fat && inv != null ? inv / fat * 100 : null, fmtv: v => pctL(v), ref: [null, null, null, null, invSeg] },
+    );
     const cols = [m ? `Setor em ${m.nome}` : 'Setor no município', m ? `Indústria em ${m.nome}` : 'Indústria no município', `Setor em ${sigla}`, `Indústria em ${sigla}`, 'Setor no Brasil'];
-    const cmp = (v, r, pp) => v != null && r ? `<span class="emp-cmp ${v >= r ? 'acima' : 'abaixo'}">${pp ? (v - r > 0 ? '+' : '') + (v - r).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' p.p.' : pctL((v / r - 1) * 100, 0, true)}</span>` : '';
+    const cmp = (v, r, pp, menorMelhor) => v != null && r ? `<span class="emp-cmp ${(v >= r) !== !!menorMelhor ? 'acima' : 'abaixo'}">${pp ? (v - r > 0 ? '+' : '') + (v - r).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' p.p.' : pctL((v / r - 1) * 100, 0, true)}</span>` : '';
     const corpo = linhas.map(l => `<tr><td>${l.nome}</td><td class="emp-sua">${l.sua != null ? l.fmtv(l.sua) : '<span class="emp-vazio">informe</span>'}</td>`
-      + l.ref.map(r => `<td style="text-align:right">${r != null ? l.fmtv(r) + cmp(l.sua, r, l.pp) : '-'}</td>`).join('') + '</tr>').join('');
+      + l.ref.map(r => `<td style="text-align:right">${r != null ? l.fmtv(r) + cmp(l.sua, r, l.pp, l.menorMelhor) : '-'}</td>`).join('') + '</tr>').join('');
     // frases
     const fr = [];
     if (sal && m && m.remun) fr.push(`Sua empresa paga ${pctL(Math.abs((sal / m.remun - 1) * 100), 0)} ${sal >= m.remun ? 'acima' : 'abaixo'} da média do setor em ${m.nome}${m.ind_remun ? ` e ${pctL(Math.abs((sal / m.ind_remun - 1) * 100), 0)} ${sal >= m.ind_remun ? 'acima' : 'abaixo'} da média da indústria local` : ''}.`);
@@ -1352,10 +1368,71 @@
       if (cxm && cxm.exp > 0) fr.push(`Isso equivale a ${pctL(expUsd / cxm.exp * 100, 1)} das exportações do setor em ${m.nome} (${fmt.usd(cxm.exp)} em ${mun.comex.ano}${cxm.pos_exp ? `, ${cxm.pos_exp}º município exportador do país` : ''}).`);
       else if (m && mun.comex && mun.comex.itens.length) fr.push(`${m.nome} não teve exportação do setor registrada em ${mun.comex.ano}.`);
     }
-    $('#cen-empresa-res').innerHTML = `
+    // Pontos de atenção: onde a empresa está abaixo (ou acima, quando isso pesa) da média do segmento
+    const pontos = [];
+    const salRef = m && m.remun ? m.remun : salCe(ceUf);
+    const fatRef = fatPo(pia);
+    if (fat && func && fatRef) { const d = (fat / func / fatRef - 1) * 100; if (Math.abs(d) >= 5) pontos.push([d < 0, `Faturamento por empregado ${pctL(Math.abs(d), 0)} ${d < 0 ? 'abaixo' : 'acima'} da média do segmento: indicador de produtividade.`]); }
+    if (sal && salRef) { const d = (sal / salRef - 1) * 100; if (Math.abs(d) >= 5) pontos.push([d < 0, `Salário médio ${pctL(Math.abs(d), 0)} ${d < 0 ? 'abaixo' : 'acima'} da média do setor ${m && m.remun ? 'no município' : 'no estado'}${d < 0 ? ': pode pesar na retenção de mão de obra' : ''}.`]); }
+    linhas.filter(l => l.pp && l.sua != null && l.ref[4] != null).forEach(l => {
+      const d = l.sua - l.ref[4];
+      if (Math.abs(d) < 1) return;
+      const ruim = l.menorMelhor ? d > 0 : d < 0;
+      pontos.push([ruim, `${l.nome}: ${pctL(l.sua, 1)}, ${Math.abs(d).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} p.p. ${d > 0 ? 'acima' : 'abaixo'} da média do segmento (${pctL(l.ref[4], 1)}).`]);
+    });
+    pontos.sort((a, b) => (b[0] ? 1 : 0) - (a[0] ? 1 : 0));
+    const pontosHtml = pontos.length ? `<div class="emp-pontos"><div class="emp-pontos-cab">Pontos de atenção (comparação com a média do segmento)</div><ul>${pontos.map(([ruim, t]) => `<li class="${ruim ? 'ruim' : 'bom'}">${t}</li>`).join('')}</ul><p class="emp-nota">Comparação objetiva com médias do setor; cada empresa tem particularidades (mix de produtos, porte, mercado) que essas médias não captam.</p></div>` : '';
+    $('#cen-empresa-res').innerHTML = pontosHtml + `
       ${fr.length ? `<ul class="cen-texto">${fr.map(f => `<li>${f}</li>`).join('')}</ul>` : '<p class="emp-dica">Preencha os campos ao lado para ver a comparação.</p>'}
       <div class="data-table-wrap"><table class="data-table tabela-emp"><thead><tr><th>Indicador</th><th>Sua empresa</th>${cols.map(c => `<th style="text-align:right">${c}</th>`).join('')}</tr></thead><tbody>${corpo}</tbody></table></div>
       <p class="emp-nota">Município: RAIS ${mun.ano_remun || mun.ano} (salário = remuneração média de dezembro dos vínculos ativos). Estado e Brasil: CEMPRE ${ceBr.ano} (salário médio mensal com 13 salários por ano). Faturamento por empregado: PIA-Empresa ${pia ? pia.ano : ''}, segmento no Brasil. Percentuais = diferença da sua empresa em relação a cada média.</p>`;
+  }
+
+
+  // Expectativas de mercado (boletim Focus/BCB): cartão no topo do simulador
+  // e opção "Segue o Focus" nos cenários de câmbio e de demanda.
+  function focusVal(ind, ano) { const f = shared().focus; return f && f.indicadores[ind] ? f.indicadores[ind][String(ano)] : null; }
+  function focusMedia(ind, ini, fim) {
+    const v = []; for (let a = ini; a <= fim; a++) { const x = focusVal(ind, a); if (x != null) v.push(x); }
+    return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
+  }
+
+  function renderFocus() {
+    const box = $('#cen-focus');
+    const f = shared().focus;
+    if (!box) return;
+    if (!f) { box.style.display = 'none'; return; }
+    const anos = [anoAtual, anoAtual + 1, anoAtual + 2, anoAtual + 3];
+    const linhas = [
+      ['Selic (fim do ano)', 'Selic', v => pctL(v, 2)],
+      ['IPCA', 'IPCA', v => pctL(v, 1)],
+      ['Dólar (fim do ano)', 'Câmbio', v => 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })],
+      ['PIB', 'PIB Total', v => pctL(v, 1, true)],
+      ['PIB da indústria', 'PIB Indústria', v => pctL(v, 1, true)],
+      ['Consumo das famílias', 'PIB Despesa de consumo das famílias', v => pctL(v, 1, true)],
+    ].filter(l => f.indicadores[l[1]]);
+    const s0 = focusVal('Selic', anoAtual), s2 = focusVal('Selic', anoAtual + 2);
+    const ipca2 = focusVal('IPCA', anoAtual + 2);
+    const jr = s0 != null && s2 != null ? `<p class="focus-juros"><strong>Juros:</strong> o mercado espera a Selic em ${pctL(s0, 2)} no fim de ${anoAtual} e em ${pctL(s2, 2)} em ${anoAtual + 2}${ipca2 != null ? ` (juro real perto de ${pctL(((1 + s2 / 100) / (1 + ipca2 / 100) - 1) * 100, 1)})` : ''}. Juros altos encarecem o capital de giro e o investimento, e costumam frear a demanda de bens duráveis e de veículos, os principais clientes do setor; a queda gradual tende a aliviar esse efeito ao longo do período. O efeito não é calculado em números: não há relação histórica estável entre a Selic e a produção do setor.</p>` : '';
+    const d = f.data.split('-').reverse().join('/');
+    box.style.display = '';
+    box.innerHTML = `<div class="focus-cab"><span class="leitura-tag">O que o mercado espera</span>Boletim Focus (Banco Central), pesquisa de ${d}</div>
+      <div class="data-table-wrap"><table class="data-table focus-tab"><thead><tr><th>Indicador</th>${anos.map(a => `<th style="text-align:right">${a}</th>`).join('')}</tr></thead><tbody>`
+      + linhas.map(l => `<tr><td>${l[0]}</td>${anos.map(a => { const v = focusVal(l[1], a); return `<td style="text-align:right">${v != null ? l[2](v) : '-'}</td>`; }).join('')}</tr>`).join('')
+      + `</tbody></table></div>${jr}<p class="focus-nota">O dólar e o crescimento esperados aparecem como opção "Segue o Focus" nos cenários de câmbio e de demanda. Fonte: Focus/BCB. Elaboração: DECAP/FIESP.</p>`;
+  }
+
+  function aplicarFocusNosCenarios() {
+    const f = shared().focus;
+    if (!f) return;
+    const dol = focusVal('Câmbio', anoAtual + 1);
+    const opc = CEN_PERGUNTAS.cambio[0].opcoes;
+    if (dol != null && !opc.some(o => o.id === 'focus')) opc.push({ id: 'focus', rotulo: `Segue o Focus: R$ ${dol.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} em ${anoAtual + 1}`, v: dol });
+    const gInd = focusMedia('PIB Indústria', anoAtual, CEN_HORIZONTE);
+    const gFam = focusMedia('PIB Despesa de consumo das famílias', anoAtual, CEN_HORIZONTE);
+    const [qV, qF] = CEN_PERGUNTAS.demanda;
+    if (gInd != null && !qV.opcoes.some(o => o.id === 'focus')) qV.opcoes.push({ id: 'focus', rotulo: `Segue o Focus: PIB da indústria de ${pctL(gInd, 1, true)} ao ano`, focus: gInd });
+    if (gFam != null && !qF.opcoes.some(o => o.id === 'focus')) qF.opcoes.push({ id: 'focus', rotulo: `Segue o Focus: consumo das famílias de ${pctL(gFam, 1, true)} ao ano`, focus: gFam });
   }
 
   function renderCenarios() {
@@ -1369,6 +1446,8 @@
   function setupCenarios() {
     const segBox = $('#cen-seg');
     if (!segBox) return;
+    aplicarFocusNosCenarios();
+    renderFocus();
     const disp = setores().filter(c => state.data.sectors[c.codigo] && state.data.sectors[c.codigo].simulador);
     if (!disp.length) return;
     cen.seg = disp[0].codigo;
