@@ -231,7 +231,83 @@
   // ---------------------------------------------------------------------
   // 01 — Produção física
   // ---------------------------------------------------------------------
+
+  // Comparativos: produção da divisão x indústria (PIM-PF, médias anuais,
+  // base 100 no ano escolhido) e, no Financeiro, valor adicionado real e
+  // pessoal ocupado do segmento x indústria de transformação (PIA, 2007 = 100).
+  let producaoCmpBase = null;
+  function renderProducaoCmp() {
+    const bloco = $('#bloco-producao-cmp');
+    const sh = shared();
+    const cmp = sh.producao.comparativos;
+    if (!bloco) return;
+    if (!cmp) { bloco.style.display = 'none'; return; }
+    const media = rows => {
+      const por = {};
+      rows.forEach(r => { if (r.indice_bruto != null) (por[r.ano] = por[r.ano] || []).push(r.indice_bruto); });
+      const out = {};
+      Object.entries(por).forEach(([a, v]) => { if (v.length === 12) out[a] = v.reduce((x, y) => x + y, 0) / 12; });
+      return out;
+    };
+    const series = [
+      { label: setorCfg().producao_titulo || 'Divisão do setor', color: 'var(--accent)', m: media(sh.producao.indice) },
+      cmp.industria_transformacao ? { label: 'Indústria de transformação', color: 'var(--series-2)', m: media(cmp.industria_transformacao) } : null,
+      cmp.industria_geral ? { label: 'Indústria geral', color: 'var(--series-8)', m: media(cmp.industria_geral) } : null,
+    ].filter(Boolean);
+    const anos = Object.keys(series[0].m).map(Number).filter(a => series.every(x => x.m[a] != null)).sort((a, b) => a - b);
+    if (!anos.length) { bloco.style.display = 'none'; return; }
+    if (!anos.includes(producaoCmpBase)) producaoCmpBase = anos[0];
+    const sel = $('#producao-cmp-base');
+    sel.innerHTML = anos.map(a => `<option value="${a}">${a}</option>`).join('');
+    sel.value = producaoCmpBase;
+    if (!sel.dataset.wired) { sel.addEventListener('change', () => { producaoCmpBase = +sel.value; renderProducaoCmp(); }); sel.dataset.wired = '1'; }
+    const idx = x => anos.map(a => x.m[a] / x.m[producaoCmpBase] * 100);
+    const u = anos[anos.length - 1];
+    const vS = series[0].m[u] / series[0].m[producaoCmpBase] * 100, vI = series[1] ? series[1].m[u] / series[1].m[producaoCmpBase] * 100 : null;
+    $('#producao-cmp-title').textContent = vI != null
+      ? `Desde ${producaoCmpBase}, a produção do setor ${vS >= vI ? 'superou a' : 'ficou abaixo da'} indústria de transformação (${fmt.full1(vS)} x ${fmt.full1(vI)} em ${u})`
+      : 'Produção do setor x indústria';
+    $('#producao-cmp-sub').textContent = `Índice de produção física, média anual, base ${producaoCmpBase} = 100. A divisão inclui borracha e plástico.`;
+    lineChart($('#chart-producao-cmp'), {
+      categories: anos, formatY: fmt.full1, height: 260,
+      series: series.map(x => ({ label: x.label, color: x.color, values: idx(x) })),
+    });
+  }
+
+  function renderFinCmp() {
+    const bloco = $('#bloco-fin-cmp');
+    const ind = shared().financeiro.indicadores;
+    if (!bloco) return;
+    if (!ind || !ind.serie) { bloco.style.display = 'none'; return; }
+    const de = rec => ind.serie.filter(r => r.recorte === rec).sort((a, b) => a.ano - b.ano);
+    const sS = de(state.sector), sI = de('ind_transformacao');
+    if (!sS.length || !sI.length) { bloco.style.display = 'none'; return; }
+    const anos = sS.map(r => r.ano).filter(a => sI.some(r => r.ano === a));
+    const base = (rows, k) => { const b = rows.find(r => r.ano === anos[0]); return anos.map(a => { const r = rows.find(x => x.ano === a); return r && b && r[k] != null && b[k] ? r[k] / b[k] * 100 : null; }); };
+    // valor adicionado real = lucro bruto real + gastos de pessoal reais (mesmo deflator da tabela)
+    const real = rows => anos.map(a => { const r = rows.find(x => x.ano === a); return r && r.lucro_bruto_real != null && r.gastos_pessoal_real != null ? r.lucro_bruto_real + r.gastos_pessoal_real : null; });
+    const rS = real(sS), rI = real(sI);
+    const idx = v => v.map(x => x != null && v[0] ? x / v[0] * 100 : null);
+    const poS = base(sS, 'pessoal_ocupado'), poI = base(sI, 'pessoal_ocupado');
+    const iS = idx(rS), iI = idx(rI);
+    const u = anos.length - 1;
+    $('#fin-cmp-title').textContent = iS[u] != null && iI[u] != null
+      ? `Valor adicionado real: ${rotuloCnae(state.sector)} ${iS[u] >= iI[u] ? 'acima' : 'abaixo'} da indústria de transformação desde ${anos[0]} (${fmt.full1(iS[u])} x ${fmt.full1(iI[u])})`
+      : 'Segmento x indústria de transformação';
+    $('#fin-cmp-sub').textContent = `Índice ${anos[0]} = 100: valor adicionado em R$ constantes (IPCA) e pessoal ocupado. ${anos[u]} é da nova série da PIA.`;
+    lineChart($('#chart-fin-cmp'), {
+      categories: anos, formatY: fmt.full1, height: 260,
+      series: [
+        { label: `Valor adicionado real · ${rotuloCnae(state.sector)}`, color: 'var(--accent)', values: iS },
+        { label: 'Valor adicionado real · ind. transformação', color: 'var(--series-2)', values: iI },
+        { label: `Pessoal ocupado · ${rotuloCnae(state.sector)}`, color: 'var(--series-8)', values: poS },
+        { label: 'Pessoal ocupado · ind. transformação', color: 'var(--series-5)', values: poI },
+      ],
+    });
+  }
+
   function renderProducao() {
+    renderProducaoCmp();
     const sh = shared();
     const sc = setorCfg();
     const bs = blocks.producao;
@@ -352,6 +428,7 @@
     });
 
     renderIndicadoresDesempenho(sh.financeiro.indicadores);
+    renderFinCmp();
     renderOutrosIndicadores(sh.financeiro.indicadores);
 
     dataTable($('#table-financeiro-por-cnae'), {
@@ -379,6 +456,7 @@
     'exec-chart-crescimento': 'PIM-PF/IBGE, PIA/IBGE e RAIS/MTE',
     'exec-chart-comex': 'Comexstat', 'exec-chart-paises-imp': 'Comexstat',
     'exec-chart-margem': 'PIA/IBGE',
+    'chart-producao-cmp': 'PIM-PF/IBGE', 'chart-fin-cmp': 'PIA/IBGE',
     'chart-producao-dessaz': 'PIM-PF/IBGE', 'chart-producao-indice': 'PIM-PF/IBGE',
     'chart-producao-variacao': 'PIM-PF/IBGE', 'table-producao': 'PIM-PF/IBGE',
     'table-indicadores-desempenho': 'PIA/IBGE', 'table-indicadores-outros': 'PIA/IBGE',
@@ -388,11 +466,12 @@
     'chart-caged-saldo': 'CAGED/MTE', 'chart-caged-movimentacao': 'CAGED/MTE',
     'chart-caged-tipo': 'CAGED/MTE', 'chart-caged-massa-salarial': 'CAGED/MTE',
     'rank-caged-saldo-uf': 'CAGED/MTE', 'table-caged-uf': 'CAGED/MTE',
-    'chart-comex-participacao-mundial': 'Comtrade', 'comex-mundo-ano-select': 'Comtrade',
+    'chart-comex-participacao-mundial': 'Comtrade', 'table-comex-grupos-mundo': 'Comtrade', 'comex-mundo-ano-select': 'Comtrade',
     'chart-mercado-ca': 'PIA/IBGE e Comexstat', 'chart-mercado-coef': 'PIA/IBGE e Comexstat',
     'table-mercado-produtos': 'PIA/IBGE e Comexstat',
     'table-decom': 'DECOM/GECEX',
     'ee-chart-exposicao-china': 'Comexstat e RAIS/MTE', 'ee-chart-bndes-percapita': 'BNDES e RAIS/MTE',
+    'mun-mapa': 'RAIS/MTE e IBGE (malha municipal)', 'mun-ranking': 'RAIS/MTE',
     'cempre-mapa': 'CEMPRE/IBGE', 'cempre-serie': 'CEMPRE/IBGE', 'cempre-sal': 'CEMPRE/IBGE',
     'ee-chart-porte': 'RAIS/MTE', 'ee-chart-export-uf': 'Comexstat',
     'ee-chart-produtividade': 'PIA/IBGE', 'ee-chart-producao-emprego': 'PIM-PF/IBGE e RAIS/MTE',
@@ -454,318 +533,6 @@
       `<div class="data-table-wrap"><table class="data-table tabela-indicadores"><thead><tr><th>Variável</th>${cab}</tr></thead><tbody>${corpo}</tbody></table></div>`;
     $('#table-indicadores-desempenho').querySelectorAll('.indicadores-toggle button').forEach(b =>
       b.addEventListener('click', () => { indicadoresAnoFinal = +b.dataset.ano; renderIndicadoresDesempenho(ind); }));
-  }
-
-  // ---------------------------------------------------------------------
-  // Simulador de mercado doméstico: projeta produção, exportação e
-  // importação a taxas anuais constantes (padrão = ritmo histórico) até o
-  // ano-horizonte e mostra penetração da importação e participação chinesa
-  // no mercado. Mesma lógica da "Simulação de riscos da importação" do
-  // diagnóstico setorial. Base e taxas vêm de sectors[x].simulador.
-  // ---------------------------------------------------------------------
-  const sim = { segmento: null, recorte: 'segmento', taxas: {}, cenario: 'historico' };
-
-  function simBase() {
-    const s = state.data.sectors[sim.segmento] && state.data.sectors[sim.segmento].simulador;
-    if (!s) return null;
-    const item = sim.recorte === 'segmento' ? s.segmento : s.produtos.find(p => p.componente === sim.recorte);
-    if (!item) return null;
-    const comChina = item.importacao_china != null && item.importacao_china > 0;
-    const vars = [
-      { key: 'producao', label: 'Produção nacional', base: item.producao, hist: item.g_producao },
-      { key: 'exportacao', label: 'Exportação', base: item.exportacao, hist: item.g_exportacao },
-    ];
-    if (comChina) {
-      vars.push({ key: 'importacao_china', label: 'Importação da China', base: item.importacao_china, hist: item.g_importacao_china });
-      vars.push({ key: 'importacao_resto', label: 'Importação dos demais países', base: item.importacao_resto, hist: item.g_importacao_resto });
-    } else {
-      vars.push({ key: 'importacao', label: 'Importação', base: item.importacao, hist: item.g_importacao });
-    }
-    vars.forEach(v => { if (v.hist == null || !isFinite(v.hist)) v.hist = 0; });
-    return { s, item, vars, comChina, n: s.ano_horizonte - s.ano_base };
-  }
-
-  function simProjetar(b, taxas) {
-    const out = [];
-    for (let a = b.s.ano_base; a <= b.s.ano_horizonte; a++) {
-      const t = a - b.s.ano_base;
-      const v = {};
-      b.vars.forEach(x => { v[x.key] = x.base * Math.pow(1 + (taxas[x.key] || 0) / 100, t); });
-      const imp = b.comChina ? v.importacao_china + v.importacao_resto : v.importacao;
-      const ca = v.producao + imp - v.exportacao;
-      const ok = ca > 0;
-      out.push({
-        ano: a, ...v, importacao_total: imp, consumo_aparente: ca,
-        penetracao: ok ? imp / ca * 100 : null,
-        china_mercado: ok && b.comChina ? v.importacao_china / ca * 100 : null,
-        china_importacao: b.comChina ? v.importacao_china / imp * 100 : null,
-        coef_exportacao: v.producao > 0 ? v.exportacao / v.producao * 100 : null,
-      });
-    }
-    return out;
-  }
-
-  // Crescimento anual da produção que mantém a penetração do ano-base no
-  // horizonte, dadas as demais taxas: P_h = X_h + M_h (1 - pen0) / pen0.
-  function simProducaoParaManter(b, taxas) {
-    const proj = simProjetar(b, taxas);
-    const p0 = proj[0], ph = proj[proj.length - 1];
-    if (!p0.penetracao) return null;
-    const pen0 = p0.penetracao / 100;
-    const alvo = ph.exportacao + ph.importacao_total * (1 - pen0) / pen0;
-    if (alvo <= 0 || p0.producao <= 0) return null;
-    return (Math.pow(alvo / p0.producao, 1 / b.n) - 1) * 100;
-  }
-
-  const SIM_CENARIOS = [
-    { id: 'historico', label: 'Ritmo atual', desc: 'todas as variáveis seguem o crescimento médio anual histórico.' },
-    { id: 'china', label: 'China desacelera', desc: 'a importação da China passa a crescer no mesmo ritmo da importação dos demais países.', soChina: true },
-    { id: 'producao', label: 'Retomada da produção', desc: 'a produção cresce o necessário para manter a penetração da importação no nível atual.' },
-    { id: 'exportacao', label: 'Exportação dobra', desc: 'a exportação dobra até o ano-horizonte; o resto segue o ritmo histórico.' },
-  ];
-
-  function simTaxasCenario(b, id) {
-    const t = {};
-    b.vars.forEach(v => { t[v.key] = +v.hist.toFixed(1); });
-    if (id === 'china' && b.comChina) t.importacao_china = t.importacao_resto;
-    if (id === 'exportacao') t.exportacao = +((Math.pow(2, 1 / b.n) - 1) * 100).toFixed(1);
-    if (id === 'producao') {
-      const g = simProducaoParaManter(b, t);
-      if (g != null) t.producao = +g.toFixed(1);
-    }
-    return t;
-  }
-
-  function fmtPctSim(v, casas = 1) {
-    return v == null || !isFinite(v) ? '-' : v.toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas }) + '%';
-  }
-  function fmtTaxa(v) { return (v > 0 ? '+' : '') + fmtPctSim(v) + ' a.a.'; }
-  function escSim(t) { return String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
-
-  function setupSimulador() {
-    const segSel = $('#sim-segmento');
-    if (!segSel) return;
-    const disponiveis = setores().filter(c => state.data.sectors[c.codigo] && state.data.sectors[c.codigo].simulador);
-    if (!disponiveis.length) {
-      const btn = document.querySelector('#foot-tabs-top button[data-view="simulador"]');
-      if (btn) btn.style.display = 'none';
-      return;
-    }
-    segSel.innerHTML = disponiveis.map(c => `<option value="${c.codigo}">${escSim(rotuloCnae(c.codigo))}</option>`).join('');
-    sim.segmento = disponiveis[0].codigo;  // o agregado, se houver
-    segSel.value = sim.segmento;
-    segSel.addEventListener('change', () => { sim.segmento = segSel.value; sim.recorte = 'segmento'; simPreencherRecortes(); simAplicarCenario('historico'); });
-    $('#sim-recorte').addEventListener('change', e => { sim.recorte = e.target.value; simAplicarCenario('historico'); });
-    $('#sim-cenarios').addEventListener('click', e => {
-      const b = e.target.closest('button[data-cenario]');
-      if (b && !b.disabled) simAplicarCenario(b.dataset.cenario);
-    });
-    document.querySelectorAll('.sim-horizonte').forEach(el => { el.textContent = state.data.sectors[sim.segmento].simulador.ano_horizonte; });
-    simPreencherRecortes();
-    setupImpacto();
-    simAplicarCenario('historico');
-  }
-
-  function simPreencherRecortes() {
-    const s = state.data.sectors[sim.segmento].simulador;
-    const opts = ['<option value="segmento">Segmento inteiro</option>']
-      .concat(s.produtos.map(p => `<option value="${p.componente}">${escSim(p.grupo)}</option>`));
-    $('#sim-recorte').innerHTML = opts.join('');
-    $('#sim-recorte').value = sim.recorte;
-  }
-
-  function simAplicarCenario(id) {
-    const b = simBase();
-    if (!b) return;
-    sim.cenario = id;
-    sim.taxas = simTaxasCenario(b, id);
-    simRenderControles(b);
-    simRenderResultado();
-    renderImpacto();
-  }
-
-  function simMarcarLivre() {
-    if (sim.cenario === 'livre') return;
-    sim.cenario = 'livre';
-    $('#sim-cenarios').querySelectorAll('button').forEach(x => x.classList.remove('active'));
-    if (!$('#sim-cenarios .sim-livre')) $('#sim-cenarios').insertAdjacentHTML('beforeend', '<span class="sim-livre">Cenário personalizado</span>');
-  }
-
-  function simRenderControles(b) {
-    $('#sim-cenarios').innerHTML = SIM_CENARIOS.map(c => {
-      const off = c.soChina && !b.comChina;
-      return `<button type="button" class="exec-seg-btn${sim.cenario === c.id ? ' active' : ''}" data-cenario="${c.id}" title="${escSim(c.desc)}"${off ? ' disabled' : ''}>${c.label}</button>`;
-    }).join('');
-    const box = $('#sim-sliders');
-    box.innerHTML = `<div class="sim-sliders-titulo">Crescimento real ao ano, ${b.s.ano_base}–${b.s.ano_horizonte}</div>` + b.vars.map(v => {
-      const val = sim.taxas[v.key];
-      const min = Math.min(-15, Math.floor(v.hist) - 5), max = Math.max(25, Math.ceil(v.hist) + 5);
-      return `<div class="sim-slider">
-        <div class="sim-slider-top"><span>${v.label}</span><strong id="sim-val-${v.key}">${fmtTaxa(val)}</strong></div>
-        <input type="range" min="${min}" max="${max}" step="0.1" value="${val}" data-key="${v.key}" aria-label="${v.label}, crescimento anual">
-        <div class="sim-slider-hist">Histórico ${b.s.ano_inicial}–${b.s.ano_base}: ${fmtTaxa(v.hist)} · ${b.s.ano_base}: ${fmt.brl(v.base)}</div>
-      </div>`;
-    }).join('');
-    box.querySelectorAll('input[type=range]').forEach(inp => inp.addEventListener('input', () => {
-      sim.taxas[inp.dataset.key] = +inp.value;
-      $('#sim-val-' + inp.dataset.key).textContent = fmtTaxa(+inp.value);
-      simMarcarLivre();
-      simRenderResultado();
-    }));
-  }
-
-  function simRenderResultado() {
-    const b = simBase();
-    if (!b) return;
-    const proj = simProjetar(b, sim.taxas);
-    const p0 = proj[0], ph = proj[proj.length - 1];
-    const a0 = b.s.ano_base, ah = b.s.ano_horizonte;
-    const recorteNome = sim.recorte === 'segmento' ? rotuloCnae(sim.segmento) : b.item.grupo;
-
-    const tile = (label, v0, vh, fmtF, sub) => `<div class="kpi-tile no-click">
-      <span class="kpi-label">${label}</span>
-      <span class="kpi-value">${fmtF(vh)}</span>
-      <span class="kpi-sub">${a0}: ${fmtF(v0)}${sub ? ' · ' + sub : ''}</span></div>`;
-    $('#sim-kpis').innerHTML = [
-      tile(`Penetração da importação em ${ah}`, p0.penetracao, ph.penetracao, v => fmtPctSim(v)),
-      b.comChina ? tile(`China no mercado brasileiro em ${ah}`, p0.china_mercado, ph.china_mercado, v => fmtPctSim(v)) : null,
-      b.comChina ? tile(`China nas importações em ${ah}`, p0.china_importacao, ph.china_importacao, v => fmtPctSim(v)) : null,
-      tile(`Coeficiente de exportação em ${ah}`, p0.coef_exportacao, ph.coef_exportacao, v => fmtPctSim(v)),
-      tile(`Consumo aparente em ${ah}`, p0.consumo_aparente, ph.consumo_aparente, v => fmt.brl(v), `R$ de ${a0}`),
-      tile(`Produção nacional em ${ah}`, p0.producao, ph.producao, v => fmt.brl(v), `R$ de ${a0}`),
-    ].filter(Boolean).join('');
-
-    let txt;
-    if (ph.penetracao == null) {
-      txt = `Nessas taxas, a exportação superaria a soma de produção e importação antes de ${ah}: o consumo aparente ficaria negativo e a conta deixa de fazer sentido. Ajuste as taxas.`;
-    } else {
-      txt = `<strong>${escSim(recorteNome)}:</strong> nesse cenário, em ${ah} os importados atenderiam <strong>${fmtPctSim(ph.penetracao)}</strong> do mercado brasileiro (em ${a0}, ${fmtPctSim(p0.penetracao)})`;
-      if (b.comChina) txt += `, e a China responderia por <strong>${fmtPctSim(ph.china_importacao)}</strong> das importações (em ${a0}, ${fmtPctSim(p0.china_importacao)})`;
-      txt += '.';
-      const g = simProducaoParaManter(b, sim.taxas);
-      if (g != null && ph.penetracao - p0.penetracao >= 0.5) {
-        txt += ` Para manter a penetração no nível de ${a0}, a produção nacional teria de crescer <strong>${fmtTaxa(g)}</strong> (no cenário: ${fmtTaxa(sim.taxas.producao)}).`;
-      }
-    }
-    const cen = SIM_CENARIOS.find(c => c.id === sim.cenario);
-    $('#sim-narrativa').innerHTML = (cen ? `<span class="sim-cenario-desc">Cenário "${cen.label}": ${cen.desc}</span>` : '<span class="sim-cenario-desc">Cenário personalizado.</span>') + txt;
-
-    // Gráfico: realizado (linha cheia, só no segmento inteiro) + projeção (tracejada).
-    const sd = state.data.sectors[sim.segmento];
-    const histSeg = sim.recorte === 'segmento' ? ((sd.mercado || {}).yearly || []).filter(r => r.ano <= a0) : [];
-    const ini = histSeg.length ? histSeg[0].ano : a0;
-    const cats = [];
-    for (let a = ini; a <= ah; a++) cats.push(a);
-    const porAno = new Map(proj.map(r => [r.ano, r]));
-    const histMap = new Map(histSeg.map(r => [r.ano, r]));
-    const shareChina = new Map(((sd.comex || {}).importacao_china_resto_yearly || [])
-      .map(r => [r.ano, (r.china_usd + r.resto_usd) > 0 ? r.china_usd / (r.china_usd + r.resto_usd) : null]));
-    const series = [];
-    if (histSeg.length) {
-      series.push({ label: 'Penetração da importação (realizado)', color: 'var(--series-6)', values: cats.map(a => histMap.has(a) ? histMap.get(a).penetracao_importacao : null) });
-      if (b.comChina) series.push({ label: 'China no mercado (realizado)', color: 'var(--series-2)', values: cats.map(a => histMap.has(a) && shareChina.get(a) != null ? histMap.get(a).penetracao_importacao * shareChina.get(a) : null) });
-    }
-    series.push({ label: 'Penetração da importação (projeção)', color: 'var(--series-6)', dashed: true, values: cats.map(a => porAno.has(a) ? porAno.get(a).penetracao : null) });
-    if (b.comChina) series.push({ label: 'China no mercado (projeção)', color: 'var(--series-2)', dashed: true, values: cats.map(a => porAno.has(a) ? porAno.get(a).china_mercado : null) });
-    lineChart($('#sim-chart'), { categories: cats, formatY: v => fmtPctSim(v, 0), height: 300, series });
-    $('#sim-chart-sub').textContent = `${recorteNome}, % do consumo aparente. Linha cheia = realizado; tracejada = projeção ${a0}–${ah}`
-      + (sim.recorte === 'segmento' ? '.' : ' (por grupo de produto, só a projeção).');
-  }
-
-  // ---------------------------------------------------------------------
-  // Simulador, bloco 2: impacto de substituir importações ou ampliar
-  // exportações. O valor adicional vira produção no segmento (1 para 1) e,
-  // com os coeficientes de shared.simulador_impacto, empregos diretos,
-  // massa salarial, valor adicionado e o efeito na cadeia de fornecedores.
-  // Usa o mesmo segmento/recorte escolhido no topo da aba.
-  // ---------------------------------------------------------------------
-  const imp = { tipo: 'importacao', pct: 10 };
-
-  function simDolarMedio(ano) {
-    const v = (state.data.shared.macro || []).filter(r => r.ano === ano && r.dolar).map(r => r.dolar);
-    return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
-  }
-
-  function arred(n) {
-    if (n == null || !isFinite(n)) return '-';
-    const r = n >= 1000 ? Math.round(n / 100) * 100 : n >= 100 ? Math.round(n / 10) * 10 : Math.round(n);
-    return r.toLocaleString('pt-BR');
-  }
-
-  function setupImpacto() {
-    const box = $('#imp-tipo');
-    if (!box) return;
-    box.addEventListener('click', e => {
-      const b = e.target.closest('button[data-tipo]');
-      if (!b) return;
-      imp.tipo = b.dataset.tipo;
-      box.querySelectorAll('button').forEach(x => x.classList.toggle('active', x === b));
-      renderImpacto();
-    });
-    const sl = $('#imp-pct');
-    sl.addEventListener('input', () => { imp.pct = +sl.value; renderImpacto(); });
-  }
-
-  function renderImpacto() {
-    const bloco = $('#imp-bloco');
-    const coefs = state.data.shared.simulador_impacto;
-    const b = simBase();
-    if (!bloco || !coefs || !b) { if (bloco) bloco.style.display = 'none'; return; }
-    bloco.style.display = '';
-    const cnaeCoef = sim.recorte === 'segmento' ? sim.segmento : (b.item.cnae || sim.segmento);
-    const dir = coefs.diretos[cnaeCoef] || coefs.diretos[sim.segmento];
-    if (!dir) { bloco.style.display = 'none'; return; }
-    const cad = coefs.cadeia;
-    const a0 = b.s.ano_base;
-    const recorteNome = sim.recorte === 'segmento' ? rotuloCnae(sim.segmento) : b.item.grupo;
-    const baseValor = imp.tipo === 'importacao' ? b.item.importacao : b.item.exportacao;
-    const dolar = simDolarMedio(a0);
-
-    $('#imp-pct-val').textContent = imp.pct + '%';
-    $('#imp-pct-label').textContent = imp.tipo === 'importacao'
-      ? `Parcela das importações de ${a0} produzida no Brasil`
-      : `Aumento das exportações sobre o valor de ${a0}`;
-
-    const delta = baseValor * imp.pct / 100;            // R$ de a0
-    const mi = delta / 1e6;                              // R$ milhões
-    const empDir = mi * dir.empregos_por_milhao;
-    const massa = empDir * dir.salario_medio_anual;
-    const va = delta * dir.va_sobre_vbp;
-    const prodInd = cad ? delta * (cad.multiplicador - 1) : null;
-    const empInd = cad && cad.empregos_indiretos_por_milhao ? (prodInd / 1e6) * cad.empregos_indiretos_por_milhao : null;
-
-    const tile = (label, valor, sub) => `<div class="kpi-tile no-click">
-      <span class="kpi-label">${label}</span><span class="kpi-value">${valor}</span><span class="kpi-sub">${sub}</span></div>`;
-    $('#imp-kpis').innerHTML = [
-      tile('Produção adicional no segmento', fmt.brl(delta), `por ano, R$ de ${a0}` + (dolar ? ` · cerca de ${fmt.usd(delta / dolar)}` : '')),
-      tile('Empregos diretos', arred(empDir), 'no próprio segmento'),
-      tile('Massa salarial', fmt.brl(massa), 'salários por ano, empregos diretos'),
-      tile('Valor adicionado', fmt.brl(va), 'no próprio segmento, por ano'),
-      cad ? tile('Produção adicional na cadeia', fmt.brl(prodInd), 'fornecedores, efeito indireto') : null,
-      empInd != null ? tile('Empregos na cadeia', arred(empInd), 'fornecedores, efeito indireto') : null,
-    ].filter(Boolean).join('');
-
-    // Efeito no mercado do ano-base (consumo aparente constante na substituição).
-    const ca = b.item.producao + b.item.importacao - b.item.exportacao;
-    let efeito = '';
-    if (imp.tipo === 'importacao' && ca > 0) {
-      efeito = ` A penetração da importação cairia de ${fmtPctSim(b.item.importacao / ca * 100)} para ${fmtPctSim((b.item.importacao - delta) / ca * 100)}.`;
-    } else if (imp.tipo === 'exportacao' && b.item.producao > 0) {
-      efeito = ` O coeficiente de exportação passaria de ${fmtPctSim(b.item.exportacao / b.item.producao * 100)} para ${fmtPctSim((b.item.exportacao + delta) / (b.item.producao + delta) * 100)}.`;
-    }
-    const acao = imp.tipo === 'importacao'
-      ? `Produzir no Brasil ${imp.pct}% do que se importa`
-      : `Aumentar em ${imp.pct}% as exportações`;
-    let txt = `<strong>${escSim(recorteNome)}:</strong> ${acao} (${fmt.brl(delta)} por ano) geraria cerca de <strong>${arred(empDir)} empregos diretos</strong>`
-      + (empInd != null ? ` e mais <strong>${arred(empInd)} na cadeia de fornecedores</strong>` : '')
-      + `, com ${fmt.brl(massa)} em salários.` + efeito;
-    if (dolar) {
-      const por100 = 100e6 * dolar / 1e6;  // R$ milhões equivalentes a US$ 100 mi
-      const e100 = por100 * dir.empregos_por_milhao;
-      const i100 = cad && cad.empregos_indiretos_por_milhao ? por100 * (cad.multiplicador - 1) * cad.empregos_indiretos_por_milhao : null;
-      txt += ` <span class="sim-cenario-desc" style="margin-top:8px">Referência: cada US$ 100 milhões ${imp.tipo === 'importacao' ? 'importados' : 'exportados'} equivalem a cerca de ${arred(e100)} empregos diretos${i100 != null ? ` e ${arred(i100)} indiretos` : ''} (câmbio médio de ${a0}).</span>`;
-    }
-    $('#imp-narrativa').innerHTML = txt;
   }
 
   // ---------------------------------------------------------------------
@@ -950,6 +717,7 @@
         cP && cU && cP.china_usd > 0 ? `A China passou de ${pctL(share(p.ano))} para <strong>${pctL(share(u.ano))}</strong> das importações (crescimento de ${pctL(cagrL(cP.china_usd, cU.china_usd, u.ano - p.ano), 1, true)} ao ano), o principal vetor de concorrência apontado no diagnóstico setorial.` : null,
         top && linTop.importacao_usd ? `${top.pais} é a principal origem, com ${pctL(top.valor_usd / linTop.importacao_usd * 100)} do total importado em ${c.top_paises_latest.ano}.` : null,
         bra ? `No comércio mundial, o Brasil foi o <strong>${bra.pos}º exportador</strong> desses produtos em ${anoRk}, com ${pctL(bra.pct_mundo, 2)} do total.` : null,
+        (() => { const gm = (s.comtrade || {}).grupos_mundo; const mx = gm && gm.itens.filter(x => x.brasil_pos).sort((a, b) => b.brasil_pct - a.brasil_pct)[0]; return mx ? `O grupo em que o Brasil tem mais presença no mercado mundial é "${mx.grupo.toLowerCase()}" (${pctL(mx.brasil_pct, 2)}, ${mx.brasil_pos}º lugar em ${gm.ano}).` : null; })(),
       ], [
         cardL({ rotulo: `Importação · ${u.ano}`, valor: fmt.usd(u.importacao_usd), serie: anos.map(x => x.importacao_usd), delta: (u.importacao_usd / a.importacao_usd - 1) * 100, deltaRuim: true, sub: `vs ${a.ano}` }),
         cardL({ rotulo: `Exportação · ${u.ano}`, valor: fmt.usd(u.exportacao_usd), serie: anos.map(x => x.exportacao_usd), delta: (u.exportacao_usd / a.exportacao_usd - 1) * 100, sub: `vs ${a.ano}` }),
@@ -1101,7 +869,352 @@
       if (!b) return;
       cempreSt.uf = b.dataset.uf && cempreSt.uf !== b.dataset.uf ? b.dataset.uf : null;
       renderCempre();
+      if (cempreSt.uf && COD_POR_SIGLA[cempreSt.uf] && munDados() && munDados().itens.some(x => x.uf === COD_POR_SIGLA[cempreSt.uf])) {
+        munSt.uf = COD_POR_SIGLA[cempreSt.uf];
+        renderMunicipios();
+      }
     });
+  }
+
+  // ---------------------------------------------------------------------
+  // Emprego por município (RAIS, microdados do PDET): mapa do estado
+  // escolhido, colorido pelos vínculos do setor, e ranking com a comparação
+  // com a indústria de transformação no mesmo município.
+  // ---------------------------------------------------------------------
+  const munSt = { uf: null, geo: {}, carregando: null };
+  const SIGLA_POR_COD = { '11': 'RO', '12': 'AC', '13': 'AM', '14': 'RR', '15': 'PA', '16': 'AP', '17': 'TO', '21': 'MA', '22': 'PI', '23': 'CE', '24': 'RN', '25': 'PB', '26': 'PE', '27': 'AL', '28': 'SE', '29': 'BA', '31': 'MG', '32': 'ES', '33': 'RJ', '35': 'SP', '41': 'PR', '42': 'SC', '43': 'RS', '50': 'MS', '51': 'MT', '52': 'GO', '53': 'DF' };
+  const COD_POR_SIGLA = Object.fromEntries(Object.entries(SIGLA_POR_COD).map(([c, s]) => [s, c]));
+
+  function munDados() { return csS().municipios; }
+
+  function renderMunicipios() {
+    const bloco = $('#bloco-municipios');
+    const m = munDados();
+    if (!bloco) return;
+    if (!m || !m.itens.length) { bloco.style.display = 'none'; return; }
+    bloco.style.display = '';
+    // UFs com presença do setor, ordenadas por vínculos
+    const porUf = {};
+    m.itens.forEach(x => { porUf[x.uf] = (porUf[x.uf] || 0) + x.vinc; });
+    const ufs = Object.keys(porUf).sort((a, b) => porUf[b] - porUf[a]);
+    if (!munSt.uf || !porUf[munSt.uf]) munSt.uf = ufs[0];
+    const sel = $('#mun-uf');
+    sel.innerHTML = ufs.map(c => `<option value="${c}">${NOME_UF[SIGLA_POR_COD[c]] || c} (${numL(porUf[c])} vínculos)</option>`).join('');
+    sel.value = munSt.uf;
+    desenharMapaMun();
+    rankingMun();
+  }
+
+  function rankingMun() {
+    const m = munDados();
+    const itens = m.itens.filter(x => x.uf === munSt.uf);
+    const nomeUf = NOME_UF[SIGLA_POR_COD[munSt.uf]] || munSt.uf;
+    const tot = itens.reduce((a, b) => a + b.vinc, 0);
+    const top = itens[0];
+    $('#mun-titulo').textContent = top ? `${top.nome} lidera o emprego do setor em ${nomeUf}` : nomeUf;
+    $('#mun-sub').textContent = `Vínculos formais do setor por município, ${m.ano}. Passe o mouse para ver o detalhe; tons mais escuros = mais vínculos. ${itens.length} municípios com o setor no estado.`;
+    const temRem = itens.some(x => x.remun != null);
+    const tam = (e, v) => e ? v / e : null;
+    const linhas = itens.slice(0, 12).map(x => {
+      const ts = tam(x.estab, x.vinc), ti = tam(x.ind_estab, x.ind_vinc);
+      const peso = x.ind_vinc ? x.vinc / x.ind_vinc * 100 : null;
+      return `<tr><td>${x.nome}</td><td style="text-align:right">${numL(x.vinc)}</td><td style="text-align:right">${pctL(x.vinc / tot * 100)}</td>
+        <td style="text-align:right">${numL(x.estab)}</td><td style="text-align:right">${ts ? fmt.full1(ts) : '-'} <span class="mun-cmp">ind. ${ti ? fmt.full1(ti) : '-'}</span></td>
+        <td style="text-align:right">${peso != null ? pctL(peso) : '-'}</td>
+        ${temRem ? `<td style="text-align:right">${x.remun ? 'R$ ' + numL(x.remun) : '-'} <span class="mun-cmp">ind. ${x.ind_remun ? 'R$ ' + numL(x.ind_remun) : '-'}</span></td>` : ''}</tr>`;
+    }).join('');
+    $('#mun-ranking').innerHTML = `<div class="data-table-wrap"><table class="data-table tabela-mun"><thead><tr><th>Município</th><th style="text-align:right">Vínculos</th><th style="text-align:right">% do estado</th><th style="text-align:right">Estabelec.</th><th style="text-align:right">Empregados por estabelec.</th><th style="text-align:right">Peso na indústria local</th>${temRem ? `<th style="text-align:right">Remuneração média (dez/${m.ano_remun})</th>` : ''}</tr></thead><tbody>${linhas}</tbody></table></div>`;
+    $('#mun-ranking-sub').textContent = `12 maiores municípios do setor em ${nomeUf}. "ind." = média da indústria de transformação no mesmo município; "peso na indústria local" = vínculos do setor / vínculos da indústria de transformação do município.`;
+  }
+
+  async function carregarGeo(uf) {
+    if (munSt.geo[uf]) return munSt.geo[uf];
+    const r = await fetch(`assets/geo/mun-${uf}.json`);
+    munSt.geo[uf] = await r.json();
+    return munSt.geo[uf];
+  }
+
+  async function desenharMapaMun() {
+    const alvo = $('#mun-mapa');
+    const uf = munSt.uf;
+    alvo.innerHTML = '<div class="empty-note">Carregando mapa…</div>';
+    let geo;
+    try { geo = await carregarGeo(uf); } catch (e) { alvo.innerHTML = '<div class="empty-note">Mapa indisponível.</div>'; return; }
+    if (munSt.uf !== uf) return;  // trocou de estado durante o carregamento
+    const m = munDados();
+    const porId = new Map(m.itens.filter(x => x.uf === uf).map(x => [x.id, x]));
+    // projeção equiretangular com correção pela latitude média
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    geo.features.forEach(f => f.geometry.coordinates.forEach(p => p.forEach(r => r.forEach(([x, y]) => {
+      if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y;
+    }))));
+    const k = Math.cos((minY + maxY) / 2 * Math.PI / 180);
+    const W = 600, larg = (maxX - minX) * k, alt = maxY - minY;
+    const esc = W / larg, H = Math.max(200, alt * esc);
+    const px = x => ((x - minX) * k * esc).toFixed(1), py = y => ((maxY - y) * esc).toFixed(1);
+    const maxV = Math.max(...m.itens.filter(x => x.uf === uf).map(x => x.vinc), 1);
+    const paths = geo.features.map(f => {
+      const d = f.geometry.coordinates.map(p => p.map(r => 'M' + r.map(([x, y]) => px(x) + ',' + py(y)).join('L') + 'Z').join('')).join('');
+      const it = porId.get(f.properties.id);
+      const t = it ? Math.max(0.12, Math.log1p(it.vinc) / Math.log1p(maxV)) : 0;
+      return `<path d="${d}" data-id="${f.properties.id}" data-nome="${f.properties.nome.replace(/"/g, '&quot;')}" style="--t:${t.toFixed(3)}" class="mun-path${it ? ' tem' : ''}"/>`;
+    }).join('');
+    alvo.innerHTML = `<svg viewBox="0 0 ${W} ${H.toFixed(0)}" class="mun-svg" role="img" aria-label="Mapa de municípios">${paths}</svg>`;
+    const svg = alvo.querySelector('svg');
+    svg.addEventListener('mousemove', e => {
+      const p = e.target.closest('path');
+      if (!p) { window.Charts.hideTooltip(); return; }
+      const it = porId.get(p.dataset.id);
+      const rows = it ? [
+        { label: 'Vínculos do setor', value: numL(it.vinc) },
+        { label: 'Estabelecimentos', value: numL(it.estab) },
+        { label: 'Empregados por estabelecimento', value: it.estab ? fmt.full1(it.vinc / it.estab) + (it.ind_estab ? ` (ind. ${fmt.full1(it.ind_vinc / it.ind_estab)})` : '') : '-' },
+        { label: 'Peso na indústria local', value: it.ind_vinc ? pctL(it.vinc / it.ind_vinc * 100) : '-' },
+      ].concat(it.remun ? [{ label: 'Remuneração média', value: 'R$ ' + numL(it.remun) + (it.ind_remun ? ` (ind. R$ ${numL(it.ind_remun)})` : '') }] : [])
+        : [{ label: 'Sem vínculos do setor', value: '' }];
+      window.Charts.showTooltip(e.clientX, e.clientY, p.dataset.nome, rows);
+    });
+    svg.addEventListener('mouseleave', () => window.Charts.hideTooltip());
+  }
+
+  function setupMunicipios() {
+    const sel = $('#mun-uf');
+    if (!sel) return;
+    sel.addEventListener('change', () => { munSt.uf = sel.value; desenharMapaMun(); rankingMun(); });
+  }
+
+  // ---------------------------------------------------------------------
+  // Simulador de cenários: perguntas com alternativas fixas; cada
+  // combinação leva a um resultado calculado com os dados do segmento.
+  // Base: sectors[x].simulador (valores do ano-base, R$ de 2024, e ritmos
+  // históricos), sectors[x].mercado, shared.simulador_impacto e cadeia.
+  // ---------------------------------------------------------------------
+  const CEN_HORIZONTE = 2030;
+  const cen = { seg: null, aba: 'china', resp: { china: { imp: 'ritmo', prod: 'estagnada' }, cambio: { dolar: 'atual' }, demanda: { veic: 'estavel', fam: 'estavel' } } };
+
+  const CEN_PERGUNTAS = {
+    china: [
+      { id: 'imp', texto: 'O que vai acontecer com as importações vindas da China até 2030?', opcoes: [
+        { id: 'ritmo', rotulo: 'Continuam no ritmo atual', expl: 'a importação da China segue crescendo no ritmo médio dos últimos anos' },
+        { id: 'desacelera', rotulo: 'Desaceleram', expl: 'a importação da China passa a crescer no mesmo ritmo das demais origens' },
+        { id: 'caem', rotulo: 'Caem (defesa comercial, frete mais caro)', expl: 'a importação da China cai 5% ao ano' },
+      ] },
+      { id: 'prod', texto: 'E a produção nacional?', opcoes: [
+        { id: 'estagnada', rotulo: 'Fica estagnada, como na última década', expl: 'a produção nacional segue o ritmo histórico, praticamente parada' },
+        { id: 'acompanha', rotulo: 'Cresce acompanhando o mercado', expl: 'a produção nacional cresce no mesmo ritmo histórico do consumo aparente' },
+        { id: 'ganha', rotulo: 'Ganha espaço, com investimento', expl: 'a produção nacional cresce 2 pontos percentuais ao ano acima do mercado' },
+      ] },
+    ],
+    cambio: [
+      { id: 'dolar', texto: 'Para onde vai o dólar?', opcoes: [
+        { id: 'baixo', rotulo: 'Cai para cerca de R$ 5,00' },
+        { id: 'atual', rotulo: 'Fica perto de R$ 5,50, como hoje' },
+        { id: 'alto', rotulo: 'Sobe para cerca de R$ 6,00' },
+      ] },
+    ],
+    demanda: [
+      { id: 'veic', texto: 'Como fica a demanda de veículos e transporte (montadoras, autopeças, transportadoras) até 2030?', opcoes: [
+        { id: 'retracao', rotulo: 'Retração (−10% no período)', v: -10 },
+        { id: 'estavel', rotulo: 'Estável', v: 0 },
+        { id: 'crescimento', rotulo: 'Crescimento (+10% no período)', v: 10 },
+      ] },
+      { id: 'fam', texto: 'E o consumo das famílias (reposição de peças, artigos de borracha)?', opcoes: [
+        { id: 'retracao', rotulo: 'Retração (−5%)', v: -5 },
+        { id: 'estavel', rotulo: 'Estável', v: 0 },
+        { id: 'crescimento', rotulo: 'Crescimento (+5%)', v: 5 },
+      ] },
+    ],
+  };
+
+  function cenBase() {
+    const sd = state.data.sectors[cen.seg];
+    const s = sd && sd.simulador;
+    return s ? { sd, s, g: s.segmento, n: CEN_HORIZONTE - s.ano_base } : null;
+  }
+  function cenCoef() {
+    const c = shared().simulador_impacto;
+    if (!c) return null;
+    return { dir: c.diretos[cen.seg], cad: c.cadeia };
+  }
+  function cenEmpregos(deltaRs) {
+    const c = cenCoef();
+    if (!c || !c.dir) return null;
+    const mi = deltaRs / 1e6;
+    const dir = mi * c.dir.empregos_por_milhao;
+    const ind = c.cad && c.cad.empregos_indiretos_por_milhao ? mi * (c.cad.multiplicador - 1) * c.cad.empregos_indiretos_por_milhao : null;
+    return { dir, ind };
+  }
+  function arredE(n) {
+    if (n == null || !isFinite(n)) return '-';
+    const a = Math.abs(n), r = a >= 1000 ? Math.round(a / 100) * 100 : a >= 100 ? Math.round(a / 10) * 10 : Math.round(a);
+    return r.toLocaleString('pt-BR');
+  }
+  const taxaFmt = v => (v > 0 ? '+' : '') + v.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '% ao ano';
+
+  function cenPerguntasHtml(cenId) {
+    return CEN_PERGUNTAS[cenId].map(q => `<fieldset class="cen-q"><legend>${q.texto}</legend>` + q.opcoes.map(o =>
+      `<label class="cen-op${cen.resp[cenId][q.id] === o.id ? ' sel' : ''}"><input type="radio" name="cen-${cenId}-${q.id}" value="${o.id}" data-cen="${cenId}" data-q="${q.id}"${cen.resp[cenId][q.id] === o.id ? ' checked' : ''}>${o.rotulo}</label>`).join('') + '</fieldset>').join('');
+  }
+
+  function cenResultado(titulo, frases, cards) {
+    return `<div class="cen-res-cab">${titulo}</div><div class="sec-cards cen-cards">${cards.filter(Boolean).join('')}</div><ul class="cen-texto">${frases.filter(Boolean).map(f => `<li>${f}</li>`).join('')}</ul>`;
+  }
+
+  // ---- Cenário 1: China x produção ----
+  function cenChina() {
+    const b = cenBase();
+    const el = $('#cen-china-resultado');
+    $('#cen-china-perguntas').innerHTML = cenPerguntasHtml('china');
+    if (!b) { el.innerHTML = '<div class="empty-note">Sem dados para este segmento.</div>'; return; }
+    const { g, n, s, sd } = b;
+    const temChina = g.importacao_china != null && g.importacao_china > 0;
+    const m = (sd.mercado || {}).yearly || [];
+    const gCA = m.length > 1 ? (Math.pow(m[m.length - 1].consumo_aparente_real / m[0].consumo_aparente_real, 1 / (m[m.length - 1].ano - m[0].ano)) - 1) * 100 : 0;
+    const r = cen.resp.china;
+    const gChina = !temChina ? 0 : r.imp === 'ritmo' ? (g.g_importacao_china || 0) : r.imp === 'desacelera' ? (g.g_importacao_resto || 0) : -5;
+    const gResto = temChina ? (g.g_importacao_resto || 0) : (g.g_importacao || 0);
+    const gProd = r.prod === 'estagnada' ? (g.g_producao || 0) : r.prod === 'acompanha' ? gCA : gCA + 2;
+    const gExp = g.g_exportacao || 0;
+    const f = x => Math.pow(1 + x / 100, n);
+    const p0 = g.producao, x0 = g.exportacao, mc0 = temChina ? g.importacao_china : 0, mr0 = temChina ? g.importacao_resto : g.importacao;
+    const p1 = p0 * f(gProd), x1 = x0 * f(gExp), mc1 = mc0 * f(gChina), mr1 = mr0 * f(gResto);
+    const ca0 = p0 + mc0 + mr0 - x0, ca1 = p1 + mc1 + mr1 - x1;
+    const pen0 = (mc0 + mr0) / ca0 * 100, pen1 = (mc1 + mr1) / ca1 * 100;
+    const ch0 = mc0 / ca0 * 100, ch1 = mc1 / ca1 * 100;
+    const emp = cenEmpregos(p1 - p0);
+    const dPen = pen1 - pen0;
+    const leitura = dPen > 5 ? 'o setor <strong>perde espaço no próprio mercado</strong>: o consumo cresce, mas a demanda adicional é atendida sobretudo por importados'
+      : dPen < -2 ? 'o setor <strong>recupera mercado</strong> frente aos importados'
+      : 'o setor <strong>mantém, grosso modo, sua posição</strong> no mercado brasileiro';
+    const q = CEN_PERGUNTAS.china;
+    const expl = id => q.find(x => x.id === id).opcoes.find(o => o.id === r[id]).expl;
+    el.innerHTML = cenResultado(`Em ${CEN_HORIZONTE}, nesse cenário:`, [
+      `Os importados passariam de ${pctL(pen0)} para <strong>${pctL(pen1)}</strong> do mercado brasileiro${temChina ? `, e a China, de ${pctL(ch0)} para <strong>${pctL(ch1)}</strong>` : ''}: ${leitura}.`,
+      `A produção nacional ficaria ${fmt.brl(Math.abs(p1 - p0))} ${p1 >= p0 ? 'maior' : 'menor'} que em ${s.ano_base} (${pctL((p1 / p0 - 1) * 100, 0, true)})${emp ? `, o equivalente a cerca de <strong>${arredE(emp.dir)} empregos diretos</strong>${emp.ind != null ? ` e ${arredE(emp.ind)} na cadeia de fornecedores` : ''} ${p1 >= p0 ? 'a mais' : 'a menos'}` : ''}.`,
+      `Por quê: ${expl('imp')} (${taxaFmt(gChina)}) e ${expl('prod')} (${taxaFmt(gProd)}); a exportação e as demais importações seguem o ritmo histórico.`,
+      !temChina ? 'Neste segmento quase não há importação da China; o cenário pesa pouco aqui.' : null,
+    ], [
+      cardL({ rotulo: `Importados no mercado · ${CEN_HORIZONTE}`, valor: pctL(pen1), serie: [], sub: `${pctL(pen0)} em ${s.ano_base}` }),
+      temChina ? cardL({ rotulo: `China no mercado · ${CEN_HORIZONTE}`, valor: pctL(ch1), serie: [], sub: `${pctL(ch0)} em ${s.ano_base}` }) : null,
+      cardL({ rotulo: `Produção nacional · ${CEN_HORIZONTE}`, valor: fmt.brl(p1), serie: [], delta: (p1 / p0 - 1) * 100, sub: `vs ${s.ano_base} · R$ de ${anoBasePrecos()}` }),
+      emp ? cardL({ rotulo: 'Empregos diretos', valor: (p1 >= p0 ? '+' : '−') + arredE(emp.dir), serie: [], sub: 'variação estimada no segmento' }) : null,
+    ]);
+  }
+
+  // ---- Cenário 2: câmbio (qualitativo, com evidência histórica) ----
+  function cenCambio() {
+    $('#cen-cambio-perguntas').innerHTML = cenPerguntasHtml('cambio');
+    const sd = state.data.sectors[cen.seg];
+    const dol = {};
+    shared().macro.forEach(x => { if (x.dolar != null) (dol[x.ano] = dol[x.ano] || []).push(x.dolar); });
+    const dMed = a => dol[a] && dol[a].length >= 12 ? dol[a].reduce((p, q) => p + q, 0) / dol[a].length : null;
+    const anos = (sd.comex.yearly || []).filter(x => x.ano < anoAtual && x.ano >= 2007 && dMed(x.ano));
+    const cad = (state.data.cadeia.atividades || []).find(a => a.cod === state.data.cadeia.config.atividade);
+    const pctImp = cad && cad.pct_insumos_importados ? cad.pct_insumos_importados * 100 : null;
+    const ult = anos[anos.length - 1];
+    const r = cen.resp.cambio.dolar;
+    const textos = {
+      baixo: [
+        'Com o dólar mais barato, o produto importado chega mais barato em reais: a <strong>pressão sobre a produção nacional aumenta</strong> e a penetração da importação tende a subir mais rápido que no ritmo atual.',
+        'A exportação perde competitividade, porque o produto brasileiro fica mais caro lá fora.',
+        pctImp ? `Por outro lado, os insumos importados ficam mais baratos: ${pctL(pctImp, 0)} dos insumos da atividade borracha e plástico vêm de fora, o que alivia custos.` : null,
+        'Em resumo: alívio de custos, mas mais concorrência. O cenário 1, com as importações chinesas "no ritmo atual", tende a ficar ainda mais desfavorável.',
+      ],
+      atual: [
+        'Com o dólar perto do nível atual, as tendências recentes se mantêm: a referência é o cenário 1 com "ritmo atual".',
+        (() => {
+          const desde = anos.filter(x => dMed(x.ano) >= 5);
+          if (desde.length < 2) return null;
+          const maior = anos.reduce((p, q) => q.importacao_usd > p.importacao_usd ? q : p, anos[0]);
+          return `Desde ${desde[0].ano}, com o dólar acima de R$ 5, a importação do setor passou de ${fmt.usd(desde[0].importacao_usd)} para ${fmt.usd(desde[desde.length - 1].importacao_usd)}${maior.ano === desde[desde.length - 1].ano ? ', o maior valor da série' : ''}: o câmbio sozinho não tem freado a concorrência, em especial a chinesa.`;
+        })(),
+      ],
+      alto: [
+        'Com o dólar mais caro, o importado encarece em reais: há um <strong>alívio de curto prazo para a produção nacional</strong>, e a exportação ganha competitividade.',
+        pctImp ? `Mas ${pctL(pctImp, 0)} dos insumos da atividade borracha e plástico são importados (borracha, químicos, negro de fumo): o custo de produção também sobe, o que reduz parte do ganho.` : 'Mas parte dos insumos é importada, o que eleva o custo de produção.',
+        'O histórico mostra que, nos anos de dólar em alta, a importação em dólares recuou, mas voltou a crescer quando o câmbio se estabilizou.',
+      ],
+    };
+    $('#cen-cambio-resultado').innerHTML = cenResultado('Se isso acontecer:', textos[r], [
+      ult ? cardL({ rotulo: `Dólar médio · ${ult.ano}`, valor: 'R$ ' + dMed(ult.ano).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), serie: anos.map(x => dMed(x.ano)), sub: 'PTAX, média do ano' }) : null,
+      ult ? cardL({ rotulo: `Importação · ${ult.ano}`, valor: fmt.usd(ult.importacao_usd), serie: anos.map(x => x.importacao_usd), sub: 'US$ FOB' }) : null,
+      pctImp ? cardL({ rotulo: 'Insumos importados', valor: pctL(pctImp, 0), serie: [], sub: 'atividade borracha e plástico (MIP 2015)' }) : null,
+    ]);
+    dualAxisLineChart($('#cen-cambio-chart'), {
+      categories: anos.map(x => x.ano), formatYLeft: fmt.usd, formatYRight: v => 'R$ ' + v.toLocaleString('pt-BR', { maximumFractionDigits: 1 }), height: 260, plainAxis: true,
+      seriesLeft: { label: 'Importação (US$ FOB)', color: 'var(--series-6)', values: anos.map(x => x.importacao_usd) },
+      seriesRight: { label: 'Dólar médio (R$)', color: 'var(--series-2)', values: anos.map(x => dMed(x.ano)) },
+    });
+    $('#cen-cambio-sub').textContent = `${rotuloCnae(cen.seg)}: importação anual em US$ e dólar médio do ano, ${anos.length ? anos[0].ano + '–' + ult.ano : ''}. Câmbio não é simulado em números: o efeito depende de preços, contratos e da reação dos concorrentes.`;
+  }
+
+  // ---- Cenário 3: demanda dos clientes ----
+  function cenDemanda() {
+    $('#cen-demanda-perguntas').innerHTML = cenPerguntasHtml('demanda');
+    const b = cenBase();
+    const el = $('#cen-demanda-resultado');
+    const c = state.data.cadeia;
+    if (!b || !c) { el.innerHTML = '<div class="empty-note">Sem dados para este segmento.</div>'; return; }
+    const anoD = Math.max(...c.produto.destinos.map(x => x.ano));
+    const ds = c.produto.destinos.filter(x => x.ano === anoD);
+    const tot = ds.reduce((p, q) => p + q.valor, 0);
+    const share = cods => ds.filter(x => x.tipo === 'atividade' && cods.includes(x.cod)).reduce((p, q) => p + q.valor, 0) / tot;
+    const shVeic = share(['2991', '2992', '4900', '4500']);
+    const shFam = ds.filter(x => x.tipo === 'demanda_final' && x.cod === 'familias').reduce((p, q) => p + q.valor, 0) / tot;
+    const r = cen.resp.demanda;
+    const vV = CEN_PERGUNTAS.demanda[0].opcoes.find(o => o.id === r.veic).v;
+    const vF = CEN_PERGUNTAS.demanda[1].opcoes.find(o => o.id === r.fam).v;
+    const dDem = shVeic * vV + shFam * vF;  // % da demanda total de artigos de borracha
+    const { g, s } = b;
+    const ca = g.producao + g.importacao - g.exportacao;
+    const partNac = ca > 0 ? Math.max(0, 1 - g.importacao / ca) : 1;
+    const dProd = ca * dDem / 100 * partNac;
+    const emp = cenEmpregos(dProd);
+    const sentido = dDem > 0.05 ? 'cresce' : dDem < -0.05 ? 'cai' : 'fica praticamente estável';
+    el.innerHTML = cenResultado(`Até ${CEN_HORIZONTE}, nesse cenário:`, [
+      `A demanda total por artigos de borracha ${sentido} (${pctL(dDem, 1, true)}): veículos e transporte respondem por ${pctL(shVeic * 100, 0)} das vendas do produto e o consumo das famílias por ${pctL(shFam * 100, 0)}.`,
+      Math.abs(dProd) > 1 ? `Mantida a fatia atual da produção nacional no mercado (${pctL(partNac * 100, 0)}), isso significa ${fmt.brl(Math.abs(dProd))} ${dProd >= 0 ? 'a mais' : 'a menos'} de produção por ano${emp ? `, cerca de <strong>${arredE(emp.dir)} empregos diretos</strong>${emp.ind != null ? ` e ${arredE(emp.ind)} na cadeia` : ''} ${dProd >= 0 ? 'a mais' : 'a menos'}` : ''}.` : 'Sem variação relevante de produção ou emprego.',
+      dDem > 0 ? 'Atenção: se a importação mantiver o ritmo do cenário 1, parte desse crescimento pode ir para o produto importado, e não para a produção nacional.' : dDem < 0 ? 'Com demanda menor, a concorrência com o importado tende a ficar mais acirrada, o que pode ampliar a perda.' : null,
+      `Pesos dos clientes: Contas Nacionais/IBGE (${anoD}), para todos os artigos de borracha, inclusive pneus novos; servem como aproximação para o segmento.`,
+    ], [
+      cardL({ rotulo: 'Variação da demanda', valor: pctL(dDem, 1, true), serie: [], sub: 'artigos de borracha, no período' }),
+      cardL({ rotulo: 'Produção nacional', valor: (dProd >= 0 ? '+' : '−') + fmt.brl(Math.abs(dProd)), serie: [], sub: `por ano · R$ de ${anoBasePrecos()}` }),
+      emp ? cardL({ rotulo: 'Empregos diretos', valor: (dProd >= 0 ? '+' : '−') + arredE(emp.dir), serie: [], sub: 'variação estimada no segmento' }) : null,
+    ]);
+  }
+
+  function renderCenarios() {
+    if (!$('#cen-seg')) return;
+    if (cen.aba === 'china') cenChina();
+    if (cen.aba === 'cambio') cenCambio();
+    if (cen.aba === 'demanda') cenDemanda();
+  }
+
+  function setupCenarios() {
+    const segBox = $('#cen-seg');
+    if (!segBox) return;
+    const disp = setores().filter(c => state.data.sectors[c.codigo] && state.data.sectors[c.codigo].simulador);
+    if (!disp.length) return;
+    cen.seg = disp[0].codigo;
+    const marcarSeg = () => segBox.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.seg === cen.seg));
+    segBox.innerHTML = disp.map(c => `<button type="button" class="seg-btn" data-seg="${c.codigo}"><span class="seg-btn-nome">${c.rotulo_exec || c.rotulo}</span><span class="seg-btn-cnae">${codigoCurto(c)}</span></button>`).join('');
+    marcarSeg();
+    segBox.addEventListener('click', e => { const b = e.target.closest('button[data-seg]'); if (b) { cen.seg = b.dataset.seg; marcarSeg(); renderCenarios(); } });
+    $('#cen-abas').addEventListener('click', e => {
+      const b = e.target.closest('button[data-cen]');
+      if (!b) return;
+      cen.aba = b.dataset.cen;
+      $('#cen-abas').querySelectorAll('button').forEach(x => x.classList.toggle('active', x === b));
+      document.querySelectorAll('.cen-painel').forEach(p => { p.hidden = p.dataset.cen !== cen.aba; });
+      renderCenarios();
+    });
+    $('#simulador-view').addEventListener('change', e => {
+      const i = e.target;
+      if (i.type !== 'radio' || !i.dataset.cen) return;
+      cen.resp[i.dataset.cen][i.dataset.q] = i.value;
+      renderCenarios();
+    });
+    renderCenarios();
   }
 
   // ---------------------------------------------------------------------
@@ -1109,6 +1222,7 @@
   // ---------------------------------------------------------------------
   function renderEmprego() {
     renderCempre();
+    renderMunicipios();
     const s = csS();
     const bs = blocks.emprego;
 
@@ -1443,6 +1557,7 @@
     const ctWorld = filterAnnual(s.comtrade.world_yearly, bs.lo, bs.hi);
     const catCt = annualCategories([ctBr, ctWorld]);
     renderRankingMundial();
+    renderGruposMundo();
 
     const participacaoMundo = catCt.map(ano => {
       const b = ctBr.find(r => r.ano === ano), w = ctWorld.find(r => r.ano === ano);
@@ -1562,6 +1677,36 @@
   // Participação no mundo é pequena (décimos de ponto): duas casas decimais.
   function pct2(n) {
     return n == null || isNaN(n) ? '-' : n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
+  }
+
+
+  // Comércio mundial por grupo de produto (Comtrade, SH4): tamanho do mercado
+  // mundial, crescimento, participação e posição do Brasil e países líderes.
+  function renderGruposMundo() {
+    const alvo = $('#table-comex-grupos-mundo');
+    if (!alvo) return;
+    const g = (csS().comtrade || {}).grupos_mundo;
+    if (!g || !g.itens.length) { alvo.closest('.exhibit-block').style.display = 'none'; return; }
+    alvo.closest('.exhibit-block').style.display = '';
+    const bandeira = l => l.iso2 ? `<img class="flag" src="https://flagcdn.com/20x15/${l.iso2}.png" srcset="https://flagcdn.com/40x30/${l.iso2}.png 2x" width="20" height="15" alt="" loading="lazy">` : '';
+    const melhor = g.itens.filter(x => x.brasil_pos).sort((a, b) => b.brasil_pct - a.brasil_pct)[0];
+    $('#comex-grupos-mundo-title').textContent = melhor
+      ? `Brasil tem mais presença em "${melhor.grupo.toLowerCase()}": ${pctL(melhor.brasil_pct, 2)} do mundo, ${melhor.brasil_pos}º lugar`
+      : 'Comércio mundial por grupo de produto';
+    $('#comex-grupos-mundo-sub').textContent = `Exportações mundiais por grupo do Sistema Harmonizado (4 dígitos), ${g.ano}; crescimento médio anual ${g.ano_inicial}–${g.ano}. Os grupos internacionais são mais amplos que os do diagnóstico (NCM de 8 dígitos). ${g.ano} é o ano mais recente com cobertura completa de países no Comtrade.`;
+    dataTable(alvo, {
+      columns: [
+        { key: 'grupo', label: 'Grupo de produto', wrap: '200px' },
+        { key: 'mundo_usd', label: `Mundo, ${g.ano}`, align: 'right', format: fmt.usd },
+        { key: 'cresc_aa', label: 'Cresc. ao ano', align: 'right', format: v => pctL(v, 1, true) },
+        { key: 'brasil_usd', label: 'Brasil', align: 'right', format: fmt.usd },
+        { key: 'brasil_pct', label: '% Brasil', align: 'right', format: v => pctL(v, 2) },
+        { key: 'brasil_pos', label: 'Posição', align: 'right', format: v => v ? v + 'º' : '-' },
+        { key: 'lideres', label: 'Maiores exportadores', wrap: '240px', html: v => (v || []).map(l => `<span class="lider">${bandeira(l)}${l.pais} <em>${pctL(l.pct, 0)}</em></span>`).join('') },
+      ],
+      rows: g.itens,
+      pageSize: 14,
+    });
   }
 
   // Ranking mundial de exportadores (Comtrade) com seletor de ano próprio —
@@ -2715,7 +2860,7 @@
 
   // Faixa vermelha do topo: título fixo + vista atual e data de atualização,
   // pra quem rola a página saber onde está e de quando é o dado.
-  const VIEW_LABELS = { home: 'Painel Executivo', diagnostico: 'Diagnóstico Setorial', simulador: 'Simulador de Mercado', cadeia: 'Cadeia Produtiva', 'energia-industrial': 'Energia Industrial', relatorios: 'Relatórios', referencias: 'Referências' };
+  const VIEW_LABELS = { home: 'Painel Executivo', diagnostico: 'Diagnóstico Setorial', simulador: 'Simulador de cenários', cadeia: 'Cadeia Produtiva', 'energia-industrial': 'Energia Industrial', relatorios: 'Relatórios', referencias: 'Referências' };
   function updateHeaderMeta() {
     const vista = isSectorView(state.view) ? rotuloCnae(state.view) : (VIEW_LABELS[state.view] || '');
     const atualizado = state.data.meta.gerado_em ? 'Painel publicado em ' + formatDataBr(state.data.meta.gerado_em) : '';
@@ -2896,7 +3041,7 @@
   // ---------------------------------------------------------------------
   const EXEC_OUTRAS_SECOES = [
     { view: 'diagnostico', title: 'Diagnóstico Setorial', sub: 'Apresentação completa do planejamento estratégico do setor (DECOMTEC - FIESP, 2026).' },
-    { view: 'simulador', title: 'Simulador de Mercado', sub: 'E se as importações continuarem no ritmo atual? Projeção do mercado doméstico até 2040, com cenários.' },
+    { view: 'simulador', title: 'Simulador de cenários', sub: 'Escolha o que acha que vai acontecer com a China, o câmbio e a demanda, e veja aonde isso leva o setor.' },
     { view: 'cadeia', title: 'Cadeia Produtiva', sub: 'De onde vêm os insumos da borracha e para quem ela vai (IBGE).' },
     { view: 'energia-industrial', title: 'Energia Industrial', sub: 'Consumo e custo de energia na indústria, por estado.' },
     { view: 'relatorios', title: 'Relatórios', sub: 'Em construção.' },
@@ -3214,11 +3359,12 @@
       setupBlockFilters();
       setupTema();
       setupCempre();
+      setupMunicipios();
       setupViewTabs();
       renderReferencias(data);
       renderEnergiaIndustrial(data);
       renderCadeia(data);
-      setupSimulador();
+      setupCenarios();
       renderAll();
       initSectionCaptions();
       setupExecSegToggle();

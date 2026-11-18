@@ -828,3 +828,38 @@ table.pdi-table td.mono { font-variant-numeric: tabular-nums; white-space: nowra
 .uf-leg { display: flex; align-items: center; gap: 8px; justify-content: center; margin-top: 10px; font-size: .7rem; color: var(--text-muted); flex-wrap: wrap; }
 .uf-leg i { width: 110px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, var(--surface-2), var(--accent)); }
 .uf-leg button { font: inherit; font-size: .72rem; margin-left: 8px; border: 1px solid var(--border); background: var(--surface-card); color: var(--text-primary); border-radius: 999px; padding: 3px 10px; cursor: pointer; }
+
+/* Mapa municipal */
+.mun-controles { margin: 0 0 12px; font-size: .8rem; color: var(--text-muted); }
+.mun-controles select { font: inherit; font-size: .85rem; margin-left: 6px; padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-card); color: var(--text-primary); }
+.mun-mapa { width: 100%; max-width: 760px; margin: 0 auto; }
+.mun-svg { width: 100%; height: auto; max-height: 560px; display: block; }
+.mun-path { fill: var(--surface-2); stroke: var(--surface-card); stroke-width: .5; }
+.mun-path.tem { fill: color-mix(in srgb, var(--accent) calc(var(--t) * 95%), var(--surface-2)); }
+.mun-path:hover { stroke: var(--text-primary); stroke-width: 1.5; }
+.mun-cmp { display: block; font-size: .68rem; color: var(--text-muted); }
+
+/* Simulador de cenários */
+.cen-topo { display: flex; justify-content: flex-end; margin: 4px 0 0; }
+.cen-abas { position: static; }
+.cen-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); gap: 24px; margin-bottom: 22px; }
+@media (max-width: 900px) { .cen-grid { grid-template-columns: minmax(0, 1fr); } }
+.cen-perguntas { display: flex; flex-direction: column; gap: 16px; }
+.cen-q { border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px 12px; margin: 0; background: var(--surface-card); }
+.cen-q legend { font-weight: 700; font-size: .92rem; color: var(--text-primary); padding: 0 6px; }
+.cen-op { display: flex; align-items: center; gap: 10px; padding: 9px 12px; margin-top: 6px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-size: .88rem; color: var(--text-secondary); transition: border-color .12s, background .12s; }
+.cen-op:hover { border-color: var(--accent); }
+.cen-op.sel { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--surface-card)); color: var(--text-primary); font-weight: 600; }
+.cen-op input { accent-color: var(--accent); }
+.cen-resultado { background: var(--surface-card); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 10px; padding: 16px 20px; }
+.cen-res-cab { font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+.cen-cards { margin-bottom: 14px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.cen-texto { margin: 0; padding-left: 18px; display: grid; gap: 8px; }
+.cen-texto li { font-size: .9rem; line-height: 1.5; color: var(--text-secondary); }
+.cen-texto strong { color: var(--text-primary); }
+.cen-embreve { border: 1px dashed var(--border); border-radius: 10px; padding: 24px; color: var(--text-secondary); }
+.cen-embreve h3 { margin: 0 0 8px; color: var(--text-primary); }
+
+.lider { display: inline-flex; align-items: center; margin-right: 10px; white-space: nowrap; font-size: .78rem; }
+.lider .flag { margin-right: 4px; }
+.lider em { font-style: normal; color: var(--text-muted); margin-left: 3px; }

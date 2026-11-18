@@ -41,6 +41,20 @@ SETORES = ([AGREGADO] if AGREGADO else []) + CNAES
 ANO_BASE_PRECOS = int(SETOR.get('ano_base_precos', 2024))
 
 
+
+# Nomes curtos dos grupos do Sistema Harmonizado (SH4) usados no Comtrade.
+SH_ROTULOS = {
+    '4003': 'Borracha regenerada', '4004': 'Resíduos e aparas de borracha',
+    '4005': 'Borracha misturada, não vulcanizada', '4006': 'Perfis, tubos e outras formas não vulcanizadas',
+    '4007': 'Fios e cordas de borracha vulcanizada', '4008': 'Chapas, folhas, tiras e perfis de borracha',
+    '4009': 'Tubos e mangueiras', '4010': 'Correias transportadoras e de transmissão',
+    '401290': 'Bandas de rodagem e protetores (flaps)', '4013': 'Câmaras de ar',
+    '4014': 'Artigos de higiene e farmácia', '4015': 'Luvas e vestuário de borracha',
+    '4016': 'Outras obras de borracha (juntas, peças técnicas)', '4017': 'Borracha endurecida e suas obras',
+    '401211': 'Pneus recauchutados (automóveis)', '401212': 'Pneus recauchutados (ônibus e caminhões)',
+    '401213': 'Pneus recauchutados (aeronaves)', '401219': 'Outros pneus recauchutados',
+}
+
 def read_csv(name, **kwargs):
     return pd.read_csv(SRC_DIR / name, sep=';', decimal=',', encoding='utf-8-sig', **kwargs)
 
@@ -165,13 +179,32 @@ def build_producao():
     É uma série só, igual para todos os segmentos do painel (o IBGE não abre
     a PIM-PF por classe CNAE)."""
     df = read_csv(f"Producao_Fisica_Mensal_{SETOR['producao_rotulo_arquivo']}.csv")
+    def data_br(v):
+        v = str(v)
+        return f'{v[8:10]}/{v[5:7]}/{v[0:4]}' if len(v) == 10 and v[4] == '-' else v
+
     indice = [
-        {'ano': to_int(r.ano), 'mes': to_int(r.mes), 'data': r.data,
+        {'ano': to_int(r.ano), 'mes': to_int(r.mes), 'data': data_br(r.data),
          'indice_bruto': to_num(r.indice_bruto_base_100),
          'indice_dessaz': to_num(r.indice_dessazonalizado_base_100)}
         for r in df.itertuples(index=False)
     ]
     return sorted(indice, key=lambda r: r['ano'] * 100 + r['mes'])
+
+
+def build_producao_comparativos():
+    """PIM-PF da indústria geral e da indústria de transformação (mesma base
+    100 do IBGE), para comparar com a divisão do setor."""
+    arq = SRC_DIR / 'Producao_Fisica_Comparativos.csv'
+    if not arq.exists():
+        return None
+    df = read_csv(arq.name)
+    out = {}
+    for rec, g in df.groupby('recorte'):
+        out[rec] = [{'ano': to_int(r.ano), 'mes': to_int(r.mes), 'indice_bruto': to_num(r.indice_bruto_base_100),
+                     'indice_dessaz': to_num(r.indice_dessazonalizado_base_100)}
+                    for r in g.sort_values(['ano', 'mes']).itertuples(index=False)]
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -1069,8 +1102,43 @@ def build_sector(cfg, fator_brl, macro_rows=None):
                            'pct_mundo': to_num(r.Valor_US_FOB / total_mundo * 100) if total_mundo else None})
         ranking_exportadores[str(int(ano))] = {'n_paises': len(g), 'itens': linhas}
 
+    # Comércio mundial por grupo de produto (SH4/SH6): ano de referência = o
+    # mais recente com pelo menos 90% dos países declarantes do melhor ano
+    # (os anos recentes chegam incompletos ao Comtrade).
+    grupos_mundo = None
+    if len(ct_world_exp):
+        cob = ct_world_exp.groupby('Ano')['Reporter_ISO'].nunique()
+        anos_ok = [a for a, n in cob.items() if n >= 0.9 * cob.max()]
+        ano_ref = int(max(anos_ok))
+        ano_ini = ano_ref - 5 if (ano_ref - 5) in cob.index else int(min(cob.index))
+        w = ct_world_exp.copy()
+        w['HS'] = w['HS_Code'].astype(str)
+        itens_g = []
+        for hs, g in w.groupby('HS'):
+            gr = g[g['Ano'] == ano_ref].groupby(['Reporter_ISO', 'Reporter'], as_index=False)['Valor_US_FOB'].sum()
+            gr = gr.sort_values('Valor_US_FOB', ascending=False).reset_index(drop=True)
+            tot = gr['Valor_US_FOB'].sum()
+            if not tot:
+                continue
+            tot_ini = g[g['Ano'] == ano_ini]['Valor_US_FOB'].sum()
+            bra = gr.index[gr['Reporter_ISO'] == 'BRA']
+            bra_v = float(gr.loc[bra[0], 'Valor_US_FOB']) if len(bra) else 0.0
+            lideres = []
+            for r in gr.head(3).itertuples(index=False):
+                iso2, nome = PAISES_ISO3.get(r.Reporter_ISO, [None, r.Reporter])
+                lideres.append({'iso2': iso2, 'pais': nome, 'pct': to_num(r.Valor_US_FOB / tot * 100)})
+            itens_g.append({
+                'hs': hs, 'grupo': SH_ROTULOS.get(hs, f'SH {hs}'), 'mundo_usd': to_num(tot),
+                'cresc_aa': to_num(((tot / tot_ini) ** (1 / (ano_ref - ano_ini)) - 1) * 100) if tot_ini and ano_ref > ano_ini else None,
+                'brasil_usd': bra_v, 'brasil_pct': to_num(bra_v / tot * 100),
+                'brasil_pos': int(bra[0]) + 1 if len(bra) else None, 'n_paises': int(len(gr)),
+                'lideres': lideres,
+            })
+        itens_g.sort(key=lambda x: -x['mundo_usd'])
+        grupos_mundo = {'ano': ano_ref, 'ano_inicial': ano_ini, 'itens': itens_g}
+
     comtrade = {'brazil_yearly': brazil_yearly, 'world_yearly': world_yearly, 'top_partners_latest': top_partners_latest,
-                'ranking_exportadores': ranking_exportadores}
+                'ranking_exportadores': ranking_exportadores, 'grupos_mundo': grupos_mundo}
 
     # --- BNDES ---
     bndes_df = read_multi(lambda c, r: f'BNDES_Desembolsos_{c}.csv')
@@ -1141,6 +1209,7 @@ def build_sector(cfg, fator_brl, macro_rows=None):
         },
         'comtrade': comtrade,
         'cempre': build_cempre(codes),
+        'municipios': build_municipios(codes),
         'mercado': mercado,
         'simulador': build_simulador(mercado, importacao_china_resto_yearly),
         'bndes': {'yearly': bndes_yearly, 'uf_total': bndes_uf_total,
@@ -1220,6 +1289,73 @@ def build_cempre(codes):
         'ind_transformacao_brasil': [r for r in i_lin if r['uf'] == 'BR'],
         'ind_transformacao_uf_ultimo_ano': [r for r in i_lin if r['uf'] != 'BR' and r['ano'] == anos[-1]],
     }
+
+
+# ---------------------------------------------------------------------------
+# RAIS por município (microdados do PDET): mapa municipal e comparação com a
+# indústria de transformação no mesmo município.
+# ---------------------------------------------------------------------------
+_MUN_CACHE = {}
+
+
+def _nomes_municipios():
+    """Código de 6 dígitos -> (nome, código de 7 dígitos), da malha em assets/geo."""
+    if 'nomes' not in _MUN_CACHE:
+        nomes = {}
+        for f in sorted((ROOT / 'assets' / 'geo').glob('mun-*.json')):
+            for ft in json.loads(f.read_text(encoding='utf-8'))['features']:
+                i7 = ft['properties']['id']
+                nomes[i7[:6]] = (ft['properties']['nome'], i7)
+        _MUN_CACHE['nomes'] = nomes
+    return _MUN_CACHE['nomes']
+
+
+def _mun_csv(nome):
+    if nome not in _MUN_CACHE:
+        arq = SRC_DIR / f'{nome}_{ROTULO_ARQUIVO}.csv'
+        _MUN_CACHE[nome] = read_csv(arq.name, dtype={'municipio6': str, 'recorte': str}) if arq.exists() else None
+    return _MUN_CACHE[nome]
+
+
+def build_municipios(codes):
+    est = _mun_csv('RAIS_Municipio_Estab')
+    if est is None:
+        return None
+    rem = _mun_csv('RAIS_Municipio_Remun')
+    nomes = _nomes_municipios()
+    ano = int(est['ano'].max())
+    e = est[est['ano'] == ano]
+    setor = e[e['recorte'].isin(codes)].groupby('municipio6')[['estabelecimentos', 'vinculos']].sum()
+    ind = e[e['recorte'] == 'ind_transformacao'].set_index('municipio6')[['estabelecimentos', 'vinculos']]
+    rs = ri = None
+    ano_rem = None
+    if rem is not None and len(rem):
+        ano_rem = int(rem['ano'].max())
+        r = rem[rem['ano'] == ano_rem]
+        rs = r[r['recorte'].isin(codes)].groupby('municipio6')[['vinculos_com_remun', 'remun_dez_total']].sum()
+        ri = r[r['recorte'] == 'ind_transformacao'].set_index('municipio6')[['vinculos_com_remun', 'remun_dez_total']]
+
+    def media(df, m):
+        if df is None or m not in df.index:
+            return None
+        n, tot = df.at[m, 'vinculos_com_remun'], df.at[m, 'remun_dez_total']
+        return float(tot / n) if n else None
+
+    itens = []
+    for m, row in setor.iterrows():
+        if not row['vinculos'] and not row['estabelecimentos']:
+            continue
+        nome, i7 = nomes.get(m, (None, None))
+        ie = ind.loc[m] if m in ind.index else None
+        itens.append({
+            'id': i7 or m, 'm6': m, 'uf': m[:2], 'nome': nome or f'Município {m}',
+            'estab': int(row['estabelecimentos']), 'vinc': int(row['vinculos']),
+            'ind_estab': int(ie['estabelecimentos']) if ie is not None else None,
+            'ind_vinc': int(ie['vinculos']) if ie is not None else None,
+            'remun': media(rs, m), 'ind_remun': media(ri, m),
+        })
+    itens.sort(key=lambda x: -x['vinc'])
+    return {'ano': ano, 'ano_remun': ano_rem, 'itens': itens}
 
 # ---------------------------------------------------------------------------
 # Simulador de mercado doméstico (projeção do consumo aparente)
@@ -1513,7 +1649,7 @@ def main():
             'config': CONFIG,
         },
         'shared': {
-            'producao': {'indice': producao_indice},
+            'producao': {'indice': producao_indice, 'comparativos': build_producao_comparativos()},
             'financeiro': {'grupo': fin_grupo, 'por_cnae_2024': fin_por_cnae,
                            'indicadores': indicadores},
             'simulador_impacto': build_simulador_impacto(indicadores, cadeia, macro),

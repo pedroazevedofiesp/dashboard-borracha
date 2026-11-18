@@ -22,7 +22,7 @@
 
   <nav class="sidebar-nav sidebar-nav-foot" id="foot-tabs-top" role="tablist" aria-label="Outras seções">
     <button type="button" data-view="diagnostico" role="tab" aria-selected="false">Diagnóstico Setorial</button>
-    <button type="button" data-view="simulador" role="tab" aria-selected="false">Simulador de Mercado <span class="badge-provisorio">em construção</span></button>
+    <button type="button" data-view="simulador" role="tab" aria-selected="false">Simulador de cenários <span class="badge-provisorio">em construção</span></button>
     <button type="button" data-view="cadeia" role="tab" aria-selected="false">Cadeia Produtiva</button>
     <button type="button" data-view="energia-industrial" role="tab" aria-selected="false">Energia Industrial</button>
   </nav>
@@ -125,6 +125,14 @@
     </div>
     <p class="section-note" id="producao-section-note"></p>
     <div class="caption-meta" id="section-caption-producao"></div>
+    <div class="exhibit-block" id="bloco-producao-cmp">
+      <div class="block-filter block-filter-inline"><div class="block-filter-item"><span>Base 100 em</span><select id="producao-cmp-base"></select></div></div>
+      <div id="chart-producao-cmp"></div>
+      <div class="exhibit-caption">
+        <div class="exhibit-title" id="producao-cmp-title">Setor x indústria</div>
+        <div class="exhibit-sub" id="producao-cmp-sub"></div>
+      </div>
+    </div>
     <div class="block-filter">
       <div class="block-filter-item">
         <span>Período</span>
@@ -175,6 +183,13 @@
     </div>
     <p class="section-note" id="financeiro-section-note"></p>
     <div class="caption-meta" id="section-caption-financeiro"></div>
+    <div class="exhibit-block" id="bloco-fin-cmp">
+      <div id="chart-fin-cmp"></div>
+      <div class="exhibit-caption">
+        <div class="exhibit-title" id="fin-cmp-title">Segmento x indústria de transformação</div>
+        <div class="exhibit-sub" id="fin-cmp-sub"></div>
+      </div>
+    </div>
     <div class="exhibit-block" id="bloco-indicadores-desempenho">
       <div id="table-indicadores-desempenho"></div>
       <div class="exhibit-caption">
@@ -268,6 +283,24 @@
         <div class="exhibit-caption">
           <div class="exhibit-title" id="cempre-sal-titulo"></div>
           <div class="exhibit-sub" id="cempre-sal-sub"></div>
+        </div>
+      </div>
+      <div class="mun-bloco" id="bloco-municipios">
+        <h3 class="cempre-titulo">Emprego por município</h3>
+        <div class="mun-controles"><label>Estado <select id="mun-uf"></select></label></div>
+        <div class="exhibit-block">
+          <div class="exhibit-caption" style="margin:0 0 8px">
+            <div class="exhibit-title" id="mun-titulo"></div>
+            <div class="exhibit-sub" id="mun-sub"></div>
+          </div>
+          <div class="mun-mapa" id="mun-mapa"></div>
+        </div>
+        <div class="exhibit-block">
+          <div id="mun-ranking"></div>
+          <div class="exhibit-caption">
+            <div class="exhibit-title">Principais municípios do setor x indústria local</div>
+            <div class="exhibit-sub" id="mun-ranking-sub"></div>
+          </div>
         </div>
       </div>
       <h3 class="cempre-titulo">Emprego formal (RAIS)</h3>
@@ -538,6 +571,13 @@
       </div>
     </div>
     <div class="exhibit-block">
+      <div id="table-comex-grupos-mundo"></div>
+      <div class="exhibit-caption">
+        <div class="exhibit-title" id="comex-grupos-mundo-title">Comércio mundial por grupo de produto</div>
+        <div class="exhibit-sub" id="comex-grupos-mundo-sub"></div>
+      </div>
+    </div>
+    <div class="exhibit-block">
       <div id="table-comex-paises"></div>
       <div class="exhibit-caption">
         <div class="exhibit-title">Exportação e importação por país parceiro</div>
@@ -802,58 +842,60 @@
 <!-- ============ SIMULADOR DE MERCADO ============ -->
 <div id="simulador-view" hidden>
   <header class="cad-cabeca">
-    <div class="cad-chapeu">Simulador · mercado doméstico</div>
+    <div class="cad-chapeu">Simulador · cenários</div>
     <div class="aviso-provisorio"><span class="badge-provisorio">Em construção</span> Versão provisória: os cálculos e a apresentação ainda estão em validação e podem mudar.</div>
-    <h2 class="cad-titulo">E se o ritmo das importações continuar?</h2>
-    <p class="cad-linha-fina">Projeção do mercado brasileiro até <span class="sim-horizonte"></span>, no mesmo espírito da "Simulação de riscos da importação" do diagnóstico setorial: produção, exportação e importação crescem a uma taxa anual, e o painel mostra quanto do mercado passaria a ser atendido por importados. Comece pelo ritmo histórico e ajuste as taxas ou escolha um cenário.</p>
+    <h2 class="cad-titulo">O que você acha que vai acontecer?</h2>
+    <p class="cad-linha-fina">Três cenários sobre o futuro do setor. Em cada um, escolha a alternativa que considera mais provável: o painel mostra aonde aquela combinação leva, com números calculados a partir dos dados do setor, e explica o porquê.</p>
   </header>
 
-  <div class="sim-controles">
-    <label class="sim-campo"><span>Segmento</span><select id="sim-segmento"></select></label>
-    <label class="sim-campo sim-campo-largo"><span>Recorte</span><select id="sim-recorte"></select></label>
+  <div class="cen-topo">
+    <nav class="seg-botoes" id="cen-seg" role="tablist" aria-label="Segmento"></nav>
   </div>
 
-  <div class="sim-cenarios" id="sim-cenarios" role="group" aria-label="Cenários prontos"></div>
+  <nav class="secao-abas cen-abas" id="cen-abas" role="tablist" aria-label="Cenários">
+    <button type="button" data-cen="china" class="active">1. A concorrência chinesa</button>
+    <button type="button" data-cen="cambio">2. Câmbio</button>
+    <button type="button" data-cen="demanda">3. Demanda dos clientes</button>
+    <button type="button" data-cen="empresa">Compare sua empresa</button>
+  </nav>
 
-  <div class="sim-grid">
-    <div class="sim-sliders" id="sim-sliders"></div>
-    <div class="sim-resultado">
-      <p class="sim-narrativa" id="sim-narrativa"></p>
-      <div class="kpi-grid sim-kpis" id="sim-kpis"></div>
+  <section class="cen-painel" data-cen="china">
+    <div class="cen-grid">
+      <div class="cen-perguntas" id="cen-china-perguntas"></div>
+      <div class="cen-resultado" id="cen-china-resultado"></div>
     </div>
-  </div>
-
-  <div class="exhibit-block">
-    <div id="sim-chart"></div>
-    <div class="exhibit-caption">
-      <div class="exhibit-title">Penetração da importação e participação chinesa no mercado</div>
-      <div class="exhibit-sub" id="sim-chart-sub"></div>
-    </div>
-  </div>
-
-  <section class="imp-bloco" id="imp-bloco">
-    <h3 class="imp-titulo"><span class="badge-provisorio">Em construção</span> E se parte das importações fosse produzida aqui, ou as exportações crescessem?</h3>
-    <p class="imp-linha-fina">Impacto anual na produção, no emprego e na renda do segmento e da cadeia de fornecedores, para o recorte escolhido acima.</p>
-    <div class="exec-seg-toggle sim-cenarios" id="imp-tipo" role="group" aria-label="Tipo de simulação">
-      <button type="button" class="exec-seg-btn active" data-tipo="importacao">Substituir importações</button>
-      <button type="button" class="exec-seg-btn" data-tipo="exportacao">Ampliar exportações</button>
-    </div>
-    <div class="sim-grid">
-      <div class="sim-sliders">
-        <div class="sim-slider">
-          <div class="sim-slider-top"><span id="imp-pct-label"></span><strong id="imp-pct-val"></strong></div>
-          <input type="range" id="imp-pct" min="1" max="100" step="1" value="10" aria-label="Percentual simulado">
-          <div class="sim-slider-hist">Arraste para simular de 1% a 100%.</div>
-        </div>
-      </div>
-      <div class="sim-resultado">
-        <p class="sim-narrativa" id="imp-narrativa"></p>
-      </div>
-    </div>
-    <div class="kpi-grid sim-kpis imp-kpis" id="imp-kpis"></div>
   </section>
 
-  <p class="cad-nota" id="sim-nota">Simulação ilustrativa e não exaustiva: aplica taxas constantes de crescimento real sobre o último ano com dado de produção, sem considerar efeitos de preço, câmbio ou política comercial. No bloco de impacto, cada real a mais de produção do segmento gera emprego, salários e valor adicionado na mesma proporção do último ano da PIA-Empresa; o efeito na cadeia usa o multiplicador de produção da Matriz Insumo-Produto e o emprego médio dos fornecedores, sem contar o efeito-renda. Consumo aparente = produção + importação − exportação; penetração da importação = importação / consumo aparente; coeficiente de exportação = exportação / produção. Fonte: PIA/IBGE, Comexstat e Contas Nacionais/IBGE. Elaboração: DECAP/FIESP.</p>
+  <section class="cen-painel" data-cen="cambio" hidden>
+    <div class="cen-grid">
+      <div class="cen-perguntas" id="cen-cambio-perguntas"></div>
+      <div class="cen-resultado" id="cen-cambio-resultado"></div>
+    </div>
+    <div class="exhibit-block">
+      <div id="cen-cambio-chart"></div>
+      <div class="exhibit-caption">
+        <div class="exhibit-title">Dólar e importação do setor ao longo do tempo</div>
+        <div class="exhibit-sub" id="cen-cambio-sub"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cen-painel" data-cen="demanda" hidden>
+    <div class="cen-grid">
+      <div class="cen-perguntas" id="cen-demanda-perguntas"></div>
+      <div class="cen-resultado" id="cen-demanda-resultado"></div>
+    </div>
+  </section>
+
+  <section class="cen-painel" data-cen="empresa" hidden>
+    <div class="cen-embreve">
+      <h3>Compare sua empresa com o setor</h3>
+      <p>Informe estado, município, número de empregados e salário médio e veja como sua empresa se compara à média do setor e da indústria de transformação no município, no estado e no Brasil. Nada do que for digitado é salvo nem enviado.</p>
+      <p><strong>Em breve:</strong> entra assim que a remuneração por município da RAIS estiver processada.</p>
+    </div>
+  </section>
+
+  <p class="cad-nota" id="cen-nota">Cenários ilustrativos e não exaustivos. Partem do último ano com dado de produção e aplicam taxas constantes até 2030, sem modelar preços, câmbio ou política comercial além do que cada pergunta descreve. Empregos estimados com a relação entre produção e emprego do próprio segmento (PIA-Empresa) e, na cadeia, com o multiplicador de produção da Matriz Insumo-Produto. Fonte: PIA/IBGE, Comexstat, Contas Nacionais/IBGE e BCB. Elaboração: DECAP/FIESP.</p>
 </div><!-- /#simulador-view -->
 
 <!-- ============ CADEIA PRODUTIVA ============ -->
