@@ -1202,17 +1202,18 @@
     const dProd = (caCen - caRef) * partNac;
     const dProdTot = (caCen - ca) * partNac;
     const emp = cenEmpregos(dProd);
+    const empTot = cenEmpregos(dProdTot);
     const sentido = dDem > 0.05 ? 'acima do' : dDem < -0.05 ? 'abaixo do' : 'igual ao';
     el.innerHTML = cenResultado(`Até ${CEN_HORIZONTE}, nesse cenário:`, [
       `O mercado do segmento cresceria ${pctL(gTot, 1, true)} ao ano, ${sentido} ritmo atual (${pctL(gCA, 1, true)} ao ano). Veículos e transporte respondem por ${pctL(shVeic * 100, 0)} das vendas de artigos de borracha e o consumo das famílias por ${pctL(shFam * 100, 0)}.`,
-      `Mantida a fatia atual da produção nacional no mercado (${pctL(partNac * 100, 0)}), a produção chegaria a ${CEN_HORIZONTE} com ${fmt.brl(Math.abs(dProdTot))} ${dProdTot >= 0 ? 'a mais' : 'a menos'} que em ${s.ano_base}.`,
+      `Mantida a fatia atual da produção nacional no mercado (${pctL(partNac * 100, 0)}), a produção chegaria a ${CEN_HORIZONTE} com ${fmt.brl(Math.abs(dProdTot))} ${dProdTot >= 0 ? 'a mais' : 'a menos'} por ano que em ${s.ano_base}${empTot ? `, cerca de <strong>${arredE(empTot.dir)} empregos diretos</strong>${empTot.ind != null ? ` e ${arredE(empTot.ind)} na cadeia` : ''} ${dProdTot >= 0 ? 'a mais' : 'a menos'}` : ''}.`,
       Math.abs(dProd) > 1 ? `Em relação ao ritmo atual, são ${fmt.brl(Math.abs(dProd))} ${dProd >= 0 ? 'a mais' : 'a menos'} de produção por ano${emp ? `, cerca de <strong>${arredE(emp.dir)} empregos diretos</strong>${emp.ind != null ? ` e ${arredE(emp.ind)} na cadeia` : ''} ${dProd >= 0 ? 'a mais' : 'a menos'}` : ''}.` : 'Com as duas demandas no ritmo atual, este é o cenário de referência.',
       dDem > 0 ? 'Atenção: se a importação mantiver o ritmo do cenário 1, parte desse crescimento pode ir para o produto importado, e não para a produção nacional.' : dDem < 0 ? 'Com demanda menor, a concorrência com o importado tende a ficar mais acirrada, o que pode ampliar a perda.' : null,
       `Pesos dos clientes: Contas Nacionais/IBGE (${anoD}), para todos os artigos de borracha, inclusive pneus novos; servem como aproximação para o segmento.`,
     ], [
       cardL({ rotulo: 'Crescimento do mercado', valor: pctL(gTot, 1, true), serie: [], sub: `ao ano · ritmo atual ${pctL(gCA, 1, true)}` }),
-      cardL({ rotulo: `Produção vs ritmo atual · ${CEN_HORIZONTE}`, valor: (dProd >= 0 ? '+' : '−') + fmt.brl(Math.abs(dProd)), serie: [], sub: `por ano · R$ de ${anoBasePrecos()}` }),
-      emp ? cardL({ rotulo: 'Empregos diretos', valor: (dProd >= 0 ? '+' : '−') + arredE(emp.dir), serie: [], sub: 'em relação ao ritmo atual' }) : null,
+      cardL({ rotulo: `Produção nacional · ${s.ano_base}–${CEN_HORIZONTE}`, valor: (dProdTot >= 0 ? '+' : '−') + fmt.brl(Math.abs(dProdTot)), serie: [], sub: Math.abs(dProd) > 1 ? `${dProd >= 0 ? '+' : '−'}${fmt.brl(Math.abs(dProd))} vs ritmo atual · R$ de ${anoBasePrecos()}` : `por ano em ${CEN_HORIZONTE} · R$ de ${anoBasePrecos()}` }),
+      empTot ? cardL({ rotulo: `Empregos diretos · ${s.ano_base}–${CEN_HORIZONTE}`, valor: (dProdTot >= 0 ? '+' : '−') + arredE(empTot.dir), serie: [], sub: emp && Math.abs(dProd) > 1 ? `${dProd >= 0 ? '+' : '−'}${arredE(emp.dir)} vs ritmo atual` : (empTot.ind != null ? `e ${arredE(empTot.ind)} na cadeia` : 'no segmento') }) : null,
     ]);
   }
 
