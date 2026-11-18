@@ -802,12 +802,12 @@ table.pdi-table td.mono { font-variant-numeric: tabular-nums; white-space: nowra
 .uf-leg button { font: inherit; font-size: .72rem; margin-left: 8px; border: 1px solid var(--border); background: var(--surface-card); color: var(--text-primary); border-radius: 999px; padding: 3px 10px; cursor: pointer; }
 
 /* Mapa municipal */
-.mun-controles { margin: 0 0 12px; font-size: .8rem; color: var(--text-muted); }
+.mun-controles { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; margin: 0 0 12px; font-size: .8rem; color: var(--text-muted); }
 .mun-controles select { font: inherit; font-size: .85rem; margin-left: 6px; padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-card); color: var(--text-primary); }
 .mun-mapa { width: 100%; max-width: 760px; margin: 0 auto; }
 .mun-svg { width: 100%; height: auto; max-height: 560px; display: block; }
 .mun-path { fill: var(--surface-2); stroke: var(--surface-card); stroke-width: .5; }
-.mun-path.tem { fill: color-mix(in srgb, var(--accent) calc(var(--t) * 95%), var(--surface-2)); }
+.mun-path.tem { fill: color-mix(in srgb, var(--cor, var(--accent)) calc(var(--t) * 95%), var(--surface-2)); }
 .mun-path:hover { stroke: var(--text-primary); stroke-width: 1.5; }
 .mun-cmp { display: block; font-size: .68rem; color: var(--text-muted); }
 

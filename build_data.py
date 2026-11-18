@@ -1315,7 +1315,7 @@ def _nomes_municipios():
 def _mun_csv(nome):
     if nome not in _MUN_CACHE:
         arq = SRC_DIR / f'{nome}_{ROTULO_ARQUIVO}.csv'
-        _MUN_CACHE[nome] = read_csv(arq.name, dtype={'municipio6': str, 'recorte': str}) if arq.exists() else None
+        _MUN_CACHE[nome] = read_csv(arq.name, dtype={'municipio6': str, 'recorte': str, 'id_municipio': str, 'cesta': str}) if arq.exists() else None
     return _MUN_CACHE[nome]
 
 
@@ -1357,7 +1357,37 @@ def build_municipios(codes):
             'remun': media(rs, m), 'ind_remun': media(ri, m),
         })
     itens.sort(key=lambda x: -x['vinc'])
-    return {'ano': ano, 'ano_remun': ano_rem, 'itens': itens}
+
+    # Comércio exterior por município (Comex Stat, SH4, domicílio fiscal da empresa)
+    cx = _mun_csv('Comex_Municipio')
+    # mesma estrutura em todos os segmentos (vazia onde não há dado por município)
+    comex = {'ano': None, 'itens': [], 'total_exp': 0.0, 'total_imp': 0.0}
+    if cx is not None and len(cx):
+        cx = cx[cx['cesta'].astype(str).isin(codes)]
+    if cx is not None and len(cx):
+        ano_atual = date.today().year
+        ano_cx = int(cx[cx['ano'] < ano_atual]['ano'].max())
+        u = cx[cx['ano'] == ano_cx].groupby(['id_municipio', 'fluxo'])['fob_usd'].sum().unstack(fill_value=0)
+        exp = u.get('Exportação', pd.Series(dtype=float))
+        imp = u.get('Importação', pd.Series(dtype=float))
+        nomes7 = {v[1]: v[0] for v in nomes.values()}
+        cx_itens = []
+        for m7 in set(exp.index) | set(imp.index):
+            m7 = str(m7).zfill(7)
+            e, i = float(exp.get(m7, 0) or 0), float(imp.get(m7, 0) or 0)
+            if e or i:
+                cx_itens.append({'id': m7, 'nome': nomes7.get(m7, f'Município {m7}'), 'uf': m7[:2], 'exp': e, 'imp': i})
+        cx_itens.sort(key=lambda x: -x['exp'])
+        for pos, x in enumerate(cx_itens, start=1):
+            x['pos_exp'] = pos if x['exp'] else None
+        por_id = {x['id']: x for x in cx_itens}
+        for it in itens:
+            c = por_id.get(it['id'])
+            it['exp'] = c['exp'] if c else 0.0
+            it['imp'] = c['imp'] if c else 0.0
+            it['pos_exp'] = c['pos_exp'] if c else None
+        comex = {'ano': ano_cx, 'itens': cx_itens, 'total_exp': float(exp.sum()), 'total_imp': float(imp.sum())}
+    return {'ano': ano, 'ano_remun': ano_rem, 'itens': itens, 'comex': comex}
 
 
 # ---------------------------------------------------------------------------

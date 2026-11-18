@@ -298,12 +298,18 @@ def build_emprego_download(cfg):
                    note='Fonte: CEMPRE/IBGE. Elaboração: DECAP/FIESP. Valores vazios = sigilo do IBGE.')
     if sd and sd.get('municipios'):
         m = sd['municipios']
-        _add_sheet(wb, 'Municipios', _df(m['itens'], ['id', 'nome', 'uf', 'estab', 'vinc', 'ind_estab', 'ind_vinc', 'remun', 'ind_remun'], {
+        _add_sheet(wb, 'Municipios', _df(m['itens'], ['id', 'nome', 'uf', 'estab', 'vinc', 'ind_estab', 'ind_vinc', 'remun', 'ind_remun', 'exp', 'imp', 'pos_exp'], {
+            'exp': f"Exportação {(m.get('comex') or {}).get('ano', '')} (US$)", 'imp': f"Importação {(m.get('comex') or {}).get('ano', '')} (US$)", 'pos_exp': 'Posição no Brasil (exportação)',
             'id': 'Código IBGE', 'nome': 'Município', 'uf': 'Código UF', 'estab': 'Estabelecimentos do setor', 'vinc': 'Vínculos do setor',
             'ind_estab': 'Estabelecimentos da ind. transformação', 'ind_vinc': 'Vínculos da ind. transformação',
             'remun': f"Remuneração média dez/{m.get('ano_remun') or ''} do setor (R$)", 'ind_remun': 'Remuneração média da ind. transformação (R$)'}),
             title=f"Emprego por município — {cfg['rotulo']}",
-            note=f"Fonte: RAIS/MTE. Elaboração: DECAP/FIESP. Vínculos e estabelecimentos de {m['ano']}; remuneração de {m.get('ano_remun') or '-'}.")
+            note=f"Fonte: RAIS/MTE e Comexstat. Elaboração: DECAP/FIESP. Vínculos e estabelecimentos de {m['ano']}; remuneração de {m.get('ano_remun') or '-'}; comércio exterior por município da empresa (grupos SH4).")
+        if (m.get('comex') or {}).get('itens'):
+            _add_sheet(wb, 'Comex por municipio', _df(m['comex']['itens'], ['id', 'nome', 'uf', 'exp', 'imp', 'pos_exp'], {
+                'id': 'Código IBGE', 'nome': 'Município', 'uf': 'Código UF', 'exp': 'Exportação (US$)', 'imp': 'Importação (US$)', 'pos_exp': 'Posição no Brasil (exportação)'}),
+                title=f"Comércio exterior do setor por município, {m['comex']['ano']} — {cfg['rotulo']}",
+                note='Fonte: Comexstat. Elaboração: DECAP/FIESP. Município do domicílio fiscal da empresa; grupos de produto SH4 (capítulo 40, exceto pneus novos e usados).')
     _save(wb, f"Emprego_{cfg['codigo']}.xlsx")
 
 

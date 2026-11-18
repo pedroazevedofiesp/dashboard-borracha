@@ -382,3 +382,12 @@ def test_comex_mensal_bate_com_anual(data, cnae):
 def test_comex_externas(data):
     ext = data['shared']['comex_externas']
     assert ext and {e['cesta'] for e in ext} >= {'natural', 'pneus_novos'}
+
+
+def test_comex_municipio(data):
+    m = data['sectors'][CNAES[0]]['municipios'].get('comex')
+    if not m or not m['itens']:
+        pytest.skip('sem comércio por município')
+    nac = {r['ano']: r for r in data['sectors'][CNAES[0]]['comex']['yearly']}[m['ano']]
+    assert abs(m['total_exp'] - nac['exportacao_usd']) <= 0.02 * nac['exportacao_usd']
+    assert all(len(x['id']) == 7 and not x['nome'].startswith('Município ') for x in m['itens'][:50])

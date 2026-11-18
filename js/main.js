@@ -892,7 +892,7 @@
   // escolhido, colorido pelos vínculos do setor, e ranking com a comparação
   // com a indústria de transformação no mesmo município.
   // ---------------------------------------------------------------------
-  const munSt = { uf: null, geo: {}, carregando: null };
+  const munSt = { uf: null, geo: {}, carregando: null, met: 'vinc' };
   const SIGLA_POR_COD = { '11': 'RO', '12': 'AC', '13': 'AM', '14': 'RR', '15': 'PA', '16': 'AP', '17': 'TO', '21': 'MA', '22': 'PI', '23': 'CE', '24': 'RN', '25': 'PB', '26': 'PE', '27': 'AL', '28': 'SE', '29': 'BA', '31': 'MG', '32': 'ES', '33': 'RJ', '35': 'SP', '41': 'PR', '42': 'SC', '43': 'RS', '50': 'MS', '51': 'MT', '52': 'GO', '53': 'DF' };
   const COD_POR_SIGLA = Object.fromEntries(Object.entries(SIGLA_POR_COD).map(([c, s]) => [s, c]));
 
@@ -922,6 +922,21 @@
     const nomeUf = NOME_UF[SIGLA_POR_COD[munSt.uf]] || munSt.uf;
     const tot = itens.reduce((a, b) => a + b.vinc, 0);
     const top = itens[0];
+    const temCx = !!(m.comex && m.comex.itens.length);
+    const cxUf = temCx ? m.comex.itens.filter(x => x.uf === munSt.uf) : [];
+    const metAtiva = temCx ? munSt.met : 'vinc';
+    $('#mun-metrica').style.display = temCx ? '' : 'none';
+    if (metAtiva !== 'vinc') {
+      const ord = cxUf.slice().sort((a, b) => b[metAtiva] - a[metAtiva]);
+      const totM = ord.reduce((a, b) => a + b[metAtiva], 0);
+      const nomeMet = metAtiva === 'exp' ? 'exportação' : 'importação';
+      $('#mun-titulo').textContent = ord[0] && ord[0][metAtiva] ? `${ord[0].nome} lidera a ${nomeMet} do setor em ${nomeUf} (${pctL(ord[0][metAtiva] / totM * 100, 0)} do estado)` : nomeUf;
+      $('#mun-sub').textContent = `${nomeMet.charAt(0).toUpperCase() + nomeMet.slice(1)} do setor por município da empresa, US$ FOB, ${m.comex.ano}. Grupos de produto do Sistema Harmonizado (4 dígitos), mais amplos que a cesta de NCM do painel.`;
+      $('#mun-ranking').innerHTML = `<div class="data-table-wrap"><table class="data-table tabela-mun"><thead><tr><th>Município</th><th style="text-align:right">Exportação</th><th style="text-align:right">Importação</th><th style="text-align:right">% do estado</th><th style="text-align:right">Posição no Brasil (exportação)</th></tr></thead><tbody>`
+        + ord.slice(0, 12).map(x => `<tr><td>${x.nome}</td><td style="text-align:right">${fmt.usd(x.exp)}</td><td style="text-align:right">${fmt.usd(x.imp)}</td><td style="text-align:right">${totM ? pctL(x[metAtiva] / totM * 100) : '-'}</td><td style="text-align:right">${x.pos_exp ? x.pos_exp + 'º' : '-'}</td></tr>`).join('') + '</tbody></table></div>';
+      $('#mun-ranking-sub').textContent = `12 maiores municípios em ${nomeMet} do setor em ${nomeUf}, ${m.comex.ano}.`;
+      return;
+    }
     $('#mun-titulo').textContent = top ? `${top.nome} lidera o emprego do setor em ${nomeUf}` : nomeUf;
     $('#mun-sub').textContent = `Vínculos formais do setor por município, ${m.ano}. Passe o mouse para ver o detalhe; tons mais escuros = mais vínculos. ${itens.length} municípios com o setor no estado.`;
     const temRem = itens.some(x => x.remun != null);
@@ -954,6 +969,9 @@
     if (munSt.uf !== uf) return;  // trocou de estado durante o carregamento
     const m = munDados();
     const porId = new Map(m.itens.filter(x => x.uf === uf).map(x => [x.id, x]));
+    const cxPorId = new Map(((m.comex && m.comex.itens) || []).filter(x => x.uf === uf).map(x => [x.id, x]));
+    const met = (m.comex && m.comex.itens.length) ? munSt.met : 'vinc';
+    const valor = id => met === 'vinc' ? ((porId.get(id) || {}).vinc || 0) : ((cxPorId.get(id) || {})[met] || 0);
     // projeção equiretangular com correção pela latitude média
     let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
     geo.features.forEach(f => f.geometry.coordinates.forEach(p => p.forEach(r => r.forEach(([x, y]) => {
@@ -963,12 +981,14 @@
     const W = 600, larg = (maxX - minX) * k, alt = maxY - minY;
     const esc = W / larg, H = Math.max(200, alt * esc);
     const px = x => ((x - minX) * k * esc).toFixed(1), py = y => ((maxY - y) * esc).toFixed(1);
-    const maxV = Math.max(...m.itens.filter(x => x.uf === uf).map(x => x.vinc), 1);
+    const ids = met === 'vinc' ? [...porId.keys()] : [...cxPorId.keys()];
+    const maxV = Math.max(...ids.map(valor), 1);
+    const corMet = { vinc: 'var(--accent)', exp: 'var(--series-4)', imp: 'var(--series-6)' }[met];
     const paths = geo.features.map(f => {
       const d = f.geometry.coordinates.map(p => p.map(r => 'M' + r.map(([x, y]) => px(x) + ',' + py(y)).join('L') + 'Z').join('')).join('');
-      const it = porId.get(f.properties.id);
-      const t = it ? Math.max(0.12, Math.log1p(it.vinc) / Math.log1p(maxV)) : 0;
-      return `<path d="${d}" data-id="${f.properties.id}" data-nome="${f.properties.nome.replace(/"/g, '&quot;')}" style="--t:${t.toFixed(3)}" class="mun-path${it ? ' tem' : ''}"/>`;
+      const v = valor(f.properties.id);
+      const t = v > 0 ? Math.max(0.12, Math.log1p(v) / Math.log1p(maxV)) : 0;
+      return `<path d="${d}" data-id="${f.properties.id}" data-nome="${f.properties.nome.replace(/"/g, '&quot;')}" style="--t:${t.toFixed(3)};--cor:${corMet}" class="mun-path${v > 0 ? ' tem' : ''}"/>`;
     }).join('');
     alvo.innerHTML = `<svg viewBox="0 0 ${W} ${H.toFixed(0)}" class="mun-svg" role="img" aria-label="Mapa de municípios">${paths}</svg>`;
     const svg = alvo.querySelector('svg');
@@ -976,13 +996,15 @@
       const p = e.target.closest('path');
       if (!p) { window.Charts.hideTooltip(); return; }
       const it = porId.get(p.dataset.id);
-      const rows = it ? [
+      const cxi = cxPorId.get(p.dataset.id);
+      const rowsCx = cxi ? [{ label: `Exportação (${m.comex.ano})`, value: fmt.usd(cxi.exp) + (cxi.pos_exp ? ` · ${cxi.pos_exp}º no Brasil` : '') }, { label: `Importação (${m.comex.ano})`, value: fmt.usd(cxi.imp) }] : [];
+      const rows = (it ? [
         { label: 'Vínculos do setor', value: numL(it.vinc) },
         { label: 'Estabelecimentos', value: numL(it.estab) },
         { label: 'Empregados por estabelecimento', value: it.estab ? fmt.full1(it.vinc / it.estab) + (it.ind_estab ? ` (ind. ${fmt.full1(it.ind_vinc / it.ind_estab)})` : '') : '-' },
         { label: 'Peso na indústria local', value: it.ind_vinc ? pctL(it.vinc / it.ind_vinc * 100) : '-' },
       ].concat(it.remun ? [{ label: 'Remuneração média', value: 'R$ ' + numL(it.remun) + (it.ind_remun ? ` (ind. R$ ${numL(it.ind_remun)})` : '') }] : [])
-        : [{ label: 'Sem vínculos do setor', value: '' }];
+        : [{ label: 'Sem vínculos do setor', value: '' }]).concat(rowsCx);
       window.Charts.showTooltip(e.clientX, e.clientY, p.dataset.nome, rows);
     });
     svg.addEventListener('mouseleave', () => window.Charts.hideTooltip());
@@ -991,6 +1013,13 @@
   function setupMunicipios() {
     const sel = $('#mun-uf');
     if (!sel) return;
+    $('#mun-metrica').addEventListener('click', e => {
+      const b = e.target.closest('button[data-met]');
+      if (!b) return;
+      munSt.met = b.dataset.met;
+      $('#mun-metrica').querySelectorAll('button').forEach(x => x.classList.toggle('active', x === b));
+      desenharMapaMun(); rankingMun();
+    });
     sel.addEventListener('change', () => { munSt.uf = sel.value; desenharMapaMun(); rankingMun(); });
   }
 
@@ -1234,7 +1263,7 @@
   // a indústria de transformação no município (RAIS), no estado (CEMPRE) e
   // no Brasil (CEMPRE e PIA). Nada é gravado nem enviado: tudo no navegador.
   // ---------------------------------------------------------------------
-  const emp = { uf: null, mun: '', func: '', sal: '', fat: '' };
+  const emp = { uf: null, mun: '', func: '', sal: '', fat: '', exp: '' };
 
   function setupEmpresa() {
     const box = $('#cen-empresa-form');
@@ -1263,6 +1292,7 @@
         <label class="emp-campo"><span>Número de empregados</span><input type="number" min="1" step="1" inputmode="numeric" data-campo="func" value="${emp.func}" placeholder="ex.: 45"></label>
         <label class="emp-campo"><span>Salário médio mensal (R$)</span><input type="number" min="0" step="50" inputmode="decimal" data-campo="sal" value="${emp.sal}" placeholder="ex.: 3500"></label>
         <label class="emp-campo"><span>Faturamento anual (R$, opcional)</span><input type="number" min="0" step="10000" inputmode="decimal" data-campo="fat" value="${emp.fat}" placeholder="ex.: 12000000"></label>
+        <label class="emp-campo"><span>Exportação anual (US$, opcional)</span><input type="number" min="0" step="10000" inputmode="decimal" data-campo="exp" value="${emp.exp}" placeholder="ex.: 500000"></label>
         <p class="emp-privado">🔒 Os valores ficam só no seu navegador: nada é salvo nem enviado.</p>`;
       box.dataset.pronto = '1';
       box.dataset.seg = cen.seg;
@@ -1299,6 +1329,20 @@
       fr.push(`Pelo número de empregados, é uma empresa ${porte}; a média do setor no Brasil é de ${fmt.full1(tam(ceBr.pessoal_ocupado, ceBr.empresas))} pessoas por empresa.`);
     }
     if (fat && func && fatPo(pia)) fr.push(`O faturamento por empregado é ${pctL(Math.abs((fat / func / fatPo(pia) - 1) * 100), 0)} ${fat / func >= fatPo(pia) ? 'maior' : 'menor'} que a média do segmento no Brasil (${fmt.brl(fatPo(pia))} por pessoa ao ano${fatPo(piaInd) ? `; indústria de transformação: ${fmt.brl(fatPo(piaInd))}` : ''}).`);
+    // Exportação: intensidade (exportação / faturamento) e peso no município
+    const expUsd = +emp.exp || null;
+    if (expUsd) {
+      const dolares = (shared().macro || []).filter(r => r.dolar && r.ano === anoAtual - 1).map(r => r.dolar);
+      const dolar = dolares.length ? dolares.reduce((a, b) => a + b, 0) / dolares.length : null;
+      const coef = ((sd.mercado || {}).yearly || []).slice(-1)[0];
+      if (fat && dolar) {
+        const intens = expUsd * dolar / fat * 100;
+        fr.push(`Sua empresa exporta cerca de ${pctL(intens, 0)} do faturamento${coef && coef.coef_exportacao != null ? `; no segmento, ${pctL(coef.coef_exportacao, 0)} da produção nacional vai para o exterior (${coef.ano})` : ''}.`);
+      }
+      const cxm = m && mun.comex && mun.comex.itens.length ? mun.comex.itens.find(x => x.id === m.id) : null;
+      if (cxm && cxm.exp > 0) fr.push(`Isso equivale a ${pctL(expUsd / cxm.exp * 100, 1)} das exportações do setor em ${m.nome} (${fmt.usd(cxm.exp)} em ${mun.comex.ano}${cxm.pos_exp ? `, ${cxm.pos_exp}º município exportador do país` : ''}).`);
+      else if (m && mun.comex && mun.comex.itens.length) fr.push(`${m.nome} não teve exportação do setor registrada em ${mun.comex.ano}.`);
+    }
     $('#cen-empresa-res').innerHTML = `
       ${fr.length ? `<ul class="cen-texto">${fr.map(f => `<li>${f}</li>`).join('')}</ul>` : '<p class="emp-dica">Preencha os campos ao lado para ver a comparação.</p>'}
       <div class="data-table-wrap"><table class="data-table tabela-emp"><thead><tr><th>Indicador</th><th>Sua empresa</th>${cols.map(c => `<th style="text-align:right">${c}</th>`).join('')}</tr></thead><tbody>${corpo}</tbody></table></div>
