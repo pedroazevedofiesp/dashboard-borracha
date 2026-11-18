@@ -1419,7 +1419,9 @@
     box.innerHTML = `<div class="focus-cab"><span class="leitura-tag">O que o mercado espera</span>Boletim Focus (Banco Central), pesquisa de ${d}</div>
       <div class="data-table-wrap"><table class="data-table focus-tab"><thead><tr><th>Indicador</th>${anos.map(a => `<th style="text-align:right">${a}</th>`).join('')}</tr></thead><tbody>`
       + linhas.map(l => `<tr><td>${l[0]}</td>${anos.map(a => { const v = focusVal(l[1], a); return `<td style="text-align:right">${v != null ? l[2](v) : '-'}</td>`; }).join('')}</tr>`).join('')
-      + `</tbody></table></div>${jr}<p class="focus-nota">O dólar e o crescimento esperados aparecem como opção "Segue o Focus" nos cenários de câmbio e de demanda. Fonte: Focus/BCB. Elaboração: DECAP/FIESP.</p>`;
+      + `</tbody></table></div>${jr}<p class="focus-nota">O dólar e o crescimento esperados também aparecem como opção "Segue o Focus" no Simulador de cenários. Fonte: Focus/BCB. Elaboração: DECAP/FIESP.</p>`;
+    const nota = $('#cen-nota-focus');
+    if (nota) nota.innerHTML = `As opções "Segue o Focus" usam as expectativas de mercado do boletim Focus (Banco Central, pesquisa de ${d}), que estão na aba Expectativas de mercado em Dados do setor.`;
   }
 
   function aplicarFocusNosCenarios() {
@@ -3314,6 +3316,7 @@
     { target: 'block-mercado', title: 'Mercado doméstico', sub: 'Consumo aparente, coeficiente de exportação e penetração da importação.', opcional: () => !!(state.data && csS().mercado) },
     { target: 'block-bndes', title: 'BNDES', sub: 'Desembolsos por UF, porte e instrumento.' },
     { target: 'block-decom', title: 'DECOM', sub: 'Medidas de defesa comercial em vigor.', opcional: () => temDecom() },
+    { target: 'block-focus', title: 'Expectativas de mercado', sub: 'Selic, IPCA, dólar e PIB esperados pelo mercado (boletim Focus/BCB).', opcional: () => !!(state.data && shared().focus) },
     { target: 'block-estudos-especiais', title: 'Estudos especiais', sub: 'Panorama do setor: concorrência, crédito, estrutura, produtividade e emprego.' },
     { target: 'block-gargalos', semNumero: true, title: 'Gargalos do setor', sub: 'Pontos identificados a partir dos dados.' },
   ];

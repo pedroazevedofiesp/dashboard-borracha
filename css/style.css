@@ -880,3 +880,6 @@ table.pdi-table td.mono { font-variant-numeric: tabular-nums; white-space: nowra
 .emp-pontos li { font-size: .88rem; line-height: 1.45; padding: 6px 10px; border-radius: 6px; color: var(--text-primary); }
 .emp-pontos li.ruim { background: color-mix(in srgb, var(--bad) 10%, transparent); border-left: 3px solid var(--bad); }
 .emp-pontos li.bom { background: color-mix(in srgb, var(--good) 10%, transparent); border-left: 3px solid var(--good); }
+
+.cen-nota-focus { font-size: .8rem; color: var(--text-muted); margin: 0 0 6px; }
+#block-focus .focus-bloco { margin-top: 0; }
