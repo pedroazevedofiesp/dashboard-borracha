@@ -1176,7 +1176,7 @@
     const varCusto = pctImp != null && varDol != null ? pctImp / 100 * varDol : null;
     const numeros = varDol == null ? null
       : `Com o dólar a R$ ${alvo.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (${pctL(varDol, 1, true)} em relação à média de ${ult.ano}), `
-        + (varImp != null ? `a importação do segmento tenderia a ${varImp >= 0 ? 'subir' : 'cair'} cerca de <strong>${pctL(Math.abs(varImp), 0)}</strong>, para ${fmt.usd(impEst)} por ano` : 'não há histórico suficiente neste segmento para estimar o efeito na importação')
+        + (varImp != null ? `no primeiro ano com esse câmbio a importação anual do segmento tenderia a ficar cerca de <strong>${pctL(Math.abs(varImp), 0)} ${varImp >= 0 ? 'maior' : 'menor'}</strong> que em ${ult.ano}: em torno de ${fmt.usd(impEst)} no ano, em vez de ${fmt.usd(ult.importacao_usd)}` : 'não há histórico suficiente neste segmento para estimar o efeito na importação')
         + (varCusto != null ? `, e o custo dos insumos ${varCusto >= 0 ? 'subiria' : 'cairia'} cerca de ${pctL(Math.abs(varCusto), 1)}` : '') + '.';
     const textos = {
       baixo: [
@@ -1200,10 +1200,10 @@
         'O histórico mostra que, nos anos de dólar em alta, a importação em dólares recuou, mas voltou a crescer quando o câmbio se estabilizou.',
       ],
     };
-    const notaElast = elast != null ? `Estimativa pela relação observada entre ${anos[0].ano} e ${ult.ano}: em média, cada 10% de alta do dólar veio acompanhada de queda de ${pctL(Math.abs(elast) * 10, 0)} na importação do segmento no mesmo ano. É uma tendência, não uma previsão: preços externos, demanda e frete também pesam.` : null;
-    $('#cen-cambio-resultado').innerHTML = cenResultado('Se isso acontecer:', [numeros].concat(textos[r], [notaElast]), [
+    const notaElast = elast != null ? `Estimativa pela relação observada entre ${anos[0].ano} e ${ult.ano}: em média, cada 10% de alta do dólar veio acompanhada de queda de ${pctL(Math.abs(elast) * 10, 0)} na importação do segmento no mesmo ano. É um efeito de curto prazo (no mesmo ano da mudança do dólar), não uma projeção para ${CEN_HORIZONTE} como nos outros cenários: preços externos, demanda e frete também pesam.` : null;
+    $('#cen-cambio-resultado').innerHTML = cenResultado('No primeiro ano com esse câmbio:', [numeros].concat(textos[r], [notaElast]), [
       cardL({ rotulo: 'Dólar no cenário', valor: 'R$ ' + alvo.toLocaleString('pt-BR', { minimumFractionDigits: 2 }), serie: [], sub: dAtual ? `média de ${ult.ano}: R$ ${dAtual.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '' }),
-      impEst != null ? cardL({ rotulo: 'Importação estimada', valor: fmt.usd(impEst), serie: [], delta: varImp, deltaRuim: true, sub: `vs ${fmt.usd(ult.importacao_usd)} em ${ult.ano}` }) : null,
+      impEst != null ? cardL({ rotulo: 'Importação no ano (estimada)', valor: fmt.usd(impEst), serie: [], delta: varImp, deltaRuim: true, sub: `1º ano com esse câmbio · ${ult.ano}: ${fmt.usd(ult.importacao_usd)}` }) : null,
       varCusto != null ? cardL({ rotulo: 'Custo dos insumos', valor: pctL(varCusto, 1, true), serie: [], sub: `${pctL(pctImp, 0)} dos insumos são importados` }) : null,
     ]);
     dualAxisLineChart($('#cen-cambio-chart'), {
