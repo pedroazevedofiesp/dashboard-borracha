@@ -1315,11 +1315,20 @@
         ref: [m ? m.remun : null, m ? m.ind_remun : null, salCe(ceUf), salCe(ceInd), salCe(ceBr)] },
       { nome: 'Faturamento por empregado (ao ano)', sua: fat && func ? fat / func : null, fmtv: v => fmt.brl(v),
         ref: [null, null, null, null, fatPo(pia)], extra: fatPo(piaInd) },
+      (() => {
+        // Exportação / faturamento: empresa (US$ convertido pelo dólar médio do último ano fechado) x coeficiente de exportação do segmento
+        const dl = (shared().macro || []).filter(r => r.dolar && r.ano === anoAtual - 1).map(r => r.dolar);
+        const dolar = dl.length ? dl.reduce((a, b) => a + b, 0) / dl.length : null;
+        const expE = +emp.exp || null;
+        const coefSeg = ((sd.mercado || {}).yearly || []).slice(-1)[0];
+        return { nome: 'Exportação / faturamento', pp: true, sua: expE && fat && dolar ? expE * dolar / fat * 100 : null, fmtv: v => pctL(v),
+          ref: [null, null, null, null, coefSeg ? coefSeg.coef_exportacao : null] };
+      })(),
     ];
     const cols = [m ? `Setor em ${m.nome}` : 'Setor no município', m ? `Indústria em ${m.nome}` : 'Indústria no município', `Setor em ${sigla}`, `Indústria em ${sigla}`, 'Setor no Brasil'];
-    const cmp = (v, r) => v != null && r ? `<span class="emp-cmp ${v >= r ? 'acima' : 'abaixo'}">${pctL((v / r - 1) * 100, 0, true)}</span>` : '';
+    const cmp = (v, r, pp) => v != null && r ? `<span class="emp-cmp ${v >= r ? 'acima' : 'abaixo'}">${pp ? (v - r > 0 ? '+' : '') + (v - r).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' p.p.' : pctL((v / r - 1) * 100, 0, true)}</span>` : '';
     const corpo = linhas.map(l => `<tr><td>${l.nome}</td><td class="emp-sua">${l.sua != null ? l.fmtv(l.sua) : '<span class="emp-vazio">informe</span>'}</td>`
-      + l.ref.map(r => `<td style="text-align:right">${r != null ? l.fmtv(r) + cmp(l.sua, r) : '-'}</td>`).join('') + '</tr>').join('');
+      + l.ref.map(r => `<td style="text-align:right">${r != null ? l.fmtv(r) + cmp(l.sua, r, l.pp) : '-'}</td>`).join('') + '</tr>').join('');
     // frases
     const fr = [];
     if (sal && m && m.remun) fr.push(`Sua empresa paga ${pctL(Math.abs((sal / m.remun - 1) * 100), 0)} ${sal >= m.remun ? 'acima' : 'abaixo'} da média do setor em ${m.nome}${m.ind_remun ? ` e ${pctL(Math.abs((sal / m.ind_remun - 1) * 100), 0)} ${sal >= m.ind_remun ? 'acima' : 'abaixo'} da média da indústria local` : ''}.`);
