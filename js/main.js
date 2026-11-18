@@ -1216,11 +1216,89 @@
     ]);
   }
 
+  // ---------------------------------------------------------------------
+  // Compare sua empresa: o usuário informa estado, município, empregados,
+  // salário médio e (opcional) faturamento; o painel compara com o setor e
+  // a indústria de transformação no município (RAIS), no estado (CEMPRE) e
+  // no Brasil (CEMPRE e PIA). Nada é gravado nem enviado: tudo no navegador.
+  // ---------------------------------------------------------------------
+  const emp = { uf: null, mun: '', func: '', sal: '', fat: '' };
+
+  function setupEmpresa() {
+    const box = $('#cen-empresa-form');
+    if (!box) return;
+    box.addEventListener('input', e => {
+      const k = e.target.dataset.campo;
+      if (!k) return;
+      emp[k] = e.target.value;
+      if (k === 'uf') { emp.mun = ''; renderEmpresa(true); } else renderEmpresa(false);
+    });
+  }
+
+  function renderEmpresa(refazForm) {
+    const box = $('#cen-empresa-form');
+    if (!box) return;
+    const sd = state.data.sectors[cen.seg];
+    const mun = sd.municipios, ce = sd.cempre;
+    if (!mun || !ce) { box.innerHTML = '<div class="empty-note">Sem dados para este segmento.</div>'; $('#cen-empresa-res').innerHTML = ''; return; }
+    const ufsCod = [...new Set(mun.itens.map(x => x.uf))].sort((a, b) => (NOME_UF[SIGLA_POR_COD[a]] || a).localeCompare(NOME_UF[SIGLA_POR_COD[b]] || b));
+    if (!emp.uf || !ufsCod.includes(emp.uf)) { emp.uf = ufsCod.includes('35') ? '35' : ufsCod[0]; emp.mun = ''; refazForm = true; }
+    const muns = mun.itens.filter(x => x.uf === emp.uf).sort((a, b) => a.nome.localeCompare(b.nome));
+    if (refazForm || !box.dataset.pronto || box.dataset.seg !== cen.seg) {
+      box.innerHTML = `
+        <label class="emp-campo"><span>Estado</span><select data-campo="uf">${ufsCod.map(c => `<option value="${c}"${c === emp.uf ? ' selected' : ''}>${NOME_UF[SIGLA_POR_COD[c]] || c}</option>`).join('')}</select></label>
+        <label class="emp-campo"><span>Município</span><select data-campo="mun"><option value="">(não informar)</option>${muns.map(m => `<option value="${m.id}"${m.id === emp.mun ? ' selected' : ''}>${m.nome}</option>`).join('')}</select></label>
+        <label class="emp-campo"><span>Número de empregados</span><input type="number" min="1" step="1" inputmode="numeric" data-campo="func" value="${emp.func}" placeholder="ex.: 45"></label>
+        <label class="emp-campo"><span>Salário médio mensal (R$)</span><input type="number" min="0" step="50" inputmode="decimal" data-campo="sal" value="${emp.sal}" placeholder="ex.: 3500"></label>
+        <label class="emp-campo"><span>Faturamento anual (R$, opcional)</span><input type="number" min="0" step="10000" inputmode="decimal" data-campo="fat" value="${emp.fat}" placeholder="ex.: 12000000"></label>
+        <p class="emp-privado">🔒 Os valores ficam só no seu navegador: nada é salvo nem enviado.</p>`;
+      box.dataset.pronto = '1';
+      box.dataset.seg = cen.seg;
+    }
+    const m = muns.find(x => x.id === emp.mun);
+    const sigla = SIGLA_POR_COD[emp.uf];
+    const ceUf = ce.uf_ultimo_ano.find(x => x.uf === emp.uf), ceInd = ce.ind_transformacao_uf_ultimo_ano.find(x => x.uf === emp.uf);
+    const ceBr = ce.brasil[ce.brasil.length - 1];
+    const ind = shared().financeiro.indicadores;
+    const pia = ind && ind.serie ? ind.serie.filter(r => r.recorte === cen.seg).sort((a, b) => b.ano - a.ano)[0] : null;
+    const piaInd = ind && ind.serie ? ind.serie.filter(r => r.recorte === 'ind_transformacao').sort((a, b) => b.ano - a.ano)[0] : null;
+    const func = +emp.func || null, sal = +emp.sal || null, fat = +emp.fat || null;
+    const tam = (v, e) => v && e ? v / e : null;
+    const salCe = r => r && r.salario_medio_mensal ? r.salario_medio_mensal : null;
+    const fatPo = r => r && r.receita_liquida && r.pessoal_ocupado ? r.receita_liquida * 1000 / r.pessoal_ocupado : null;
+    const linhas = [
+      { nome: 'Empregados por empresa', sua: func, fmtv: v => fmt.full1(v),
+        ref: [m ? tam(m.vinc, m.estab) : null, m ? tam(m.ind_vinc, m.ind_estab) : null, ceUf ? tam(ceUf.pessoal_ocupado, ceUf.empresas) : null, ceInd ? tam(ceInd.pessoal_ocupado, ceInd.empresas) : null, tam(ceBr.pessoal_ocupado, ceBr.empresas)] },
+      { nome: 'Salário médio mensal', sua: sal, fmtv: v => 'R$ ' + numL(v),
+        ref: [m ? m.remun : null, m ? m.ind_remun : null, salCe(ceUf), salCe(ceInd), salCe(ceBr)] },
+      { nome: 'Faturamento por empregado (ao ano)', sua: fat && func ? fat / func : null, fmtv: v => fmt.brl(v),
+        ref: [null, null, null, null, fatPo(pia)], extra: fatPo(piaInd) },
+    ];
+    const cols = [m ? `Setor em ${m.nome}` : 'Setor no município', m ? `Indústria em ${m.nome}` : 'Indústria no município', `Setor em ${sigla}`, `Indústria em ${sigla}`, 'Setor no Brasil'];
+    const cmp = (v, r) => v != null && r ? `<span class="emp-cmp ${v >= r ? 'acima' : 'abaixo'}">${pctL((v / r - 1) * 100, 0, true)}</span>` : '';
+    const corpo = linhas.map(l => `<tr><td>${l.nome}</td><td class="emp-sua">${l.sua != null ? l.fmtv(l.sua) : '<span class="emp-vazio">informe</span>'}</td>`
+      + l.ref.map(r => `<td style="text-align:right">${r != null ? l.fmtv(r) + cmp(l.sua, r) : '-'}</td>`).join('') + '</tr>').join('');
+    // frases
+    const fr = [];
+    if (sal && m && m.remun) fr.push(`Sua empresa paga ${pctL(Math.abs((sal / m.remun - 1) * 100), 0)} ${sal >= m.remun ? 'acima' : 'abaixo'} da média do setor em ${m.nome}${m.ind_remun ? ` e ${pctL(Math.abs((sal / m.ind_remun - 1) * 100), 0)} ${sal >= m.ind_remun ? 'acima' : 'abaixo'} da média da indústria local` : ''}.`);
+    else if (sal && salCe(ceUf)) fr.push(`Sua empresa paga ${pctL(Math.abs((sal / salCe(ceUf) - 1) * 100), 0)} ${sal >= salCe(ceUf) ? 'acima' : 'abaixo'} da média do setor em ${NOME_UF[sigla]}.`);
+    if (func) {
+      const porte = func < 20 ? 'micro ou pequena (até 19 empregados)' : func < 100 ? 'pequena a média (20 a 99)' : func < 500 ? 'média (100 a 499)' : 'grande (500 ou mais)';
+      fr.push(`Pelo número de empregados, é uma empresa ${porte}; a média do setor no Brasil é de ${fmt.full1(tam(ceBr.pessoal_ocupado, ceBr.empresas))} pessoas por empresa.`);
+    }
+    if (fat && func && fatPo(pia)) fr.push(`O faturamento por empregado é ${pctL(Math.abs((fat / func / fatPo(pia) - 1) * 100), 0)} ${fat / func >= fatPo(pia) ? 'maior' : 'menor'} que a média do segmento no Brasil (${fmt.brl(fatPo(pia))} por pessoa ao ano${fatPo(piaInd) ? `; indústria de transformação: ${fmt.brl(fatPo(piaInd))}` : ''}).`);
+    $('#cen-empresa-res').innerHTML = `
+      ${fr.length ? `<ul class="cen-texto">${fr.map(f => `<li>${f}</li>`).join('')}</ul>` : '<p class="emp-dica">Preencha os campos ao lado para ver a comparação.</p>'}
+      <div class="data-table-wrap"><table class="data-table tabela-emp"><thead><tr><th>Indicador</th><th>Sua empresa</th>${cols.map(c => `<th style="text-align:right">${c}</th>`).join('')}</tr></thead><tbody>${corpo}</tbody></table></div>
+      <p class="emp-nota">Município: RAIS ${mun.ano_remun || mun.ano} (salário = remuneração média de dezembro dos vínculos ativos). Estado e Brasil: CEMPRE ${ceBr.ano} (salário médio mensal com 13 salários por ano). Faturamento por empregado: PIA-Empresa ${pia ? pia.ano : ''}, segmento no Brasil. Percentuais = diferença da sua empresa em relação a cada média.</p>`;
+  }
+
   function renderCenarios() {
     if (!$('#cen-seg')) return;
     if (cen.aba === 'china') cenChina();
     if (cen.aba === 'cambio') cenCambio();
     if (cen.aba === 'demanda') cenDemanda();
+    if (cen.aba === 'empresa') renderEmpresa(false);
   }
 
   function setupCenarios() {
@@ -1247,6 +1325,7 @@
       cen.resp[i.dataset.cen][i.dataset.q] = i.value;
       renderCenarios();
     });
+    setupEmpresa();
     renderCenarios();
   }
 

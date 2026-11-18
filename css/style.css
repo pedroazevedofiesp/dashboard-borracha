@@ -863,3 +863,17 @@ table.pdi-table td.mono { font-variant-numeric: tabular-nums; white-space: nowra
 .lider { display: inline-flex; align-items: center; margin-right: 10px; white-space: nowrap; font-size: .78rem; }
 .lider .flag { margin-right: 4px; }
 .lider em { font-style: normal; color: var(--text-muted); margin-left: 3px; }
+
+/* Compare sua empresa */
+.emp-form { display: flex; flex-direction: column; gap: 12px; background: var(--surface-card); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; align-self: start; }
+.emp-campo { display: flex; flex-direction: column; gap: 4px; font-size: .72rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; }
+.emp-campo input, .emp-campo select { font: inherit; font-size: .9rem; text-transform: none; letter-spacing: 0; font-weight: 500; color: var(--text-primary); padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-1); }
+.emp-privado { font-size: .74rem; color: var(--text-muted); margin: 4px 0 0; }
+.emp-sua { font-weight: 700; color: var(--text-primary); text-align: right; }
+.emp-vazio { font-weight: 400; color: var(--text-muted); font-style: italic; }
+.emp-cmp { display: block; font-size: .7rem; font-weight: 700; }
+.emp-cmp.acima { color: var(--good); }
+.emp-cmp.abaixo { color: var(--bad); }
+.emp-nota, .emp-dica { font-size: .74rem; color: var(--text-muted); margin: 10px 0 0; }
+.tabela-emp td:first-child { white-space: normal; min-width: 140px; }
+.tabela-emp th { white-space: normal; }

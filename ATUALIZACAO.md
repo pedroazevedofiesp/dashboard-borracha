@@ -25,6 +25,7 @@ Tudo o que muda de um setor para outro está em `2_Scripts/config_setor.R`.
 | Script | Fonte | Credencial | Periodicidade sugerida |
 |---|---|---|---|
 | `extrair_ibge.R` | IBGE/SIDRA e Banco Central (PIA-Empresa do grupo e por classe, PIM-PF, IPCA, câmbio, IPP) | nenhuma | mensal (PIM, IPCA); anual (PIA) |
+| `obter_rais_municipio_ftp.R` | Microdados públicos da RAIS no FTP do PDET (estabelecimentos de todos os anos baixados; vínculos do ano em `ano_vinculos`, ~3,6 GB) | nenhuma | anual |
 | `obter_pia_produto.R` | IBGE, PIA-Produto (valor da produção por produto): API do SIDRA de 2014 em diante (tabelas 7752 e 10476); arquivos do servidor ftp.ibge.gov.br para 2007–2013 | nenhuma | anual |
 | `obter_comex.R` | API do Comex Stat | nenhuma | mensal |
 | `obter_comtrade.R` | API do UN Comtrade | `COMTRADE_API_KEY` | semestral |
@@ -48,6 +49,21 @@ Baixar a pasta pelo Google Drive pode converter os CSVs em planilhas. O script
 confere valor a valor. Os arquivos de energia **não** podem ser recuperados
 assim (a conversão do Drive corrompe o ponto decimal): use os CSVs originais
 de outro painel.
+
+## Mapas, CEMPRE e comparativos
+
+- **CEMPRE** (`extrair_ibge.R`, `obter_cempre`): empresas ativas, pessoal ocupado
+  e salários por classe CNAE, Brasil e UF, 2006 em diante (SIDRA 6449 e 9418),
+  mais a indústria de transformação. Grava `Cempre_<Rotulo>.csv`.
+- **RAIS por município** (`obter_rais_municipio_ftp.R`): lê os arquivos públicos
+  do PDET em `1_Dados_Manuais_XLS/ftp_pdet/` (`RAIS_ESTAB_PUB_<ano>.7z` e
+  `RAIS_VINC_PUB_<região>_<ano>.7z`) e grava `RAIS_Municipio_Estab_<Rotulo>.csv`
+  e `RAIS_Municipio_Remun_<Rotulo>.csv` (setor e indústria de transformação por
+  município). Alternativa com BigQuery: `obter_rais_municipio.R` (exige login Google).
+- **Malha municipal** (`assets/geo/mun-<UF>.json`): contorno simplificado dos
+  municípios por estado, derivado da malha do IBGE (cópia pública geodata-br).
+- **PIM-PF comparativa** (`extrair_ibge.R`, `obter_pim_comparativos`): indústria
+  geral e de transformação, `Producao_Fisica_Comparativos.csv`.
 
 ## Indicadores de desempenho (PIA-Empresa por classe)
 
