@@ -132,8 +132,7 @@
     lineChart($('#p-rem'), {
       categories: massa.map(m => m.ano), formatY: fmt.brl, height: 240,
       series: [
-        { label: 'Nominal', color: 'var(--series-2)', values: massa.map(m => m.remuneracao_media_nominal) },
-        { label: `Real (R$ de ${ANO_BASE})`, color: 'var(--accent)', values: remReal },
+        { label: `Borracha · real (R$ de ${ANO_BASE})`, color: 'var(--accent)', values: remReal },
       ],
     });
 
