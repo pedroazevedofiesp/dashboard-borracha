@@ -16,16 +16,9 @@
   </div>
 
   <nav class="sidebar-nav" id="view-tabs" role="tablist" aria-label="Navegação principal">
-    <button type="button" data-view="home" class="active" role="tab" aria-selected="true">Início</button>
+    <button type="button" data-view="home" class="active" role="tab" aria-selected="true">Painel Executivo</button>
+    <button type="button" id="btn-dados" role="tab" aria-selected="false">Dados do setor</button>
   </nav>
-
-  <div class="sidebar-section-label">Setor</div>
-  <!-- Botões gerados por js/main.js a partir de config_painel.json (meta.config.cnaes) -->
-  <nav class="sidebar-nav sidebar-nav-sector" id="sector-tabs" role="tablist" aria-label="Setor"></nav>
-
-  <div class="sidebar-section-label" id="section-nav-label">Nesta seção</div>
-  <!-- Gerado por js/main.js a partir de SECTION_META (só seções com dado) -->
-  <nav class="sidebar-nav sidebar-nav-sections" id="section-nav"></nav>
 
   <nav class="sidebar-nav sidebar-nav-foot" id="foot-tabs-top" role="tablist" aria-label="Outras seções">
     <button type="button" data-view="diagnostico" role="tab" aria-selected="false">Diagnóstico Setorial</button>
@@ -41,7 +34,8 @@
 
   <div class="sidebar-credit">
     <span class="sidebar-credit-label">Realização</span>
-    <img src="assets/logos/logo-fiesp-decap.png" alt="FIESP — Departamento das Cadeias Produtivas (DECAP)">
+    <img class="logo-claro" src="assets/logos/logo-fiesp-decap.png" alt="FIESP — Departamento das Cadeias Produtivas (DECAP)">
+    <img class="logo-escuro" src="assets/logos/logo-fiesp-decap-branca.png" alt="FIESP — Departamento das Cadeias Produtivas (DECAP)">
   </div>
 </aside>
 
@@ -50,6 +44,7 @@
   <div class="site-header-inner">
     <span class="site-header-title" id="site-header-title">Painel do Setor de Borracha</span>
     <span class="site-header-meta" id="site-header-meta"></span>
+    <button type="button" class="tema-btn" id="tema-btn" aria-label="Alternar tema claro/escuro" title="Tema claro/escuro">◐</button>
   </div>
 </header>
 
@@ -109,10 +104,17 @@
 
 <div id="data-view" hidden>
 
-  <div class="sector-summary" id="sector-summary">
-    <p class="sector-desc" id="sector-desc"></p>
-    <div class="sector-section-list" id="sector-section-list"></div>
+  <div class="dados-topo">
+    <div>
+      <div class="dados-chapeu">Painel do setor de borracha</div>
+      <h1 class="dados-titulo">Dados do setor</h1>
+    </div>
+    <!-- Botões gerados por js/main.js a partir de config_painel.json (agregado + cnaes) -->
+    <nav class="seg-botoes" id="sector-tabs" role="tablist" aria-label="Segmento"></nav>
   </div>
+  <p class="sector-desc" id="sector-desc"></p>
+  <!-- Abas geradas por js/main.js a partir de SECTION_META (só seções com dado) -->
+  <nav class="secao-abas" id="section-nav" role="tablist" aria-label="Seções"></nav>
 
   <!-- ============ 01. PRODUÇÃO FÍSICA ============ -->
   <section class="section" id="block-producao">
@@ -178,6 +180,13 @@
       <div class="exhibit-caption">
         <div class="exhibit-title" id="indicadores-desempenho-title">Indicadores de desempenho</div>
         <div class="exhibit-sub" id="indicadores-desempenho-sub"></div>
+      </div>
+    </div>
+    <div class="exhibit-block">
+      <div id="table-indicadores-outros"></div>
+      <div class="exhibit-caption">
+        <div class="exhibit-title" id="indicadores-outros-title">Outros indicadores de desempenho</div>
+        <div class="exhibit-sub">Nível no último ano, segmento x indústria de transformação. Valores em R$ correntes do ano.</div>
       </div>
     </div>
     <div class="exhibit-grid">
@@ -297,8 +306,8 @@
       <div class="exhibit">
         <div id="chart-emprego-remuneracao"></div>
         <div class="exhibit-caption">
-          <div class="exhibit-title">Remuneração média: nominal x real</div>
-          <div class="exhibit-sub">Real deflacionado pelo IPCA (dezembro de cada ano)</div>
+          <div class="exhibit-title">Remuneração média real</div>
+          <div class="exhibit-sub">R$ de 2024, corrigido pelo IPCA de dezembro. A comparação com a média da indústria de transformação entra com a próxima coleta da RAIS.</div>
         </div>
       </div>
       <div class="exhibit">

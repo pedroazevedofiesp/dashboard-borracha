@@ -352,6 +352,7 @@
     });
 
     renderIndicadoresDesempenho(sh.financeiro.indicadores);
+    renderOutrosIndicadores(sh.financeiro.indicadores);
 
     dataTable($('#table-financeiro-por-cnae'), {
       columns: [
@@ -380,7 +381,7 @@
     'exec-chart-margem': 'PIA/IBGE',
     'chart-producao-dessaz': 'PIM-PF/IBGE', 'chart-producao-indice': 'PIM-PF/IBGE',
     'chart-producao-variacao': 'PIM-PF/IBGE', 'table-producao': 'PIM-PF/IBGE',
-    'table-indicadores-desempenho': 'PIA/IBGE',
+    'table-indicadores-desempenho': 'PIA/IBGE', 'table-indicadores-outros': 'PIA/IBGE',
     'chart-financeiro-vti-po': 'PIA/IBGE', 'chart-financeiro-produtividade': 'PIA/IBGE',
     'chart-financeiro-receita-custos': 'PIA/IBGE', 'chart-financeiro-waterfall': 'PIA/IBGE',
     'table-financeiro': 'PIA/IBGE', 'table-financeiro-por-cnae': 'PIA/IBGE',
@@ -767,6 +768,249 @@
   }
 
   // ---------------------------------------------------------------------
+  // Abas de seção + leitura executiva + cartões com minigráfico
+  // ---------------------------------------------------------------------
+  function mostrarSecao(id) {
+    const metas = secoesVisiveis();
+    if (!metas.some(m => m.target === id)) id = metas[0].target;
+    state.secao = id;
+    document.querySelectorAll('#data-view > section.section').forEach(sec => {
+      const visivel = metas.some(m => m.target === sec.id);
+      sec.hidden = !visivel || sec.id !== id;
+    });
+    document.querySelectorAll('#section-nav button').forEach(b => {
+      const on = b.dataset.target === id;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+  }
+
+  const pctL = (v, casas = 1, sinal = false) => v == null || !isFinite(v) ? '-' :
+    (sinal && v > 0 ? '+' : '') + v.toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas }) + '%';
+  const numL = v => v == null || !isFinite(v) ? '-' : Math.round(v).toLocaleString('pt-BR');
+  const cagrL = (a, b, n) => a > 0 && b > 0 && n > 0 ? (Math.pow(b / a, 1 / n) - 1) * 100 : null;
+  const anoAtual = new Date().getFullYear();
+
+  function sparkL(vals, cor = 'var(--accent)') {
+    const v = vals.filter(x => x != null && isFinite(x));
+    if (v.length < 2) return '';
+    const w = 120, h = 32, min = Math.min(...v), max = Math.max(...v), rng = max - min || 1;
+    const pts = vals.map((x, i) => x == null || !isFinite(x) ? null : [i / (vals.length - 1) * w, h - 3 - (x - min) / rng * (h - 6)]).filter(Boolean);
+    const d = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+    const u = pts[pts.length - 1];
+    return `<svg class="card-spark" viewBox="0 0 ${w} ${h}" aria-hidden="true"><path d="${d}" fill="none" stroke="${cor}" stroke-width="1.8" stroke-linejoin="round"/><circle cx="${u[0]}" cy="${u[1]}" r="2.6" fill="${cor}"/></svg>`;
+  }
+
+  function cardL({ rotulo, valor, sub, serie, delta, deltaRuim }) {
+    const cls = delta == null || !isFinite(delta) ? '' : ((delta >= 0) !== !!deltaRuim ? 'bom' : 'ruim');
+    return `<div class="sec-card">
+      <div class="sec-card-rot">${rotulo}</div>
+      <div class="sec-card-linha"><span class="sec-card-val">${valor}</span>${sparkL(serie || [])}</div>
+      <div class="sec-card-sub">${cls ? `<span class="sec-delta ${cls}">${pctL(delta, 1, true)}</span> ` : ''}${sub || ''}</div>
+    </div>`;
+  }
+
+  // Garante a caixa de leitura + cartões logo abaixo do cabeçalho da seção.
+  function caixaSecao(secId) {
+    const sec = document.getElementById(secId);
+    if (!sec) return null;
+    let box = sec.querySelector(':scope > .leitura-box');
+    if (!box) {
+      box = document.createElement('div');
+      box.className = 'leitura-box';
+      box.innerHTML = '<div class="leitura-exec"></div><div class="sec-cards"></div>';
+      const cab = sec.querySelector(':scope > .section-header');
+      cab ? cab.insertAdjacentElement('afterend', box) : sec.prepend(box);
+    }
+    return box;
+  }
+
+  function preencherSecao(secId, titulo, itens, cards) {
+    const box = caixaSecao(secId);
+    if (!box) return;
+    const lis = (itens || []).filter(Boolean);
+    box.querySelector('.leitura-exec').innerHTML = lis.length
+      ? `<div class="leitura-cab"><span class="leitura-tag">Leitura executiva</span>${titulo}</div><ul>${lis.map(t => `<li>${t}</li>`).join('')}</ul>` : '';
+    box.querySelector('.leitura-exec').style.display = lis.length ? '' : 'none';
+    const cs = (cards || []).filter(Boolean);
+    box.querySelector('.sec-cards').innerHTML = cs.join('');
+    box.querySelector('.sec-cards').style.display = cs.length ? '' : 'none';
+  }
+
+  function renderLeituras() {
+    const s = csS();
+    const nome = rotuloCnae(state.sector);
+    const sh = shared();
+    const ab = anoBasePrecos();
+
+    // Produção (índice da divisão, mensal)
+    const pi = sh.producao.indice || [];
+    if (pi.length > 13) {
+      const porAno = {};
+      pi.forEach(r => { (porAno[r.ano] = porAno[r.ano] || []).push(r.indice_bruto); });
+      const anosC = Object.keys(porAno).map(Number).filter(a => porAno[a].length === 12).sort((a, b) => a - b);
+      const media = a => porAno[a].reduce((x, y) => x + y, 0) / 12;
+      const u = pi[pi.length - 1], ua = pi.find(r => r.ano === u.ano - 1 && r.mes === u.mes);
+      const acum = m => pi.filter(r => r.ano === m && r.mes <= u.mes).reduce((x, r) => x + r.indice_bruto, 0);
+      const ytd = acum(u.ano - 1) ? (acum(u.ano) / acum(u.ano - 1) - 1) * 100 : null;
+      const a1 = anosC[anosC.length - 1], a0 = anosC[anosC.length - 2];
+      const pico = anosC.reduce((b, a) => media(a) > media(b) ? a : b, anosC[0]);
+      preencherSecao('block-producao', `${setorCfg().producao_titulo}`, [
+        ytd != null ? `No acumulado de ${u.ano} até ${MESES[u.mes - 1]}, a produção está ${pctL(ytd, 1, true)} em relação ao mesmo período de ${u.ano - 1}.` : null,
+        a0 ? `Em ${a1}, o índice médio ficou ${pctL((media(a1) / media(a0) - 1) * 100, 1, true)} contra ${a0}.` : null,
+        `O maior nível anual da série recente foi em ${pico}; em ${a1}, a produção estava ${pctL((media(a1) / media(pico) - 1) * 100, 1, true)} em relação a esse pico.`,
+        'O índice do IBGE cobre a divisão borracha e plástico inteira: é o mesmo para os dois segmentos.',
+      ], [
+        cardL({ rotulo: `Índice · ${MESES[u.mes - 1]}/${u.ano}`, valor: fmt.full1(u.indice_bruto), serie: anosC.map(media), delta: ua ? (u.indice_bruto / ua.indice_bruto - 1) * 100 : null, sub: `vs ${MESES[u.mes - 1]}/${u.ano - 1}` }),
+        cardL({ rotulo: `Acumulado ${u.ano}`, valor: pctL(ytd, 1, true), serie: [], sub: `vs mesmo período de ${u.ano - 1}` }),
+        cardL({ rotulo: `Média de ${a1}`, valor: fmt.full1(media(a1)), serie: anosC.map(media), delta: a0 ? (media(a1) / media(a0) - 1) * 100 : null, sub: `vs ${a0}` }),
+      ]);
+    }
+
+    // Financeiro / indicadores
+    const ind = sh.financeiro.indicadores;
+    if (ind && ind.tabelas) {
+      const tab = ind.tabelas[ind.tabelas.length - 1];
+      const val = (nomeL, cod) => { const l = tab.linhas.find(x => x.indicador.startsWith(nomeL)); return l ? l.valores[cod] : null; };
+      const out = ind.outros;
+      const oval = (chave, cod) => { const l = out && out.linhas.find(x => x.indicador.startsWith(chave)); return l ? l.valores[cod] : null; };
+      const cod = state.sector, it = 'ind_transformacao';
+      preencherSecao('block-financeiro', `${nome} · ${ind.ano_inicial}–${tab.ano_final}`, [
+        `A margem bruta de ${tab.ano_final} foi de <strong>${pctL(val('Margem bruta (', cod))}</strong>, contra ${pctL(val('Margem bruta (', it))} na indústria de transformação.`,
+        `Desde ${ind.ano_inicial}, o lucro bruto variou ${pctL(val('Lucro bruto', cod), 1, true)} em termos reais (indústria de transformação: ${pctL(val('Lucro bruto', it), 1, true)}).`,
+        oval('Produtividade: valor', cod) != null ? `A produtividade (valor adicionado por pessoa) é de R$ ${numL(oval('Produtividade: valor', cod))} mil, ${pctL((oval('Produtividade: valor', cod) / oval('Produtividade: valor', it) - 1) * 100, 0)} em relação à média da indústria.` : null,
+        oval('Gastos de pessoal', cod) != null ? `Os gastos de pessoal consomem ${pctL(oval('Gastos de pessoal', cod), 0)} do valor adicionado (indústria: ${pctL(oval('Gastos de pessoal', it), 0)}): setor intensivo em mão de obra.` : null,
+      ]);
+    }
+
+    // Emprego (RAIS)
+    const r = s.rais, tot = r.uf_yearly_total;
+    if (tot && tot.length > 1) {
+      const u = tot[tot.length - 1], a = tot[tot.length - 2], p = tot[0];
+      const ufU = r.uf_yearly.filter(x => x.ano === u.ano && x.vinculos > 0).sort((x, y) => y.vinculos - x.vinculos);
+      const totV = ufU.reduce((x, y) => x + y.vinculos, 0);
+      const massa = r.massa_nacional_yearly || [];
+      const dez = ano => { const m = sh.macro.find(x => x.ano === ano && x.mes === 12); return m ? m.ipca : null; };
+      const real = massa.map(m => m.remuneracao_media_nominal && dez(m.ano) && dez(ab) ? m.remuneracao_media_nominal * dez(ab) / dez(m.ano) : null);
+      const rU = real[real.length - 1], rI = real.find(v => v != null);
+      const tam = u.estabelecimentos ? u.vinculos / u.estabelecimentos : null, tamI = p.estabelecimentos ? p.vinculos / p.estabelecimentos : null;
+      preencherSecao('block-emprego', `${nome} · ${p.ano}–${u.ano}`, [
+        `O segmento tinha <strong>${numL(u.vinculos)}</strong> vínculos formais em ${u.ano}, ${pctL((u.vinculos / p.vinculos - 1) * 100, 1, true)} desde ${p.ano}.`,
+        ufU[0] ? `<strong>${ufU[0].nome_uf}</strong> concentra ${pctL(ufU[0].vinculos / totV * 100)} do emprego; os três maiores estados somam ${pctL(ufU.slice(0, 3).reduce((x, y) => x + y.vinculos, 0) / totV * 100)}.` : null,
+        tam && tamI ? `O estabelecimento médio tem ${fmt.full1(tam)} empregados (eram ${fmt.full1(tamI)} em ${p.ano}).` : null,
+        rU && rI ? `A remuneração média real ${rU >= rI ? 'subiu' : 'caiu'} ${pctL(Math.abs((rU / rI - 1) * 100))} desde ${massa[0].ano}, para R$ ${numL(rU)} por mês (R$ de ${ab}).` : null,
+      ], [
+        cardL({ rotulo: `Vínculos formais · ${u.ano}`, valor: numL(u.vinculos), serie: tot.map(x => x.vinculos), delta: (u.vinculos / a.vinculos - 1) * 100, sub: `vs ${a.ano}` }),
+        cardL({ rotulo: `Estabelecimentos · ${u.ano}`, valor: numL(u.estabelecimentos), serie: tot.map(x => x.estabelecimentos), delta: (u.estabelecimentos / a.estabelecimentos - 1) * 100, sub: `vs ${a.ano}` }),
+        cardL({ rotulo: 'Empregados por estabelecimento', valor: tam ? fmt.full1(tam) : '-', serie: tot.map(x => x.estabelecimentos ? x.vinculos / x.estabelecimentos : null), sub: `${u.ano}` }),
+        rU ? cardL({ rotulo: `Remuneração média real · ${massa[massa.length - 1].ano}`, valor: 'R$ ' + numL(rU), serie: real, delta: real.length > 1 && real[real.length - 2] ? (rU / real[real.length - 2] - 1) * 100 : null, sub: `vs ano anterior · R$ de ${ab}` }) : null,
+      ]);
+    }
+
+    // CAGED
+    const cg = s.caged && s.caged.saldo_monthly_national;
+    if (cg && cg.length > 12) {
+      const u = cg[cg.length - 1];
+      const ano = cg.filter(x => x.ano === u.ano), anoAnt = cg.filter(x => x.ano === u.ano - 1 && x.mes <= u.mes);
+      const soma = arr => arr.reduce((x, y) => x + (y.saldo || 0), 0);
+      const u12 = cg.slice(-12);
+      preencherSecao('block-caged', `${nome} · até ${MESES[u.mes - 1]}/${u.ano}`, [
+        `De janeiro a ${MESES[u.mes - 1]} de ${u.ano}, o saldo de empregos formais foi de <strong>${soma(ano) >= 0 ? '+' : ''}${numL(soma(ano))}</strong> (mesmo período de ${u.ano - 1}: ${soma(anoAnt) >= 0 ? '+' : ''}${numL(soma(anoAnt))}).`,
+        `Nos últimos 12 meses, o saldo acumulado é de ${soma(u12) >= 0 ? '+' : ''}${numL(soma(u12))} vagas.`,
+      ], [
+        cardL({ rotulo: `Saldo em ${MESES[u.mes - 1]}/${u.ano}`, valor: (u.saldo >= 0 ? '+' : '') + numL(u.saldo), serie: cg.slice(-24).map(x => x.saldo), sub: 'admissões − desligamentos' }),
+        cardL({ rotulo: `Saldo no ano · ${u.ano}`, valor: (soma(ano) >= 0 ? '+' : '') + numL(soma(ano)), serie: [], sub: `até ${MESES[u.mes - 1]}` }),
+        cardL({ rotulo: 'Saldo em 12 meses', valor: (soma(u12) >= 0 ? '+' : '') + numL(soma(u12)), serie: [], sub: `até ${MESES[u.mes - 1]}/${u.ano}` }),
+      ]);
+    }
+
+    // Comércio exterior
+    const c = s.comex;
+    const anos = (c.yearly || []).filter(x => x.ano < anoAtual);
+    if (anos.length > 2) {
+      const u = anos[anos.length - 1], a = anos[anos.length - 2], p = anos[0];
+      const chi = c.importacao_china_resto_yearly || [];
+      const share = y => { const x = chi.find(z => z.ano === y); return x && (x.china_usd + x.resto_usd) ? x.china_usd / (x.china_usd + x.resto_usd) * 100 : null; };
+      const cP = chi.find(x => x.ano === p.ano), cU = chi.find(x => x.ano === u.ano);
+      const top = (c.top_paises_latest.importacao || [])[0];
+      const linTop = c.yearly.find(x => x.ano === c.top_paises_latest.ano) || {};
+      const rk = (s.comtrade && s.comtrade.ranking_exportadores) || {};
+      const anoRk = Object.keys(rk).map(Number).sort((x, y) => y - x)[0];
+      const bra = anoRk ? (rk[anoRk].itens || []).find(x => x.iso2 === 'br') : null;
+      preencherSecao('block-comex', `${nome} · ${p.ano}–${u.ano}`, [
+        `Em ${u.ano}, o segmento importou <strong>${fmt.usd(u.importacao_usd)}</strong> e exportou ${fmt.usd(u.exportacao_usd)}: ${u.importacao_usd > u.exportacao_usd ? 'déficit' : 'superávit'} de ${fmt.usd(Math.abs(u.importacao_usd - u.exportacao_usd))}.`,
+        `Desde ${p.ano}, a importação cresceu ${pctL(cagrL(p.importacao_usd, u.importacao_usd, u.ano - p.ano), 1, true)} ao ano, contra ${pctL(cagrL(p.exportacao_usd, u.exportacao_usd, u.ano - p.ano), 1, true)} da exportação.`,
+        cP && cU && cP.china_usd > 0 ? `A China passou de ${pctL(share(p.ano))} para <strong>${pctL(share(u.ano))}</strong> das importações (crescimento de ${pctL(cagrL(cP.china_usd, cU.china_usd, u.ano - p.ano), 1, true)} ao ano), o principal vetor de concorrência apontado no diagnóstico setorial.` : null,
+        top && linTop.importacao_usd ? `${top.pais} é a principal origem, com ${pctL(top.valor_usd / linTop.importacao_usd * 100)} do total importado em ${c.top_paises_latest.ano}.` : null,
+        bra ? `No comércio mundial, o Brasil foi o <strong>${bra.pos}º exportador</strong> desses produtos em ${anoRk}, com ${pctL(bra.pct_mundo, 2)} do total.` : null,
+      ], [
+        cardL({ rotulo: `Importação · ${u.ano}`, valor: fmt.usd(u.importacao_usd), serie: anos.map(x => x.importacao_usd), delta: (u.importacao_usd / a.importacao_usd - 1) * 100, deltaRuim: true, sub: `vs ${a.ano}` }),
+        cardL({ rotulo: `Exportação · ${u.ano}`, valor: fmt.usd(u.exportacao_usd), serie: anos.map(x => x.exportacao_usd), delta: (u.exportacao_usd / a.exportacao_usd - 1) * 100, sub: `vs ${a.ano}` }),
+        cardL({ rotulo: `Saldo · ${u.ano}`, valor: fmt.usd(u.exportacao_usd - u.importacao_usd), serie: anos.map(x => x.exportacao_usd - x.importacao_usd), sub: 'US$ FOB' }),
+        share(u.ano) != null && share(u.ano) > 0 ? cardL({ rotulo: `China nas importações · ${u.ano}`, valor: pctL(share(u.ano)), serie: anos.map(x => share(x.ano)), sub: `${pctL(share(p.ano))} em ${p.ano}` }) : null,
+      ]);
+    }
+
+    // Mercado doméstico
+    const m = s.mercado && s.mercado.yearly;
+    if (m && m.length > 1) {
+      const u = m[m.length - 1], p = m[0];
+      preencherSecao('block-mercado', `${nome} · ${p.ano}–${u.ano}`, [
+        `O mercado brasileiro desses produtos (consumo aparente) foi de <strong>${fmt.brl(u.consumo_aparente_real)}</strong> em ${u.ano}, ${pctL((u.consumo_aparente_real / p.consumo_aparente_real - 1) * 100, 1, true)} em termos reais desde ${p.ano}.`,
+        `Os importados atendem <strong>${pctL(u.penetracao_importacao)}</strong> desse mercado (eram ${pctL(p.penetracao_importacao)} em ${p.ano}); ${pctL(u.coef_exportacao)} da produção nacional é exportada.`,
+        `Enquanto o consumo cresceu ${pctL(cagrL(p.consumo_aparente_real, u.consumo_aparente_real, u.ano - p.ano), 1, true)} ao ano, a produção nacional variou ${pctL(cagrL(p.producao_real, u.producao_real, u.ano - p.ano), 1, true)} ao ano: o crescimento da demanda foi atendido sobretudo por importados.`,
+        'Pelo diagnóstico setorial, os grupos de produto em "oportunidade perdida" (consumo cresce, mas a importação ganha espaço) somam 47% do consumo aparente.',
+      ], [
+        cardL({ rotulo: `Consumo aparente · ${u.ano}`, valor: fmt.brl(u.consumo_aparente_real), serie: m.map(x => x.consumo_aparente_real), sub: `R$ de ${ab}` }),
+        cardL({ rotulo: `Penetração da importação · ${u.ano}`, valor: pctL(u.penetracao_importacao), serie: m.map(x => x.penetracao_importacao), sub: `${pctL(p.penetracao_importacao)} em ${p.ano}` }),
+        cardL({ rotulo: `Coeficiente de exportação · ${u.ano}`, valor: pctL(u.coef_exportacao), serie: m.map(x => x.coef_exportacao), sub: `${pctL(p.coef_exportacao)} em ${p.ano}` }),
+      ]);
+    }
+
+    // BNDES
+    const bn = (s.bndes && s.bndes.yearly || []).filter(x => x.ano < anoAtual);
+    if (bn.length > 2) {
+      const u = bn[bn.length - 1];
+      const ult5 = bn.slice(-5), media5 = ult5.reduce((x, y) => x + (y.valor_desembolsado || 0), 0) / ult5.length;
+      const ufs = (s.bndes.uf_total || []).slice().sort((x, y) => (y.valor_desembolsado || 0) - (x.valor_desembolsado || 0));
+      const totUf = ufs.reduce((x, y) => x + (y.valor_desembolsado || 0), 0);
+      preencherSecao('block-bndes', `${nome}`, [
+        `O BNDES desembolsou <strong>${fmt.brl(u.valor_desembolsado)}</strong> para o segmento em ${u.ano}; a média dos últimos cinco anos é de ${fmt.brl(media5)} por ano (R$ correntes).`,
+        ufs[0] && totUf ? `${ufs[0].nome_uf || ufs[0].uf} recebeu ${pctL(ufs[0].valor_desembolsado / totUf * 100)} dos desembolsos da série.` : null,
+      ], [
+        cardL({ rotulo: `Desembolso · ${u.ano}`, valor: fmt.brl(u.valor_desembolsado), serie: bn.map(x => x.valor_desembolsado), delta: bn.length > 1 && bn[bn.length - 2].valor_desembolsado ? (u.valor_desembolsado / bn[bn.length - 2].valor_desembolsado - 1) * 100 : null, sub: 'vs ano anterior' }),
+        cardL({ rotulo: 'Média dos últimos 5 anos', valor: fmt.brl(media5), serie: [], sub: 'R$ correntes por ano' }),
+      ]);
+    }
+  }
+
+  // Tabela extra do Financeiro: outros indicadores da DRE (último ano)
+  function renderOutrosIndicadores(ind) {
+    const alvo = $('#table-indicadores-outros');
+    if (!alvo) return;
+    const o = ind && ind.outros;
+    if (!o) { alvo.closest('.exhibit-block').style.display = 'none'; return; }
+    $('#indicadores-outros-title').textContent = `Outros indicadores de desempenho, ${o.ano}`;
+    const f = (v, t) => v == null || !isFinite(v) ? '-' : t === 'pct' ? pctL(v) : t === 'rs' ? 'R$ ' + numL(v) : 'R$ ' + numL(v) + ' mil';
+    const esc = t => String(t).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+    const dest = cc => cc.codigo === state.sector ? ' class="col-destaque"' : '';
+    alvo.innerHTML = `<div class="data-table-wrap"><table class="data-table tabela-indicadores"><thead><tr><th>Indicador</th>${ind.colunas.map(cc => `<th style="text-align:right"${dest(cc)}>${esc(cc.rotulo)}</th>`).join('')}</tr></thead><tbody>`
+      + o.linhas.map(l => `<tr><td>${esc(l.indicador)}</td>${ind.colunas.map(cc => `<td style="text-align:right"${dest(cc)}>${f(l.valores[cc.codigo], l.tipo)}</td>`).join('')}</tr>`).join('')
+      + '</tbody></table></div>';
+  }
+
+  // Tema claro/escuro (preferência só neste navegador)
+  function setupTema() {
+    const raiz = document.documentElement;
+    try { const t = localStorage.getItem('painel-tema'); if (t) raiz.dataset.theme = t; } catch (e) { /* sem storage */ }
+    const btn = $('#tema-btn');
+    if (btn) btn.addEventListener('click', () => {
+      raiz.dataset.theme = raiz.dataset.theme === 'dark' ? 'light' : 'dark';
+      try { localStorage.setItem('painel-tema', raiz.dataset.theme); } catch (e) { /* sem storage */ }
+    });
+  }
+
+  // ---------------------------------------------------------------------
   // 03 — Emprego formal (RAIS)
   // ---------------------------------------------------------------------
   function renderEmprego() {
@@ -881,8 +1125,7 @@
     lineChart($('#chart-emprego-remuneracao'), {
       categories: massaRows.map(r => r.ano), formatY: fmt.brl, height: 280,
       series: [
-        { label: 'Nominal', color: 'var(--series-2)', values: massaRows.map(r => r.remuneracao_media_nominal) },
-        { label: 'Real (preços de ' + (anoRefMassa || '') + ')', color: 'var(--series-3)', values: remReal },
+        { label: 'Real (R$ de ' + (anoRefMassa || '') + ')', color: 'var(--series-3)', values: remReal },
       ]
     });
 
@@ -2355,12 +2598,12 @@
   // blocos opcionais (DECOM) podem não existir.
   function buildSectorNav() {
     $('#sector-tabs').innerHTML = setores().map(c =>
-      `<button type="button" data-view="${c.codigo}" role="tab" aria-selected="false" title="${descricaoSetor(c.codigo)}"><span class="sector-tab-nome">${c.rotulo}</span><span class="sector-tab-cnae">${codigoCurto(c)}</span></button>`).join('');
+      `<button type="button" class="seg-btn" data-view="${c.codigo}" role="tab" aria-selected="false" title="${descricaoSetor(c.codigo)}"><span class="seg-btn-nome">${c.rotulo_exec || c.rotulo}</span><span class="seg-btn-cnae">${codigoCurto(c)}</span></button>`).join('');
     $('#exec-seg-toggle').innerHTML = setores().map(c =>
       `<button type="button" class="exec-seg-btn" data-seg="${c.codigo}" role="tab">${c.rotulo_exec}</button>`).join('');
     const metas = secoesVisiveis();
     $('#section-nav').innerHTML = metas.map(m =>
-      `<button type="button" data-target="${m.target}">${m.num === '·' ? '' : m.num + ' · '}${m.title}</button>`).join('');
+      `<button type="button" role="tab" data-target="${m.target}">${m.title}</button>`).join('');
     metas.forEach(m => {
       const el = document.querySelector(`#${m.target} .section-num`);
       if (el) el.textContent = m.num === '·' ? '' : m.num;
@@ -2393,7 +2636,7 @@
     const allBtns = Array.from(document.querySelectorAll('#view-tabs button, #sector-tabs button, #foot-tabs-top button, #foot-tabs-bottom button'));
     const homeView = $('#home-view');
     const dataView = $('#data-view');
-    const sectionNav = $('#section-nav-label'), sectionNavList = $('#section-nav');
+    const btnDados = $('#btn-dados');
     const energiaIndustrialView = $('#energia-industrial-view');
     const cadeiaView = $('#cadeia-view');
     const diagnosticoView = $('#diagnostico-view');
@@ -2405,8 +2648,8 @@
       const isData = isSectorView(state.view);
       homeView.hidden = state.view !== 'home';
       dataView.hidden = !isData;
-      sectionNav.style.display = isData ? '' : 'none';
-      sectionNavList.style.display = isData ? '' : 'none';
+      btnDados.classList.toggle('active', isData);
+      btnDados.setAttribute('aria-selected', isData ? 'true' : 'false');
       energiaIndustrialView.hidden = state.view !== 'energia-industrial';
       cadeiaView.hidden = state.view !== 'cadeia';
       diagnosticoView.hidden = state.view !== 'diagnostico';
@@ -2431,6 +2674,13 @@
       updateHeaderMeta();
     }));
 
+    // "Dados do setor" na barra lateral abre o segmento escolhido por último.
+    btnDados.addEventListener('click', () => {
+      const b = document.querySelector(`#sector-tabs button[data-view="${state.sector}"]`);
+      if (b && state.view !== state.sector) b.click();
+      window.scrollTo({ top: 0 });
+    });
+
     setupSectionNav();
     applyVisibility();
   }
@@ -2438,6 +2688,11 @@
   function scrollToBlock(id) {
     const target = document.getElementById(id);
     if (!target) return;
+    if (target.matches('#data-view > section.section')) {
+      mostrarSecao(id);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
     const headerH = document.querySelector('.site-header').offsetHeight + document.querySelector('.filter-row').offsetHeight;
     const top = target.getBoundingClientRect().top + window.scrollY - headerH - 16;
     window.scrollTo({ top, behavior: 'smooth' });
@@ -2447,19 +2702,10 @@
   // scrollIntoView, para não afetar o resto da página) e o botão ativo
   // acompanha a posição de leitura via IntersectionObserver.
   function setupSectionNav() {
-    const btns = Array.from(document.querySelectorAll('#section-nav button'));
-    const headerH = document.querySelector('.site-header').offsetHeight + document.querySelector('.filter-row').offsetHeight;
-    btns.forEach(b => b.addEventListener('click', () => scrollToBlock(b.dataset.target)));
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (!entry.isIntersecting) return;
-        const btn = btns.find(b => b.dataset.target === entry.target.id);
-        if (!btn) return;
-        btns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-      });
-    }, { rootMargin: `-${headerH + 20}px 0px -70% 0px` });
-    btns.forEach(b => { const el = document.getElementById(b.dataset.target); if (el) observer.observe(el); });
+    $('#section-nav').addEventListener('click', e => {
+      const b = e.target.closest('button[data-target]');
+      if (b) mostrarSecao(b.dataset.target);
+    });
   }
 
   // ---------------------------------------------------------------------
@@ -2486,8 +2732,8 @@
   }
   function renderSectorSummary() {
     $('#sector-desc').textContent = descricaoSetor(state.sector);
-    $('#sector-section-list').innerHTML = secoesVisiveis().map(sec => `<button type="button" class="sector-section-row" data-target="${sec.target}"><span class="ssr-num">${sec.num}</span><span class="ssr-text"><span class="ssr-title">${sec.title}</span><span class="ssr-sub">${sec.sub}</span></span><span class="ssr-arrow">↓</span></button>`).join('');
-    $('#sector-section-list').querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => scrollToBlock(btn.dataset.target)));
+    renderLeituras();
+    mostrarSecao(state.secao);
   }
 
   // ---------------------------------------------------------------------
@@ -2871,6 +3117,7 @@
       buildSectorNav();
       initBlocks();
       setupBlockFilters();
+      setupTema();
       setupViewTabs();
       renderReferencias(data);
       renderEnergiaIndustrial(data);

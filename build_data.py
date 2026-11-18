@@ -1360,10 +1360,47 @@ def build_indicadores_desempenho(macro_rows):
     tabelas = [{'ano_final': af, 'nova_serie': af > ULTIMO_ANO_PIA_ANTIGA, 'linhas': montar_tabela(af)}
                for af in finais]
 
+    # Outros indicadores da planilha DRE, no último ano (nível, não variação).
+    def outros(v):
+        rlv, po = v.get('receita_liquida'), v.get('pessoal_ocupado')
+        va, gp = v.get('valor_adicionado'), v.get('gastos_pessoal')
+        rt, ct = v.get('receita_total'), v.get('custos_despesas_total')
+        div = lambda a, b, k=1: None if a is None or not b else a / b * k
+        return {
+            'margem_liquida': div(None if rt is None or ct is None else rt - ct, rlv, 100),
+            'va_por_po': div(va, po),                       # mil R$ por pessoa
+            'vti_por_po': div(v.get('vti'), po),
+            'salario_medio_mensal': div(v.get('salarios_total'), po * 13 if po else None, 1000),
+            'pessoal_sobre_va': div(gp, va, 100),
+            'desp_fin_sobre_rlv': div(v.get('despesas_financeiras'), rlv, 100),
+            'depreciacao_sobre_rlv': div(v.get('depreciacao'), rlv, 100),
+            'invest_bruto_sobre_rlv': div(None if v.get('aquisicoes') is None else v['aquisicoes'] + (v.get('melhorias') or 0), rlv, 100),
+            'rlv_por_empresa': div(rlv, v.get('numero_empresas')),  # mil R$
+        }
+    OUTROS_DEF = [
+        ('Margem líquida (receita total − custos e despesas) / receita líquida', 'margem_liquida', 'pct'),
+        ('Produtividade: valor adicionado por pessoa ocupada', 'va_por_po', 'milrs'),
+        ('Produtividade: VTI por pessoa ocupada', 'vti_por_po', 'milrs'),
+        ('Salário médio mensal', 'salario_medio_mensal', 'rs'),
+        ('Gastos de pessoal / valor adicionado', 'pessoal_sobre_va', 'pct'),
+        ('Despesas financeiras / receita líquida', 'desp_fin_sobre_rlv', 'pct'),
+        ('Depreciação / receita líquida', 'depreciacao_sobre_rlv', 'pct'),
+        ('Investimento bruto (aquisições + melhorias) / receita líquida', 'invest_bruto_sobre_rlv', 'pct'),
+        ('Receita líquida por empresa', 'rlv_por_empresa', 'milrs'),
+    ]
+    outros_linhas = []
+    for nome, chave, tipo in OUTROS_DEF:
+        vals = {}
+        for col in colunas:
+            v = linhas.get((a1, col['codigo']))
+            vals[col['codigo']] = outros(v)[chave] if v else None
+        outros_linhas.append({'indicador': nome, 'tipo': tipo, 'valores': vals})
+
     serie = [{'ano': a, 'recorte': rc, **v, **derivados(v, a)}
              for (a, rc), v in sorted(linhas.items(), key=lambda kv: (kv[0][1], kv[0][0]))]
     return {'ano_inicial': a0, 'ano_final': a1, 'ano_base_precos': ANO_BASE_PRECOS, 'colunas': colunas,
-            'tabelas': tabelas, 'linhas': tabelas[-1]['linhas'], 'serie': serie}
+            'tabelas': tabelas, 'linhas': tabelas[-1]['linhas'], 'serie': serie,
+            'outros': {'ano': a1, 'linhas': outros_linhas}}
 
 # ---------------------------------------------------------------------------
 # Main
