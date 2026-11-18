@@ -12,9 +12,11 @@
 <div class="app-shell">
 <aside class="sidebar">
   <div class="sidebar-brand">
+    <button type="button" class="menu-btn" id="menu-btn" aria-expanded="false" aria-controls="sidebar-menu">☰ Menu</button>
     <img src="assets/logos/logo-sindibor.png" alt="SINDIBOR — Sindicato das Indústrias de Artefatos de Borracha e da Reforma de Pneus no Estado de São Paulo">
   </div>
 
+  <div class="sidebar-menu" id="sidebar-menu">
   <nav class="sidebar-nav" id="view-tabs" role="tablist" aria-label="Navegação principal">
     <button type="button" data-view="home" class="active" role="tab" aria-selected="true">Painel Executivo</button>
     <button type="button" id="btn-dados" role="tab" aria-selected="false">Dados do setor</button>
@@ -32,6 +34,7 @@
     <button type="button" data-view="referencias" role="tab" aria-selected="false">Referências</button>
   </nav>
 
+  </div>
   <div class="sidebar-credit">
     <span class="sidebar-credit-label">Realização</span>
     <img class="logo-claro" src="assets/logos/logo-fiesp-decap.png" alt="FIESP — Departamento das Cadeias Produtivas (DECAP)">
@@ -627,6 +630,7 @@
     <div class="section-header">
       <span class="section-num"></span>
       <h2>Mercado doméstico</h2>
+      <a class="section-download" id="download-mercado" href="data/downloads/Mercado_Domestico_total.xlsx" download>⬇ Baixar dados (Excel)</a>
     </div>
     <p class="section-note" id="mercado-section-note"></p>
     <div class="caption-meta" id="section-caption-mercado"></div>
@@ -1011,25 +1015,17 @@
 <!-- ============ REFERÊNCIAS ============ -->
 <div id="referencias-view" hidden>
   <div class="section-header">
-    <h2>Referências: fontes e metodologia</h2>
+    <h2>Referências</h2>
   </div>
-  <p class="pdi-intro">Esta seção documenta a origem de cada indicador, o período coberto e limitações técnicas relevantes. Cada fonte é marcada com o(s) setor(es) a que se aplica, para manter a rastreabilidade conforme novos setores forem adicionados ao painel.</p>
-  <h4>Fontes por bloco</h4>
+  <p class="pdi-intro">Bases de dados usadas no painel e período coberto. Elaboração: Departamento das Cadeias Produtivas (DECAP/FIESP).</p>
   <div class="pdi-table-wrap">
     <table class="pdi-table" id="referencias-table">
-      <thead><tr><th>Setor</th><th>Bloco</th><th>Base de dados</th><th>Cobertura</th><th>Observação técnica</th></tr></thead>
+      <thead><tr><th>Bloco</th><th>Fonte</th><th>Período</th></tr></thead>
       <tbody></tbody>
     </table>
   </div>
-  <h4>Limitações gerais</h4>
-  <p class="pdi-note">• RAIS: a partir de 2022 a metodologia de coleta mudou (base eSocial); os perfis detalhados (escolaridade, ocupação, tempo de emprego, massa salarial) têm uma quebra de série entre 2021 e 2022, por isso são tratados como retrato do último ano quando não há série completa.</p>
-  <p class="pdi-note">• CAGED: cobre a janela indicada dinamicamente acima (calculada a partir dos dados carregados), com granularidade mensal por UF/CNAE.</p>
-  <p class="pdi-note">• Comtrade (comércio mundial): classificação por código HS como proxy do CNAE, já que o Comtrade não reporta por CNAE. Usado apenas para contexto (Brasil x Mundo), não como número oficial de comércio exterior do Brasil; para isso, ver Comex (MDIC).</p>
-  <!-- Limitações específicas do setor (PIA, produção física, cestas de NCM): geradas por js/main.js a partir de config_painel.json -->
-  <div id="referencias-limitacoes-setor"></div>
-  <p class="pdi-note">• Energia Industrial — custo: o R$/MWh é a <strong>tarifa média realmente faturada</strong> da classe Industrial (não uma estimativa de modelo), publicada anualmente pelo Ministério de Minas e Energia com dados da ANEEL — MME, <em>Informativo Tarifário do Setor Elétrico</em> (edições 2023-2025) e <em>Informativo Gestão do Setor Elétrico</em> (edições 2017-2022), Tabela "Tarifa Média Faturada por Classe de Consumo e Região", disponíveis em gov.br/mme/pt-br/assuntos/secretarias/secretaria-nacional-energia-eletrica/publicacoes/informativo-setor-eletrico. É aberta por região (Norte, Nordeste, Centro-Oeste, Sudeste, Sul), não por estado nem por divisão CNAE — todo estado da mesma região e toda divisão CNAE compartilham o mesmo valor no mesmo mês. Anos sem edição publicada com essa tabela (2012-2016, 2018, 2020-2021, 2026) são interpolados linearmente entre os anos com dado real mais próximos, ou extrapolados pela variação do IPCA fora desse intervalo — nesses anos o valor é uma aproximação, não o dado publicado. A conta real de uma empresa específica ainda pode divergir dessa média (depende do subgrupo tarifário, do mercado livre ou cativo, e da bandeira tarifária do mês). Consumo (MWh): EPE, <em>Consumo Mensal de Energia Elétrica por Classe</em> (epe.gov.br/pt/publicacoes-dados-abertos/publicacoes/consumo-de-energia-eletrica).</p>
-  <p class="pdi-note">• Deflação: onde indicado como "R$ constantes" ou "R$ de [ano]", o valor nominal foi multiplicado por um fator = IPCA médio do ano-base ÷ IPCA médio do ano da observação (série do IPCA: IBGE, Sistema Nacional de Índices de Preços ao Consumidor). Onde a série original é em US$ (comércio exterior), o fator inclui também a taxa de câmbio (PTAX venda, Banco Central) média do ano antes da correção pelo IPCA. Todas as séries em valores constantes usam o mesmo ano-base, 2024 (definido em <code>config_painel.json</code>): balança comercial, mercado doméstico, simulador, Energia Industrial e remuneração real. A remuneração real da RAIS e os indicadores de desempenho da PIA usam o IPCA de dezembro; o faturamento real e a produtividade do Painel Executivo usam o IPP da divisão borracha e plástico.</p>
-  <p class="pdi-note">• Todos os valores monetários estão em valores correntes (nominais), exceto onde explicitamente indicado como deflacionado (remuneração real no bloco Emprego formal; custo de energia no bloco Energia Industrial).</p>
+  <h4>Notas</h4>
+  <div id="referencias-notas"></div>
 </div><!-- /#referencias-view -->
 
 <footer class="site-footer">

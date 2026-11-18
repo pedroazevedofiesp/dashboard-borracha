@@ -310,3 +310,53 @@ def test_simulador_impacto(data):
     for c in CNAES:
         for p in data['sectors'][c]['simulador']['produtos']:
             assert p['cnae'] in imp['diretos']
+
+
+@pytest.mark.parametrize('cnae', CNAES)
+def test_cempre(data, cnae):
+    c = data['sectors'][cnae]['cempre']
+    assert c and c['brasil'], 'CEMPRE ausente'
+    u = c['brasil'][-1]
+    assert u['empresas'] > 0 and u['pessoal_ocupado'] > 0
+    assert c['ind_transformacao_brasil'][-1]['empresas'] > u['empresas']
+    assert len(c['uf_ultimo_ano']) == 27
+
+
+def test_cempre_total_e_soma(data):
+    if not AGREGADO:
+        pytest.skip('sem agregado')
+    tot = data['sectors'][AGREGADO['codigo']]['cempre']['brasil'][-1]
+    soma = sum(data['sectors'][c]['cempre']['brasil'][-1]['empresas'] for c in AGREGADO['componentes'])
+    assert tot['empresas'] == soma
+
+
+@pytest.mark.parametrize('cnae', CNAES)
+def test_municipios(data, cnae):
+    m = data['sectors'][cnae]['municipios']
+    assert m and m['itens']
+    ids = [x['id'] for x in m['itens']]
+    assert len(ids) == len(set(ids)), 'município repetido'
+    assert all(len(i) == 7 for i in ids), 'código IBGE sem 7 dígitos'
+    assert all(x['vinc'] >= 0 and x['estab'] >= 0 for x in m['itens'])
+
+
+def test_malha_municipal():
+    geo = ROOT / 'assets' / 'geo'
+    arquivos = sorted(geo.glob('mun-*.json'))
+    assert len(arquivos) == 27
+
+
+@pytest.mark.parametrize('cnae', CNAES)
+def test_comtrade_grupos(data, cnae):
+    g = data['sectors'][cnae]['comtrade']['grupos_mundo']
+    assert g and g['itens']
+    for x in g['itens']:
+        assert x['mundo_usd'] > 0
+        assert 0 <= x['brasil_pct'] <= 100
+
+
+def test_comparativos_e_outros_indicadores(data):
+    cmp = data['shared']['producao']['comparativos']
+    assert cmp and {'industria_geral', 'industria_transformacao'} <= set(cmp)
+    outros = data['shared']['financeiro']['indicadores']['outros']
+    assert outros and len(outros['linhas']) >= 5

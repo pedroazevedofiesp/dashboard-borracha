@@ -86,18 +86,21 @@
   // opcional (ex.: "Borracha - Total", soma dos CNAEs) vem primeiro.
   // Como a margem operacional é calculada — mesmo texto no Painel Executivo,
   // no Financeiro e nas Referências.
-  function margemFormula() {
-    return `Margem operacional = (receita líquida total − total de custos e despesas) ÷ receita líquida total, `
-      + `com os dados da PIA-Empresa (IBGE) para o grupo CNAE ${setorCfg().grupo_cnae} inteiro. `
-      + `Os dois totais são variáveis publicadas pela própria PIA (não há ajuste do painel); por isso a margem não é igual à de um balanço contábil. `
-      + `O IBGE não divulga essa conta por classe CNAE, só para o grupo (por classe, só existe 2024).`;
+  function margemFormula(escopo) {
+    const alvo = escopo === 'grupo' ? `do grupo CNAE ${setorCfg().grupo_cnae}` : 'do segmento selecionado';
+    return `Margem operacional = (receita líquida de vendas − total de custos e despesas) ÷ receita líquida de vendas, PIA-Empresa (IBGE), ${alvo}. `
+      + `Os dois totais são publicados pelo IBGE, sem ajuste do painel; por isso a margem não é igual à de um balanço contábil.`;
+  }
+  // Série anual da PIA-Empresa por classe do segmento (2007 em diante).
+  function seriePiaSegmento(codigo) {
+    const ind = shared().financeiro.indicadores;
+    return ind && ind.serie ? ind.serie.filter(r => r.recorte === codigo).sort((a, b) => a.ano - b.ano) : [];
   }
   function cnaeCodigos() { return cfg().cnaes.map(c => c.codigo); }
   function setores() { return (cfg().agregado ? [cfg().agregado] : []).concat(cfg().cnaes); }
   function cnaeCfg(codigo) { return setores().find(c => c.codigo === (codigo || state.sector)); }
   function codigoCurto(c) { return c.rotulo_curto_codigo || c.codigo; }
   function rotuloCnae(codigo) { const c = cnaeCfg(codigo); return c ? `${c.rotulo} (${codigoCurto(c)})` : codigo; }
-  function rotulosTodos() { return cfg().cnaes.map(c => rotuloCnae(c.codigo)).join(' e '); }
   function isSectorView(view) { return setores().some(c => c.codigo === view); }
   // Frase que diz o que é o recorte: a definição do CNAE ou, no agregado,
   // quais CNAEs ele soma.
@@ -366,9 +369,7 @@
     const finG = sh.financeiro.grupo;
     const catFin = finG.map(r => r.ano);
 
-    $('#financeiro-section-note').textContent = `Fonte: IBGE/PIA-Empresa, ${catFin[0]}–${last(catFin)}, sempre em série completa (sem filtro de período). ${margemFormula()} `
-      + `O grupo ${sc.grupo_cnae} (${sc.grupo_descricao.toLowerCase()}) reúne todos os segmentos sem abertura entre eles e é o mesmo nos dois recortes do painel. `
-      + (sc.grupo_nota || '');
+    $('#financeiro-section-note').textContent = `Os indicadores de desempenho e os comparativos são do segmento selecionado; os gráficos de VTI, receita e custos abaixo são do grupo ${sc.grupo_cnae} inteiro (${sc.grupo_descricao.toLowerCase()}), que inclui pneus novos. ${margemFormula('grupo')}`;
     $('#financeiro-table-sub').textContent = `${catFin[0]}–${last(catFin)}, valores correntes, clique no cabeçalho para ordenar`;
     $('#financeiro-por-cnae-title').textContent = cfg().cnaes.map(c => rotuloCnae(c.codigo)).join(' x ');
 
@@ -558,6 +559,9 @@
   const numL = v => v == null || !isFinite(v) ? '-' : Math.round(v).toLocaleString('pt-BR');
   const cagrL = (a, b, n) => a > 0 && b > 0 && n > 0 ? (Math.pow(b / a, 1 / n) - 1) * 100 : null;
   const anoAtual = new Date().getFullYear();
+  // Verbo conforme o sinal: "cresceu 5,6%" / "caiu 4,6%" / "ficou praticamente estável"
+  const variou = (v, casas = 1, sufixo = '', verbos = ['cresceu', 'caiu']) => v == null || !isFinite(v) ? 'variou' :
+    Math.abs(v) < 0.05 ? 'ficou praticamente estável' : `${v > 0 ? verbos[0] : verbos[1]} ${pctL(Math.abs(v), casas)}${sufixo}`;
 
   function sparkL(vals, cor = 'var(--accent)') {
     const v = vals.filter(x => x != null && isFinite(x));
@@ -624,9 +628,9 @@
       const a1 = anosC[anosC.length - 1], a0 = anosC[anosC.length - 2];
       const pico = anosC.reduce((b, a) => media(a) > media(b) ? a : b, anosC[0]);
       preencherSecao('block-producao', `${setorCfg().producao_titulo}`, [
-        ytd != null ? `No acumulado de ${u.ano} até ${MESES[u.mes - 1]}, a produção está ${pctL(ytd, 1, true)} em relação ao mesmo período de ${u.ano - 1}.` : null,
-        a0 ? `Em ${a1}, o índice médio ficou ${pctL((media(a1) / media(a0) - 1) * 100, 1, true)} contra ${a0}.` : null,
-        `O maior nível anual da série recente foi em ${pico}; em ${a1}, a produção estava ${pctL((media(a1) / media(pico) - 1) * 100, 1, true)} em relação a esse pico.`,
+        ytd != null ? `No acumulado de ${u.ano} até ${MESES[u.mes - 1]}, a produção está ${Math.abs(ytd) < 0.05 ? 'praticamente igual ao' : pctL(Math.abs(ytd), 1) + (ytd > 0 ? ' acima do' : ' abaixo do')} mesmo período de ${u.ano - 1}.` : null,
+        a0 ? `Em ${a1}, a produção média ${variou((media(a1) / media(a0) - 1) * 100)} em relação a ${a0}.` : null,
+        pico !== a1 ? `O maior nível anual da série recente foi em ${pico}; em ${a1}, a produção estava ${pctL(Math.abs((media(a1) / media(pico) - 1) * 100), 1)} abaixo desse pico.` : `${a1} é o maior nível anual da série recente.`,
         'O índice do IBGE cobre a divisão borracha e plástico inteira: é o mesmo para os dois segmentos.',
       ], [
         cardL({ rotulo: `Índice · ${MESES[u.mes - 1]}/${u.ano}`, valor: fmt.full1(u.indice_bruto), serie: anosC.map(media), delta: ua ? (u.indice_bruto / ua.indice_bruto - 1) * 100 : null, sub: `vs ${MESES[u.mes - 1]}/${u.ano - 1}` }),
@@ -713,9 +717,9 @@
       const bra = anoRk ? (rk[anoRk].itens || []).find(x => x.iso2 === 'br') : null;
       preencherSecao('block-comex', `${nome} · ${p.ano}–${u.ano}`, [
         `Em ${u.ano}, o segmento importou <strong>${fmt.usd(u.importacao_usd)}</strong> e exportou ${fmt.usd(u.exportacao_usd)}: ${u.importacao_usd > u.exportacao_usd ? 'déficit' : 'superávit'} de ${fmt.usd(Math.abs(u.importacao_usd - u.exportacao_usd))}.`,
-        `Desde ${p.ano}, a importação cresceu ${pctL(cagrL(p.importacao_usd, u.importacao_usd, u.ano - p.ano), 1, true)} ao ano, contra ${pctL(cagrL(p.exportacao_usd, u.exportacao_usd, u.ano - p.ano), 1, true)} da exportação.`,
+        `Desde ${p.ano}, a importação ${variou(cagrL(p.importacao_usd, u.importacao_usd, u.ano - p.ano), 1, ' ao ano')}, e a exportação ${variou(cagrL(p.exportacao_usd, u.exportacao_usd, u.ano - p.ano), 1, ' ao ano')}.`,
         cP && cU && cP.china_usd > 0 ? `A China passou de ${pctL(share(p.ano))} para <strong>${pctL(share(u.ano))}</strong> das importações (crescimento de ${pctL(cagrL(cP.china_usd, cU.china_usd, u.ano - p.ano), 1, true)} ao ano), o principal vetor de concorrência apontado no diagnóstico setorial.` : null,
-        top && linTop.importacao_usd ? `${top.pais} é a principal origem, com ${pctL(top.valor_usd / linTop.importacao_usd * 100)} do total importado em ${c.top_paises_latest.ano}.` : null,
+        top && linTop.importacao_usd && !(top.pais === 'China' && cP && cP.china_usd > 0) ? `${top.pais} é a principal origem, com ${pctL(top.valor_usd / linTop.importacao_usd * 100)} do total importado em ${c.top_paises_latest.ano}.` : null,
         bra ? `No comércio mundial, o Brasil foi o <strong>${bra.pos}º exportador</strong> desses produtos em ${anoRk}, com ${pctL(bra.pct_mundo, 2)} do total.` : null,
         (() => { const gm = (s.comtrade || {}).grupos_mundo; const mx = gm && gm.itens.filter(x => x.brasil_pos).sort((a, b) => b.brasil_pct - a.brasil_pct)[0]; return mx ? `O grupo em que o Brasil tem mais presença no mercado mundial é "${mx.grupo.toLowerCase()}" (${pctL(mx.brasil_pct, 2)}, ${mx.brasil_pos}º lugar em ${gm.ano}).` : null; })(),
       ], [
@@ -731,10 +735,17 @@
     if (m && m.length > 1) {
       const u = m[m.length - 1], p = m[0];
       preencherSecao('block-mercado', `${nome} · ${p.ano}–${u.ano}`, [
-        `O mercado brasileiro desses produtos (consumo aparente) foi de <strong>${fmt.brl(u.consumo_aparente_real)}</strong> em ${u.ano}, ${pctL((u.consumo_aparente_real / p.consumo_aparente_real - 1) * 100, 1, true)} em termos reais desde ${p.ano}.`,
+        `O mercado brasileiro desses produtos (consumo aparente) foi de <strong>${fmt.brl(u.consumo_aparente_real)}</strong> em ${u.ano}; em termos reais, ${variou((u.consumo_aparente_real / p.consumo_aparente_real - 1) * 100)} desde ${p.ano}.`,
         `Os importados atendem <strong>${pctL(u.penetracao_importacao)}</strong> desse mercado (eram ${pctL(p.penetracao_importacao)} em ${p.ano}); ${pctL(u.coef_exportacao)} da produção nacional é exportada.`,
-        `Enquanto o consumo cresceu ${pctL(cagrL(p.consumo_aparente_real, u.consumo_aparente_real, u.ano - p.ano), 1, true)} ao ano, a produção nacional variou ${pctL(cagrL(p.producao_real, u.producao_real, u.ano - p.ano), 1, true)} ao ano: o crescimento da demanda foi atendido sobretudo por importados.`,
-        'Pelo diagnóstico setorial, os grupos de produto em "oportunidade perdida" (consumo cresce, mas a importação ganha espaço) somam 47% do consumo aparente.',
+        (() => {
+          const gC = cagrL(p.consumo_aparente_real, u.consumo_aparente_real, u.ano - p.ano), gP = cagrL(p.producao_real, u.producao_real, u.ano - p.ano);
+          const base = `O consumo ${variou(gC, 1, ' ao ano')}, e a produção nacional ${variou(gP, 1, ' ao ano')}`;
+          if (gC > 0 && u.penetracao_importacao > p.penetracao_importacao + 1) return base + ': o crescimento da demanda foi atendido sobretudo por importados.';
+          if (gC < 0 && u.penetracao_importacao < p.penetracao_importacao - 1) return base + ': o mercado encolheu, mas a produção nacional ganhou espaço sobre o importado.';
+          if (gC < 0) return base + ': o mercado encolheu no período.';
+          return base + '.';
+        })(),
+        (cnaeCfg(state.sector).componentes || [state.sector]).includes('2219') ? 'Pelo diagnóstico setorial, os grupos de produto de artefatos em "oportunidade perdida" (consumo cresce, mas a importação ganha espaço) somam 47% do consumo aparente.' : null,
       ], [
         cardL({ rotulo: `Consumo aparente · ${u.ano}`, valor: fmt.brl(u.consumo_aparente_real), serie: m.map(x => x.consumo_aparente_real), sub: `R$ de ${ab}` }),
         cardL({ rotulo: `Penetração da importação · ${u.ano}`, valor: pctL(u.penetracao_importacao), serie: m.map(x => x.penetracao_importacao), sub: `${pctL(p.penetracao_importacao)} em ${p.ano}` }),
@@ -2370,39 +2381,39 @@
   // ---------------------------------------------------------------------
   function renderReferencias(data) {
     const sc = setorCfg();
-    const secs = cnaeCodigos().map(c => data.sectors[c]);
-    const cagedCov = secs[0].caged.coverage;
-    const anos = rows => { const a = rows.map(r => r.ano); return `${Math.min(...a)}–${Math.max(...a)}`; };
+    const secs = setores().map(c => data.sectors[c.codigo]).filter(Boolean);
+    const s0 = secs[0];
+    const anos = rows => { const a = (rows || []).map(r => r.ano).filter(Boolean); return a.length ? `${Math.min(...a)}–${Math.max(...a)}` : '-'; };
     const prod = data.shared.producao.indice;
-    const TODOS = rotulosTodos();
-    const rows = [
-      [TODOS, 'Produção física', `IBGE, PIM-PF — ${sc.producao_titulo.toLowerCase()} (índice, base 100)`, `${prod[0].ano}–${last(prod).ano} (mensal)`, 'Nível de divisão CNAE, não é exclusivo de nenhum segmento; o mesmo índice vale para todos os recortes do painel.'],
-      [TODOS, 'Emprego formal', 'RAIS (vínculos, faixa de tamanho, escolaridade, ocupação, tempo de emprego, massa salarial)', `${anos(secs[0].rais.uf_yearly_total)} (anual)`, 'Quebra metodológica em 2022 (eSocial) nos perfis detalhados. Estabelecimentos excluem RAIS negativa.'],
-      [TODOS, 'CAGED', 'CAGED e novo CAGED (saldo, salário, tipo de movimentação por UF/CNAE)', `${cagedCov.inicio} a ${cagedCov.fim} (mensal)`, 'CAGED antigo até dez/2019, novo CAGED (eSocial) a partir de jan/2020. Cobertura calculada a partir da base carregada.'],
-      [TODOS, 'Financeiro', `IBGE, PIA-Empresa (grupo ${sc.grupo_cnae} e abertura por classe em 2024)`, `${anos(data.shared.financeiro.grupo)} (anual)`, `Valores em R$ mil convertidos para R$ na exibição. O grupo ${sc.grupo_cnae} combina todos os segmentos.`],
-      [TODOS, 'Comércio exterior', 'MDIC, Comex Stat (exportação/importação por NCM, país e UF)', `${anos(secs[0].comex.yearly)} (anual)`, 'Dado oficial brasileiro, por cesta de NCMs de cada segmento (ver limitações abaixo). Ano corrente parcial.'],
-      [TODOS, 'Comércio exterior', 'UN Comtrade (comércio mundial por código HS)', `${anos(secs[0].comtrade.brazil_yearly)} (anual)`, 'Proxy por HS (não existe CNAE em bases internacionais); usado só para contexto Brasil x Mundo. Valores do Brasil batem com o Comex Stat.'],
-      [TODOS, 'BNDES', 'BNDES, desembolsos por UF/porte/instrumento (operações automáticas e não automáticas)', `${anos(secs[0].bndes.yearly)} (anual)`, 'Específico por subclasse CNAE. Valores em R$ correntes.'],
-      [TODOS, 'Contexto', `Indicadores macro (IPCA, dólar, ${sc.ipp_rotulo})`, `1990–${last(data.shared.macro).ano} (mensal)`, `Todas as séries em R$ constantes estão em R$ de ${anoBasePrecos()}, corrigidas pelo IPCA (remuneração real, balança comercial, mercado doméstico, indicadores de desempenho, energia); faturamento real e produtividade do Painel Executivo usam o ${sc.ipp_rotulo}.`],
-      ['Energia Industrial (aba própria)', 'Energia', 'Consumo e custo de energia da indústria de transformação, 27 estados + Brasil', '2012–2026 (mensal)', 'Consumo (MWh): nível de divisão CNAE (24 divisões, fonte EPE). Custo (R$/MWh): tarifa média REAL faturada da classe Industrial, por região (5 regiões, não por estado nem por divisão CNAE) — MME/ANEEL, "Informativo Tarifário/Gestão do Setor Elétrico", Tabela 7. Anos sem edição publicada são interpolados/extrapolados a partir dos anos com dado real, ajustados pelo IPCA. Detalhe completo e citação em "Limitações gerais" abaixo.'],
+    const cov = s0.caged.coverage || {};
+    const ind = data.shared.financeiro.indicadores;
+    const linhas = [
+      ['Produção física', 'PIM-PF/IBGE', `${prod[0].ano}–${last(prod).ano}`],
+      ['Financeiro e indicadores de desempenho', 'PIA-Empresa/IBGE', ind ? `${ind.ano_inicial}–${ind.ano_final}` : anos(data.shared.financeiro.grupo)],
+      ['Empresas ativas', 'CEMPRE/IBGE', s0.cempre ? anos(s0.cempre.brasil) : '-'],
+      ['Emprego formal e emprego por município', 'RAIS/MTE', anos(s0.rais.uf_yearly_total)],
+      ['CAGED', 'CAGED/MTE', cov.inicio ? `${cov.inicio} a ${cov.fim}` : '-'],
+      ['Comércio exterior', 'Comexstat', anos(s0.comex.yearly)],
+      ['Comércio mundial', 'Comtrade', anos(s0.comtrade.brazil_yearly)],
+      ['Mercado doméstico', 'PIA-Produto/IBGE e Comexstat', s0.mercado ? anos(s0.mercado.yearly) : '-'],
+      ['BNDES', 'BNDES', anos(s0.bndes.yearly)],
+      ['Cadeia produtiva', 'Contas Nacionais/IBGE', anos(data.cadeia.produto.oferta)],
+      ['Energia industrial', 'EPE e ANEEL', '2012 em diante'],
+      ['Preços e câmbio', 'IBGE (IPCA, IPP) e BCB', `1990–${last(data.shared.macro).ano}`],
     ];
-    const anosCadeia = data.cadeia.produto.oferta.map(o => o.ano);
-    const cfgCadeia = data.cadeia.config;
-    rows.push(['Cadeia Produtiva (aba própria)', 'Cadeia produtiva', 'IBGE, Tabelas de Recursos e Usos (TRU) nível 68 atividades + Matriz Insumo-Produto 2015 nível 67', `${anosCadeia[0]}–${anosCadeia[anosCadeia.length - 1]} (anual)`, `Valores a preço de consumidor (com margens e impostos), R$ correntes. A TRU é a tabela mais recente do IBGE nesse detalhe; a MIP 2015 (a última publicada) entra só no multiplicador de produção e na parcela importada dos insumos. Produto em destaque: ${cfgCadeia.produto} (${cfgCadeia.nome_produto}). ${cfgCadeia.nota_escopo || ''} ${cfgCadeia.nota_insumos}`]);
-    if ((data.shared.decom || []).length) {
-      rows.splice(7, 0, [TODOS, 'DECOM', 'DECOM/GECEX, processos de defesa comercial', 'Histórico (datas variáveis)', '']);
-    }
-    $('#referencias-table tbody').innerHTML = rows.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td class="mono">${r[3]}</td><td>${r[4]}</td></tr>`).join('');
+    if ((data.shared.decom || []).length) linhas.splice(9, 0, ['Defesa comercial', 'DECOM/GECEX', 'Histórico']);
+    $('#referencias-table tbody').innerHTML = linhas.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td class="mono">${r[2]}</td></tr>`).join('');
 
-    const lim = [
+    const notas = [
+      `Valores em reais constantes estão em R$ de ${anoBasePrecos()}.`,
+      `${cfg().agregado ? cfg().agregado.rotulo + ' soma os dois segmentos do painel; ' : ''}o setor não inclui a fabricação de pneus novos.`,
+      'O comércio exterior usa a mesma cesta de produtos do diagnóstico setorial da FIESP.',
+      `A produção física cobre a divisão borracha e plástico (o IBGE não publica só borracha); alguns gráficos financeiros usam o grupo ${sc.grupo_cnae}, que inclui pneus novos, e estão sinalizados.`,
+      'A RAIS muda de metodologia em 2022 e a PIA-Empresa em 2024 (nova série): compare com cautela os anos de transição.',
       margemFormula(),
-      `Dados financeiros (PIA/IBGE): o grupo ${sc.grupo_cnae} (${sc.grupo_descricao.toLowerCase()}) reúne todos os segmentos sem abertura entre eles; é usado nos dois recortes com a mesma ressalva. ${sc.grupo_nota || ''} A abertura por classe CNAE só existe para 2024 (série nova do IBGE).`,
-      `Produção física: ${sc.producao_descricao}`,
-      ...cfg().cnaes.map(c => `Cesta de produtos de ${rotuloCnae(c.codigo)}: ${c.cesta_ncm} Não existe correspondência oficial entre atividade (CNAE) e produto (NCM); a cesta é uma escolha metodológica.${c.comex_residual ? ' ' + c.nota_comex : ''}`),
-      ...(cfg().agregado ? [`${cfg().agregado.rotulo}: ${cfg().agregado.descricao} Os valores são a soma dos dados de origem dos segmentos (vínculos, estabelecimentos, comércio exterior, BNDES, PIA 2024); a remuneração média é a massa salarial total dividida pelo total de vínculos.`] : []),
-      'Comtrade: o total mundial de importações aparece bem abaixo das exportações porque só entra o valor FOB e muitos países declaram importação em CIF; por isso o painel usa a exportação para dimensionar o comércio mundial.',
+      'Simulador de cenários: resultados ilustrativos, não são previsões.',
     ];
-    $('#referencias-limitacoes-setor').innerHTML = lim.map(t => `<p class="pdi-note">• ${t}</p>`).join('');
+    $('#referencias-notas').innerHTML = notas.map(t => `<p class="pdi-note">• ${t}</p>`).join('');
   }
 
   // ---------------------------------------------------------------------
@@ -3236,12 +3247,16 @@
     const saldoAtualUsd = comexAtual ? (comexAtual.exportacao_usd - comexAtual.importacao_usd) : null;
     const saldoAnteriorUsd = comexAnterior ? (comexAnterior.exportacao_usd - comexAnterior.importacao_usd) : null;
 
+    const serieFat = seriePiaSegmento(execSector).filter(r => r.receita_liquida);
+    const fatU = serieFat[serieFat.length - 1], fatA = serieFat[serieFat.length - 2];
+    const ippF = fatorIppAnual();
     const tiles = [
       kpiTile({
         id: 'exec-kpi-faturamento', label: 'Faturamento do setor',
-        value: finRow ? fmt.brl(finRow.receita_liquida_total * 1000) : '-',
-        sub: 'Receita líquida em 2024',
-        note: 'Sem comparação anual: 2024 é o único ano com abertura por segmento nesta fonte',
+        value: fatU ? fmt.brl(fatU.receita_liquida * 1000) : (finRow ? fmt.brl(finRow.receita_liquida_total * 1000) : '-'),
+        sub: fatU ? `Receita líquida em ${fatU.ano}` : 'Receita líquida em 2024',
+        trendHtml: fatU && fatA && ippF.fator[fatU.ano] && ippF.fator[fatA.ano] ? trendHtml(fatU.receita_liquida * ippF.fator[fatU.ano], fatA.receita_liquida * ippF.fator[fatA.ano]) : '',
+        note: fatU && fatU.ano >= 2024 ? `Variação real (IPP); ${fatU.ano} é da nova série da PIA` : '',
         sector: execSector, target: 'block-financeiro',
       }),
       kpiTile({
@@ -3294,7 +3309,7 @@
       btn.addEventListener('click', () => goToBlock(btn.dataset.sector, btn.dataset.target));
     });
 
-    renderCaptionMeta($('#exec-kpi-faturamento [data-caption]'), { fonte: 'IBGE/PIA-Empresa', periodo: '2024' });
+    renderCaptionMeta($('#exec-kpi-faturamento [data-caption]'), { fonte: 'IBGE/PIA-Empresa', periodo: fatU ? String(fatU.ano) : '2024' });
     renderCaptionMeta($('#exec-kpi-emprego [data-caption]'), { fonte: 'RAIS', cobertura: 'emprego' });
     renderCaptionMeta($('#exec-kpi-estabelecimentos [data-caption]'), { fonte: 'RAIS', cobertura: 'emprego' });
     renderCaptionMeta($('#exec-kpi-exportacao [data-caption]'), { fonte: 'MDIC/Comex Stat', cobertura: 'comex' });
@@ -3346,17 +3361,20 @@
     // setor — por isso o gráfico começa no primeiro ano com IPP completo.
     const sc = setorCfg();
     const ipp = fatorIppAnual();
-    const finAnos = sh.financeiro.grupo.map(r => r.ano);
+    const serieSeg = seriePiaSegmento(execSector).filter(r => r.receita_liquida);
+    const finAnos = serieSeg.length ? serieSeg.map(r => r.ano) : sh.financeiro.grupo.map(r => r.ano);
     const catCrescimento = finAnos.filter(a => a >= ipp.primeiroAno && ipp.fator[a]);
     $('#exec-chart-crescimento-sub').textContent = `Produção, faturamento real e empregos, indexados (base 100 em ${catCrescimento[0]}). Faturamento deflacionado pelo ${sc.ipp_rotulo} (IBGE)`;
     const producaoPorAno = new Map(producaoMediaAnual('indice_bruto').map(r => [r.ano, r.valor]));
     const empregoPorAno = new Map(sd.rais.uf_yearly_total.map(r => [r.ano, r.vinculos]));
-    const finPorAno = new Map(sh.financeiro.grupo.map(r => [r.ano, r.receita_liquida_total * ipp.fator[r.ano]]));
+    const finPorAno = serieSeg.length
+      ? new Map(serieSeg.map(r => [r.ano, r.receita_liquida * ipp.fator[r.ano]]))
+      : new Map(sh.financeiro.grupo.map(r => [r.ano, r.receita_liquida_total * ipp.fator[r.ano]]));
     lineChart($('#exec-chart-crescimento'), {
       categories: catCrescimento, formatY: n => fmt.compact(n), height: 260,
       series: [
         { label: `${sc.producao_titulo} (índice IBGE)`, color: 'var(--series-7)', values: indexarBase100(catCrescimento.map(a => producaoPorAno.has(a) ? producaoPorAno.get(a) : null)) },
-        { label: `Faturamento real (grupo ${sc.grupo_cnae})`, color: 'var(--series-3)', values: indexarBase100(catCrescimento.map(a => finPorAno.has(a) ? finPorAno.get(a) : null)) },
+        { label: serieSeg.length ? 'Faturamento real (segmento selecionado)' : `Faturamento real (grupo ${sc.grupo_cnae})`, color: 'var(--series-3)', values: indexarBase100(catCrescimento.map(a => finPorAno.has(a) ? finPorAno.get(a) : null)) },
         { label: 'Empregos (segmento selecionado)', color: 'var(--series-5)', values: indexarBase100(catCrescimento.map(a => empregoPorAno.has(a) ? empregoPorAno.get(a) : null)) },
       ],
     });
@@ -3396,16 +3414,16 @@
     // Eixos diferentes (% x R$), por isso dois eixos no mesmo gráfico —
     // aqui faz sentido comparar, ao contrário de energia (fonte sem
     // relação direta com as duas).
-    const finComp = sh.financeiro.grupo
-      .filter(r => r.receita_liquida_total && r.custos_despesas_totais != null && r.vti != null && r.pessoal_ocupado)
+    const finComp = seriePiaSegmento(execSector)
+      .filter(r => r.receita_liquida && r.custos_despesas_total != null && r.vti != null && r.pessoal_ocupado)
       .filter(r => ipp.fator[r.ano])
       .map(r => ({
         ano: r.ano,
-        margem: ((r.receita_liquida_total - r.custos_despesas_totais) / r.receita_liquida_total) * 100,
-        // VTI por trabalhador em R$ do último ano (IPP do setor), não corrente
+        margem: ((r.receita_liquida - r.custos_despesas_total) / r.receita_liquida) * 100,
+        // VTI por trabalhador em R$ do ano-base (IPP do setor), não corrente
         produtividade: (r.vti * 1000 * ipp.fator[r.ano]) / r.pessoal_ocupado,
       }));
-    $('#exec-chart-margem-sub').textContent = `Margem operacional (%) e produtividade (VTI por trabalhador, R$ de ${ipp.anoBase} pelo ${sc.ipp_rotulo}), grupo ${sc.grupo_cnae}`;
+    $('#exec-chart-margem-sub').textContent = `Margem operacional (%) e produtividade (VTI por trabalhador, R$ de ${ipp.anoBase} pelo ${sc.ipp_rotulo}), ${rotuloCnae(execSector)}. ${finComp.length && last(finComp).ano >= 2024 ? last(finComp).ano + ' é da nova série da PIA.' : ''}`;
     $('#exec-margem-nota').textContent = margemFormula();
     dualAxisLineChart($('#exec-chart-margem'), {
       categories: finComp.map(r => r.ano), height: 260,
@@ -3441,8 +3459,8 @@
 
   // Produção física e Financeiro não variam por segmento: link fixo no HTML.
   function updateDownloadLinks() {
-    const NOME_ARQUIVO = { comex: 'Comercio_Exterior', caged: 'CAGED', bndes: 'BNDES', emprego: 'Emprego' };
-    ['emprego', 'caged', 'comex', 'bndes'].forEach(id => {
+    const NOME_ARQUIVO = { comex: 'Comercio_Exterior', caged: 'CAGED', bndes: 'BNDES', emprego: 'Emprego', mercado: 'Mercado_Domestico' };
+    ['emprego', 'caged', 'comex', 'bndes', 'mercado'].forEach(id => {
       const el = $('#download-' + id);
       if (el) el.href = `data/downloads/${NOME_ARQUIVO[id]}_${state.sector}.xlsx`;
     });
@@ -3471,6 +3489,13 @@
       initBlocks();
       setupBlockFilters();
       setupTema();
+      // Celular: menu recolhível; fecha ao escolher um item.
+      (() => {
+        const btn = $('#menu-btn'), side = document.querySelector('.sidebar');
+        if (!btn || !side) return;
+        btn.addEventListener('click', () => { const ab = side.classList.toggle('aberto'); btn.setAttribute('aria-expanded', ab ? 'true' : 'false'); });
+        side.addEventListener('click', e => { if (e.target.closest('.sidebar-menu button')) { side.classList.remove('aberto'); btn.setAttribute('aria-expanded', 'false'); } });
+      })();
       setupCempre();
       setupMunicipios();
       setupViewTabs();

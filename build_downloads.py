@@ -2,8 +2,10 @@
 """Gera as planilhas Excel formatadas de data/downloads/, uma por seção do
 painel (uma para cada CNAE de config_painel.json onde a seção varia por
 segmento). Lê direto dos CSVs de 3_Dados_Tratados_CSV/ — roda depois de
-build_data.py, mas não depende do data.json."""
+build_data.py. As abas derivadas (CEMPRE, municípios, Comtrade por grupo,
+mercado doméstico, outros indicadores) vêm do data/data.json já gerado."""
 
+import json
 import re
 from pathlib import Path
 
@@ -18,6 +20,24 @@ from build_data import (ANO_BASE_PRECOS, CNAES, CONFIG, ROTULO_ARQUIVO, SETOR, S
 ROOT = Path(__file__).resolve().parent
 SRC_DIR = ROOT / '3_Dados_Tratados_CSV'
 OUT_DIR = ROOT / 'data' / 'downloads'
+_DATA = {}
+
+
+def _data():
+    """data/data.json gerado pelo build_data.py (lido uma vez)."""
+    if 'd' not in _DATA:
+        caminho = ROOT / 'data' / 'data.json'
+        _DATA['d'] = json.loads(caminho.read_text(encoding='utf-8')) if caminho.exists() else None
+    return _DATA['d']
+
+
+def _df(linhas, colunas=None, renomear=None):
+    df = pd.DataFrame(linhas or [])
+    if colunas:
+        df = df[[c for c in colunas if c in df.columns]]
+    if renomear:
+        df = df.rename(columns=renomear)
+    return df
 
 FONT_NAME = 'Arial'
 HEADER_FONT = Font(name=FONT_NAME, bold=True, color='FFFFFF')
@@ -152,6 +172,10 @@ def build_producao_download():
     _add_sheet(wb, 'Indice mensal', _read(f"Producao_Fisica_Mensal_{SETOR['producao_rotulo_arquivo']}.csv"),
                title=f"Produção física — {SETOR['producao_titulo']} (índice mensal, base 100)",
                note=f"Fonte: IBGE/PIM-PF. {SETOR['producao_descricao']}")
+    if (SRC_DIR / 'Producao_Fisica_Comparativos.csv').exists():
+        _add_sheet(wb, 'Comparativos', _read('Producao_Fisica_Comparativos.csv'),
+                   title='Produção física — indústria geral e indústria de transformação (índice mensal, base 100)',
+                   note='Fonte: PIM-PF/IBGE. Elaboração: DECAP/FIESP. Para comparar com a divisão do setor.')
     _save(wb, 'Producao_Fisica.xlsx')
 
 
@@ -191,6 +215,15 @@ def build_financeiro_download():
         serie.insert(1, 'recorte_nome', serie['recorte'].map(lambda r: rot.get(r, r)))
         for c in ('margem_bruta', 'invest_liquido_rlv'):
             serie[c] = serie[c] * 100
+        d = _data()
+        outros = d and d['shared']['financeiro']['indicadores'].get('outros')
+        if outros:
+            tab_o = pd.DataFrame([{'Indicador': l['indicador'],
+                                   **{c['rotulo']: (None if l['valores'][c['codigo']] is None else round(l['valores'][c['codigo']], 2))
+                                      for c in ind['colunas']}} for l in outros['linhas']])
+            _add_sheet(wb, f"Outros indicadores {outros['ano']}", tab_o,
+                       title=f"Outros indicadores de desempenho — {outros['ano']}",
+                       note='Fonte: PIA/IBGE. Elaboração: DECAP/FIESP. Percentuais em %; produtividade e receita por empresa em mil R$; salário em R$.')
         _add_sheet(wb, 'PIA por classe', serie,
                    title=f'PIA-Empresa por classe, {a0}-{a1}',
                    note=f'Fonte: PIA/IBGE. Elaboração: DECAP/FIESP. Valores em mil R$ correntes; colunas *_real '
@@ -251,6 +284,26 @@ def build_emprego_download(cfg):
     for nome, sheet in EMPREGO_ARQUIVOS:
         _add_sheet(wb, sheet, _read_setor(cfg, nome), title=f"Emprego formal (RAIS) — {cfg['rotulo']}",
                    note='Fonte: RAIS.' + _nota_agregado(cfg))
+    d = _data()
+    sd = d and d['sectors'].get(cfg['codigo'])
+    if sd and sd.get('cempre'):
+        cols = ['ano', 'uf', 'sigla', 'empresas', 'pessoal_ocupado', 'pessoal_assalariado', 'salarios_mil', 'salario_medio_mensal']
+        nomes = {'sigla': 'UF', 'empresas': 'Empresas ativas', 'pessoal_ocupado': 'Pessoal ocupado', 'pessoal_assalariado': 'Assalariados',
+                 'salarios_mil': 'Salários (mil R$)', 'salario_medio_mensal': 'Salário médio mensal (R$)'}
+        _add_sheet(wb, 'Empresas CEMPRE Brasil', _df(sd['cempre']['brasil'], cols, nomes).drop(columns=['uf', 'UF'], errors='ignore'),
+                   title=f"Empresas ativas (CEMPRE) — Brasil — {cfg['rotulo']}",
+                   note='Fonte: CEMPRE/IBGE. Elaboração: DECAP/FIESP. A partir de 2022 o IBGE publica o cadastro em outra tabela.')
+        _add_sheet(wb, 'Empresas CEMPRE UF', _df(sd['cempre']['uf_yearly'], cols, nomes).drop(columns=['uf'], errors='ignore'),
+                   title=f"Empresas ativas (CEMPRE) — por estado — {cfg['rotulo']}",
+                   note='Fonte: CEMPRE/IBGE. Elaboração: DECAP/FIESP. Valores vazios = sigilo do IBGE.')
+    if sd and sd.get('municipios'):
+        m = sd['municipios']
+        _add_sheet(wb, 'Municipios', _df(m['itens'], ['id', 'nome', 'uf', 'estab', 'vinc', 'ind_estab', 'ind_vinc', 'remun', 'ind_remun'], {
+            'id': 'Código IBGE', 'nome': 'Município', 'uf': 'Código UF', 'estab': 'Estabelecimentos do setor', 'vinc': 'Vínculos do setor',
+            'ind_estab': 'Estabelecimentos da ind. transformação', 'ind_vinc': 'Vínculos da ind. transformação',
+            'remun': f"Remuneração média dez/{m.get('ano_remun') or ''} do setor (R$)", 'ind_remun': 'Remuneração média da ind. transformação (R$)'}),
+            title=f"Emprego por município — {cfg['rotulo']}",
+            note=f"Fonte: RAIS/MTE. Elaboração: DECAP/FIESP. Vínculos e estabelecimentos de {m['ano']}; remuneração de {m.get('ano_remun') or '-'}.")
     _save(wb, f"Emprego_{cfg['codigo']}.xlsx")
 
 
@@ -294,7 +347,41 @@ def build_comex_download(cfg):
         _add_sheet(wb, 'Comtrade mundial', _read(f'Comtrade_Global_{_rotulo_de(cnae)}_{cnae}.csv'),
                    title=f'Comércio mundial (Comtrade, proxy por HS) — {label}',
                    note='Contexto global — classificação por código HS como proxy do CNAE, não é o número oficial de comércio exterior do Brasil (ver Comex/MDIC pra isso).')
+    d = _data()
+    gm = d and (d['sectors'].get(cnae, {}).get('comtrade') or {}).get('grupos_mundo')
+    if gm:
+        linhas = [{'Grupo (SH)': x['hs'], 'Grupo de produto': x['grupo'], f"Mundo {gm['ano']} (US$)": x['mundo_usd'],
+                   f"Crescimento ao ano {gm['ano_inicial']}-{gm['ano']} (%)": x['cresc_aa'], 'Brasil (US$)': x['brasil_usd'],
+                   'Brasil (% do mundo)': x['brasil_pct'], 'Posição do Brasil': x['brasil_pos'],
+                   'Maiores exportadores': ', '.join(f"{l['pais']} ({l['pct']:.0f}%)" for l in x['lideres'])} for x in gm['itens']]
+        _add_sheet(wb, 'Comtrade por grupo', pd.DataFrame(linhas),
+                   title=f'Comércio mundial por grupo de produto — {label}',
+                   note=f"Fonte: Comtrade. Elaboração: DECAP/FIESP. Exportações mundiais por grupo do Sistema Harmonizado, {gm['ano']}.")
     _save(wb, f'Comercio_Exterior_{cnae}.xlsx')
+
+
+def build_mercado_download(cfg):
+    d = _data()
+    m = d and d['sectors'].get(cfg['codigo'], {}).get('mercado')
+    if not m:
+        return
+    ab = m.get('ano_base_real')
+    wb = _new_workbook()
+    nomes = {'ano': 'Ano', 'producao_real': f'Produção (R$ de {ab})', 'exportacao_real': f'Exportação (R$ de {ab})',
+             'importacao_real': f'Importação (R$ de {ab})', 'consumo_aparente_real': f'Consumo aparente (R$ de {ab})',
+             'coef_exportacao': 'Coeficiente de exportação (%)', 'penetracao_importacao': 'Penetração da importação (%)'}
+    _add_sheet(wb, 'Mercado anual', _df(m['yearly'], list(nomes), nomes),
+               title=f"Mercado doméstico — {cfg['rotulo']}",
+               note='Fonte: PIA/IBGE e Comexstat. Elaboração: DECAP/FIESP. Consumo aparente = produção + importação − exportação.')
+    prod = m.get('produtos') or {}
+    if prod.get('itens'):
+        nomes_p = {'descricao': 'Grupo de produto', 'producao_real': 'Produção (R$)', 'exportacao_real': 'Exportação (R$)',
+                   'importacao_real': 'Importação (R$)', 'consumo_aparente_real': 'Consumo aparente (R$)',
+                   'coef_exportacao': 'Coeficiente de exportação (%)', 'penetracao_importacao': 'Penetração da importação (%)', 'sigilo': 'Sigilo parcial'}
+        _add_sheet(wb, f"Por grupo de produto {prod['ano']}", _df(prod['itens'], list(nomes_p), nomes_p),
+                   title=f"Mercado doméstico por grupo de produto, {prod['ano']} — {cfg['rotulo']}",
+                   note='Fonte: PIA/IBGE e Comexstat. Elaboração: DECAP/FIESP. "Sigilo parcial" = parte da produção não divulgada pelo IBGE.')
+    _save(wb, f"Mercado_Domestico_{cfg['codigo']}.xlsx")
 
 
 # ---------------------------------------------------------------------------
@@ -377,6 +464,7 @@ def build_all_downloads():
         build_caged_download(cfg)
         build_comex_download(cfg)
         build_bndes_download(cfg)
+        build_mercado_download(cfg)
     decom = CONFIG.get('blocos_opcionais', {}).get('decom')
     if decom:
         build_decom_download(decom)
