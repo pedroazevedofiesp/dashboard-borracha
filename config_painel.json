@@ -14,7 +14,10 @@
     "producao_descricao": "Índice de produção física da divisão 22 do IBGE (PIM-PF, \"3.22 Fabricação de produtos de borracha e de material plástico\"). O IBGE não publica série só de borracha: o índice inclui plástico e é o mesmo para os dois segmentos.",
     "ipp_rotulo": "IPP da divisão borracha e plástico",
     "divisao_energia": 22,
-    "periodo_slider_padrao": {"inicio": 2016, "fim": 2026},
+    "periodo_slider_padrao": {
+      "inicio": 2016,
+      "fim": 2026
+    },
     "ano_base_precos": 2024
   },
   "cnaes": [
@@ -42,7 +45,10 @@
   "agregado": {
     "_comentario": "Recorte extra = soma dos CNAEs listados em componentes. build_data.py soma os dados de origem (RAIS, CAGED, Comex, Comtrade, BNDES, PIA 2024); as cestas de NCM dos componentes não se sobrepõem, então não há dupla contagem. Remova este bloco para não ter o recorte total.",
     "codigo": "total",
-    "componentes": ["2212", "2219"],
+    "componentes": [
+      "2212",
+      "2219"
+    ],
     "cnae": "22.12-9 + 22.19-6",
     "rotulo": "Borracha - Total",
     "rotulo_exec": "Borracha - Total",
@@ -54,5 +60,11 @@
   },
   "blocos_opcionais": {
     "decom": null
+  },
+  "cestas_externas": {
+    "natural": "Borracha natural",
+    "sintetica": "Borracha sintética",
+    "quimicos": "Insumos químicos (negro de fumo e aditivos)",
+    "pneus_novos": "Pneus novos"
   }
 }

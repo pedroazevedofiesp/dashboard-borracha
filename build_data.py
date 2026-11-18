@@ -1206,6 +1206,8 @@ def build_sector(cfg, fator_brl, macro_rows=None):
             'top_paises_imp_yearly': top_paises_imp_yearly,
             'importacao_china_resto_yearly': importacao_china_resto_yearly,
             'ncm': comex_ncm,
+            'mensal': build_comex_mensal(codes),
+            'ncm_anual': build_comex_ncm_anual(codes),
         },
         'comtrade': comtrade,
         'cempre': build_cempre(codes),
@@ -1356,6 +1358,81 @@ def build_municipios(codes):
         })
     itens.sort(key=lambda x: -x['vinc'])
     return {'ano': ano, 'ano_remun': ano_rem, 'itens': itens}
+
+
+# ---------------------------------------------------------------------------
+# Comércio exterior da base bruta do MDIC (processar_comex_bruto.py): visão
+# mensal com FOB e CIF, série anual por NCM (filtro) e cestas fora do setor.
+# ---------------------------------------------------------------------------
+_CX = {}
+
+
+def _cx_csv(nome):
+    if nome not in _CX:
+        arq = SRC_DIR / f'{nome}_{ROTULO_ARQUIVO}.csv'
+        _CX[nome] = read_csv(arq.name, dtype={'cesta': str, 'ncm': str}) if arq.exists() else None
+    return _CX[nome]
+
+
+def build_comex_mensal(codes):
+    m = _cx_csv('Comex_Mensal')
+    if m is None:
+        return None
+    sub = m[m['cesta'].isin(codes)].groupby(['ano', 'mes', 'fluxo'], as_index=False)[['fob_usd', 'cif_usd', 'kg']].sum()
+    linhas = {}
+    for r in sub.itertuples(index=False):
+        k = (int(r.ano), int(r.mes))
+        d = linhas.setdefault(k, {'ano': k[0], 'mes': k[1], 'exportacao_fob': 0.0, 'importacao_fob': 0.0, 'importacao_cif': 0.0})
+        if r.fluxo.startswith('Exp'):
+            d['exportacao_fob'] += float(r.fob_usd)
+        else:
+            d['importacao_fob'] += float(r.fob_usd)
+            d['importacao_cif'] += float(r.cif_usd)
+    return [linhas[k] for k in sorted(linhas)]
+
+
+def build_comex_ncm_anual(codes):
+    a = _cx_csv('Comex_NCM_Anual')
+    if a is None:
+        return None
+    sub = a[a['cesta'].isin(codes)]
+    out = []
+    for ncm, g in sub.groupby('ncm'):
+        desc = g['descricao'].dropna().iloc[0] if g['descricao'].notna().any() else ''
+        serie = {}
+        for r in g.itertuples(index=False):
+            d = serie.setdefault(int(r.ano), {'ano': int(r.ano), 'exp': 0.0, 'imp': 0.0, 'imp_cif': 0.0})
+            if r.fluxo.startswith('Exp'):
+                d['exp'] += float(r.fob_usd)
+            else:
+                d['imp'] += float(r.fob_usd)
+                d['imp_cif'] += float(r.cif_usd)
+        out.append({'ncm': str(ncm).zfill(8), 'descricao': desc, 'serie': [serie[k] for k in sorted(serie)]})
+    return sorted(out, key=lambda x: x['ncm'])
+
+
+def build_comex_externas():
+    m = _cx_csv('Comex_Mensal')
+    rot = CONFIG.get('cestas_externas') or {}
+    if m is None or not rot:
+        return None
+    ano_atual = date.today().year
+    out = []
+    for cesta, nome in rot.items():
+        g = m[(m['cesta'] == cesta)]
+        if g.empty:
+            continue
+        anual = g.groupby(['ano', 'fluxo'], as_index=False)[['fob_usd', 'cif_usd']].sum()
+        serie = {}
+        for r in anual.itertuples(index=False):
+            d = serie.setdefault(int(r.ano), {'ano': int(r.ano), 'exp': 0.0, 'imp': 0.0, 'imp_cif': 0.0})
+            if r.fluxo.startswith('Exp'):
+                d['exp'] = float(r.fob_usd)
+            else:
+                d['imp'] = float(r.fob_usd)
+                d['imp_cif'] = float(r.cif_usd)
+        out.append({'cesta': cesta, 'rotulo': nome, 'serie': [serie[k] for k in sorted(serie) if k < ano_atual]})
+    return out
 
 # ---------------------------------------------------------------------------
 # Simulador de mercado doméstico (projeção do consumo aparente)
@@ -1650,6 +1727,7 @@ def main():
         },
         'shared': {
             'producao': {'indice': producao_indice, 'comparativos': build_producao_comparativos()},
+            'comex_externas': build_comex_externas(),
             'financeiro': {'grupo': fin_grupo, 'por_cnae_2024': fin_por_cnae,
                            'indicadores': indicadores},
             'simulador_impacto': build_simulador_impacto(indicadores, cadeia, macro),

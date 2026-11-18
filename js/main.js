@@ -467,7 +467,7 @@
     'chart-caged-saldo': 'CAGED/MTE', 'chart-caged-movimentacao': 'CAGED/MTE',
     'chart-caged-tipo': 'CAGED/MTE', 'chart-caged-massa-salarial': 'CAGED/MTE',
     'rank-caged-saldo-uf': 'CAGED/MTE', 'table-caged-uf': 'CAGED/MTE',
-    'chart-comex-participacao-mundial': 'Comtrade', 'table-comex-grupos-mundo': 'Comtrade', 'comex-mundo-ano-select': 'Comtrade',
+    'chart-comex-participacao-mundial': 'Comtrade', 'table-comex-grupos-mundo': 'Comtrade', 'cx-mensal-chart': 'Comexstat', 'cx-ncm-chart': 'Comexstat', 'cx-ext-chart': 'Comexstat', 'comex-mundo-ano-select': 'Comtrade',
     'chart-mercado-ca': 'PIA/IBGE e Comexstat', 'chart-mercado-coef': 'PIA/IBGE e Comexstat',
     'table-mercado-produtos': 'PIA/IBGE e Comexstat',
     'table-decom': 'DECOM/GECEX',
@@ -1682,6 +1682,7 @@
     const catCt = annualCategories([ctBr, ctWorld]);
     renderRankingMundial();
     renderGruposMundo();
+    renderComexAmpliado();
 
     const participacaoMundo = catCt.map(ano => {
       const b = ctBr.find(r => r.ano === ano), w = ctWorld.find(r => r.ano === ano);
@@ -1803,6 +1804,101 @@
     return n == null || isNaN(n) ? '-' : n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
   }
 
+
+  // ---------------------------------------------------------------------
+  // Comércio exterior ampliado (base bruta do MDIC): visão mensal com FOB
+  // ou CIF, filtro por NCM e cestas fora do setor (outra cor, tracejadas).
+  // ---------------------------------------------------------------------
+  const cxSt = { valor: 'fob', meses: 36, ncms: null, busca: '' };
+
+  function renderComexAmpliado() {
+    const s = csS(), c = s.comex;
+    const bloco = $('#bloco-comex-ampliado');
+    if (!bloco) return;
+    if (!c.mensal || !c.mensal.length) { bloco.style.display = 'none'; return; }
+    bloco.style.display = '';
+
+    // ---- mensal ----
+    const ult = c.mensal.slice(cxSt.meses ? -cxSt.meses : 0);
+    const rotMes = r => `${MESES[r.mes - 1]}/${String(r.ano).slice(2)}`;
+    const impK = cxSt.valor === 'cif' ? 'importacao_cif' : 'importacao_fob';
+    const u = c.mensal[c.mensal.length - 1];
+    const ua = c.mensal.find(r => r.ano === u.ano - 1 && r.mes === u.mes);
+    const acum = (ano, k) => c.mensal.filter(r => r.ano === ano && r.mes <= u.mes).reduce((a, r) => a + r[k], 0);
+    const varAc = acum(u.ano - 1, impK) ? (acum(u.ano, impK) / acum(u.ano - 1, impK) - 1) * 100 : null;
+    $('#cx-mensal-title').textContent = varAc != null
+      ? `Importação de jan a ${MESES[u.mes - 1]}/${u.ano}: ${varAc >= 0 ? 'alta' : 'queda'} de ${pctL(Math.abs(varAc), 1)} sobre o mesmo período de ${u.ano - 1}`
+      : 'Exportação e importação, mês a mês';
+    $('#cx-mensal-sub').textContent = `US$ por mês, até ${MESES[u.mes - 1]}/${u.ano}. Importação em ${cxSt.valor === 'cif' ? 'CIF (com frete e seguro)' : 'FOB'}; exportação sempre em FOB.`
+      + (ua ? ` Em ${MESES[u.mes - 1]}/${u.ano}: importação de ${fmt.usd(u[impK])} (${pctL((u[impK] / ua[impK] - 1) * 100, 0, true)} contra ${MESES[u.mes - 1]}/${u.ano - 1}).` : '');
+    lineChart($('#cx-mensal-chart'), {
+      categories: ult.map(rotMes), formatY: fmt.usd, height: 260,
+      series: [
+        { label: `Importação (${cxSt.valor.toUpperCase()})`, color: 'var(--series-6)', values: ult.map(r => r[impK]) },
+        { label: 'Exportação (FOB)', color: 'var(--series-4)', values: ult.map(r => r.exportacao_fob) },
+      ],
+    });
+    document.querySelectorAll('#cx-valor button').forEach(b => b.classList.toggle('active', b.dataset.v === cxSt.valor));
+    document.querySelectorAll('#cx-meses button').forEach(b => b.classList.toggle('active', +b.dataset.m === cxSt.meses));
+
+    // ---- filtro por NCM ----
+    const lista = c.ncm_anual || [];
+    if (!cxSt.ncms || !cxSt.ncms.every(n => lista.some(x => x.ncm === n))) cxSt.ncms = lista.map(x => x.ncm);
+    const busca = cxSt.busca.trim().toLowerCase();
+    const visiveis = lista.filter(x => !busca || x.ncm.includes(busca.replace(/\D/g, '') || '§') || (x.descricao || '').toLowerCase().includes(busca));
+    $('#cx-ncm-lista').innerHTML = visiveis.map(x => `<label class="cx-ncm-item"><input type="checkbox" value="${x.ncm}"${cxSt.ncms.includes(x.ncm) ? ' checked' : ''}><span class="mono">${x.ncm.replace(/(\d{4})(\d{2})(\d{2})/, '$1.$2.$3')}</span> ${(x.descricao || '').replace(/</g, '&lt;')}</label>`).join('') || '<div class="empty-note">Nenhuma NCM encontrada.</div>';
+    $('#cx-ncm-cont').textContent = `${cxSt.ncms.length} de ${lista.length} NCMs selecionadas`;
+    const sel = lista.filter(x => cxSt.ncms.includes(x.ncm));
+    const anos = [...new Set(sel.flatMap(x => x.serie.map(r => r.ano)))].filter(a => a < anoAtual).sort((a, b) => a - b);
+    const soma = k => anos.map(a => sel.reduce((t, x) => t + ((x.serie.find(r => r.ano === a) || {})[k] || 0), 0));
+    const imp = soma(cxSt.valor === 'cif' ? 'imp_cif' : 'imp'), exp = soma('exp');
+    $('#cx-ncm-title').textContent = sel.length === lista.length ? 'Toda a cesta do segmento' : `${sel.length} NCM${sel.length === 1 ? '' : 's'} selecionada${sel.length === 1 ? '' : 's'}`;
+    $('#cx-ncm-sub').textContent = `Exportação (FOB) e importação (${cxSt.valor.toUpperCase()}) por ano, anos fechados. Marque ou desmarque NCMs para recalcular.`;
+    barChart($('#cx-ncm-chart'), {
+      categories: anos, formatY: fmt.usd, height: 260,
+      series: [
+        { label: `Importação (${cxSt.valor.toUpperCase()})`, color: 'var(--series-6)', values: imp },
+        { label: 'Exportação (FOB)', color: 'var(--series-4)', values: exp },
+      ],
+    });
+
+    // ---- cestas fora do setor ----
+    const ext = shared().comex_externas || [];
+    const anosE = [...new Set(ext.flatMap(e => e.serie.map(r => r.ano)))].sort((a, b) => a - b);
+    const setorAnual = anosE.map(a => c.mensal.filter(r => r.ano === a).reduce((t, r) => t + r[impK], 0) || null);
+    const CORES_EXT = ['#5b7fa6', '#7aa6c2', '#3f6590', '#9cb3c9'];
+    const kE = cxSt.valor === 'cif' ? 'imp_cif' : 'imp';
+    lineChart($('#cx-ext-chart'), {
+      categories: anosE, formatY: fmt.usd, height: 280,
+      series: [{ label: `Importação do segmento (${rotuloCnae(state.sector)})`, color: 'var(--series-6)', values: setorAnual }]
+        .concat(ext.map((e, i) => ({ label: `${e.rotulo} (fora do setor)`, color: CORES_EXT[i % CORES_EXT.length], dashed: true, values: anosE.map(a => (e.serie.find(r => r.ano === a) || {})[kE] || null) }))),
+    });
+    const ue = anosE[anosE.length - 1];
+    const maior = ext.map(e => ({ e, v: (e.serie.find(r => r.ano === ue) || {})[kE] || 0 })).sort((a, b) => b.v - a.v)[0];
+    $('#cx-ext-title').textContent = maior ? `Na cadeia, ${maior.e.rotulo.toLowerCase()} é o maior item importado fora do setor (${fmt.usd(maior.v)} em ${ue})` : 'Produtos relacionados, fora do setor';
+    $('#cx-ext-sub').textContent = `Importação anual (${cxSt.valor.toUpperCase()}) de matérias-primas e produtos relacionados que NÃO fazem parte do setor (linhas tracejadas, em azul), comparada à importação do segmento (vermelho). Borracha natural e sintética e insumos químicos são insumos do setor; pneus novos são outro segmento da indústria da borracha.`;
+  }
+
+  function setupComexAmpliado() {
+    const bloco = $('#bloco-comex-ampliado');
+    if (!bloco) return;
+    bloco.addEventListener('click', e => {
+      const b = e.target.closest('button');
+      if (!b) return;
+      if (b.dataset.v) { cxSt.valor = b.dataset.v; renderComexAmpliado(); }
+      if (b.dataset.m !== undefined) { cxSt.meses = +b.dataset.m; renderComexAmpliado(); }
+      if (b.id === 'cx-ncm-todos') { cxSt.ncms = (csS().comex.ncm_anual || []).map(x => x.ncm); renderComexAmpliado(); }
+      if (b.id === 'cx-ncm-nenhum') { cxSt.ncms = []; renderComexAmpliado(); }
+    });
+    bloco.addEventListener('change', e => {
+      if (e.target.matches('#cx-ncm-lista input[type=checkbox]')) {
+        const v = e.target.value;
+        cxSt.ncms = e.target.checked ? [...new Set(cxSt.ncms.concat(v))] : cxSt.ncms.filter(n => n !== v);
+        renderComexAmpliado();
+      }
+    });
+    $('#cx-ncm-busca').addEventListener('input', e => { cxSt.busca = e.target.value; renderComexAmpliado(); });
+  }
 
   // Comércio mundial por grupo de produto (Comtrade, SH4): tamanho do mercado
   // mundial, crescimento, participação e posição do Brasil e países líderes.
@@ -3498,6 +3594,7 @@
       })();
       setupCempre();
       setupMunicipios();
+      setupComexAmpliado();
       setupViewTabs();
       renderReferencias(data);
       renderEnergiaIndustrial(data);

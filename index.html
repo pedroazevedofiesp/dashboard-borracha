@@ -594,6 +594,42 @@
         <div class="exhibit-sub" id="comex-uf-table-sub">Ano mais recente</div>
       </div>
     </div>
+    <div class="cx-bloco" id="bloco-comex-ampliado">
+      <h3 class="cempre-titulo">Mês a mês, FOB x CIF e filtro por NCM</h3>
+      <div class="cx-controles">
+        <div class="exec-seg-toggle" id="cx-valor"><button type="button" class="exec-seg-btn" data-v="fob">Importação FOB</button><button type="button" class="exec-seg-btn" data-v="cif">Importação CIF</button></div>
+        <div class="exec-seg-toggle" id="cx-meses"><button type="button" class="exec-seg-btn" data-m="24">24 meses</button><button type="button" class="exec-seg-btn" data-m="36">36 meses</button><button type="button" class="exec-seg-btn" data-m="0">Série completa</button></div>
+      </div>
+      <div class="exhibit-block">
+        <div id="cx-mensal-chart"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title" id="cx-mensal-title"></div>
+          <div class="exhibit-sub" id="cx-mensal-sub"></div>
+        </div>
+      </div>
+      <div class="cx-ncm-grid">
+        <div class="cx-ncm-filtro">
+          <input type="search" id="cx-ncm-busca" placeholder="Buscar NCM ou produto" aria-label="Buscar NCM">
+          <div class="cx-ncm-acoes"><button type="button" id="cx-ncm-todos">Marcar todas</button><button type="button" id="cx-ncm-nenhum">Desmarcar todas</button><span id="cx-ncm-cont"></span></div>
+          <div class="cx-ncm-lista" id="cx-ncm-lista"></div>
+        </div>
+        <div class="exhibit-block cx-ncm-res">
+          <div id="cx-ncm-chart"></div>
+          <div class="exhibit-caption">
+            <div class="exhibit-title" id="cx-ncm-title"></div>
+            <div class="exhibit-sub" id="cx-ncm-sub"></div>
+          </div>
+        </div>
+      </div>
+      <h3 class="cempre-titulo">Produtos relacionados, fora do setor <span class="cx-fora">fora do setor</span></h3>
+      <div class="exhibit-block">
+        <div id="cx-ext-chart"></div>
+        <div class="exhibit-caption">
+          <div class="exhibit-title" id="cx-ext-title"></div>
+          <div class="exhibit-sub" id="cx-ext-sub"></div>
+        </div>
+      </div>
+    </div>
     <div class="exhibit-block" id="comex-ncm-wrap">
       <h4 style="font-size:0.75rem;margin:12px 0 4px;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.06em;">Produtos e preço médio</h4>
       <p class="section-note" style="margin-bottom:16px;" id="comex-ncm-note">Produtos agrupados como no diagnóstico setorial da FIESP (grupos de produto); o botão "Por NCM" mostra o detalhe por código. Preço médio = valor dividido pelo peso líquido.</p>

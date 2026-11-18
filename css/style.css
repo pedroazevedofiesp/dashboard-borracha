@@ -849,3 +849,20 @@ table.pdi-table td.mono { font-variant-numeric: tabular-nums; white-space: nowra
 .emp-nota, .emp-dica { font-size: .74rem; color: var(--text-muted); margin: 10px 0 0; }
 .tabela-emp td:first-child { white-space: normal; min-width: 140px; }
 .tabela-emp th { white-space: normal; }
+
+/* Comércio exterior ampliado */
+.cx-bloco { margin: 8px 0 18px; }
+.cx-controles { display: flex; flex-wrap: wrap; gap: 10px 18px; margin-bottom: 12px; }
+.cx-ncm-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); gap: 18px; margin-bottom: 18px; }
+@media (max-width: 900px) { .cx-ncm-grid { grid-template-columns: minmax(0, 1fr); } }
+.cx-ncm-filtro { display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--border); border-radius: 10px; padding: 12px; background: var(--surface-card); min-width: 0; }
+.cx-ncm-filtro input[type=search] { font: inherit; font-size: .85rem; padding: 7px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-1); color: var(--text-primary); }
+.cx-ncm-acoes { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: .72rem; color: var(--text-muted); }
+.cx-ncm-acoes button { font: inherit; font-size: .72rem; border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary); border-radius: 999px; padding: 3px 10px; cursor: pointer; }
+.cx-ncm-lista { max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; scrollbar-width: thin; }
+.cx-ncm-item { display: flex; gap: 6px; align-items: baseline; font-size: .76rem; color: var(--text-secondary); padding: 3px 2px; cursor: pointer; line-height: 1.3; }
+.cx-ncm-item input { accent-color: var(--accent); flex-shrink: 0; }
+.cx-ncm-item .mono { flex-shrink: 0; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.cx-ncm-res { margin: 0; }
+.cx-fora { display: inline-block; vertical-align: middle; margin-left: 8px; font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 2px 8px; border-radius: 999px; border: 1px dashed #5b7fa6; color: #3f6590; background: color-mix(in srgb, #5b7fa6 10%, transparent); }
+:root[data-theme="dark"] .cx-fora { color: #9cc0e6; }

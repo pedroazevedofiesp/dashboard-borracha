@@ -28,6 +28,7 @@ Tudo o que muda de um setor para outro está em `2_Scripts/config_setor.R`.
 | `obter_rais_municipio_ftp.R` | Microdados públicos da RAIS no FTP do PDET (estabelecimentos de todos os anos baixados; vínculos do ano em `ano_vinculos`, ~3,6 GB) | nenhuma | anual |
 | `obter_pia_produto.R` | IBGE, PIA-Produto (valor da produção por produto): API do SIDRA de 2014 em diante (tabelas 7752 e 10476); arquivos do servidor ftp.ibge.gov.br para 2007–2013 | nenhuma | anual |
 | `obter_comex.R` | API do Comex Stat | nenhuma | mensal |
+| `processar_comex_bruto.py` | Base bruta do Comex Stat (arquivos `EXP_/IMP_<ano>.csv` de balanca.mdic.gov.br, ~250 MB/ano, em `1_Dados_Manuais_XLS/comexstat/`): visão mensal, CIF, série por NCM e cestas fora do setor (`cestas_externas` em `config_setor.R`). Alternativa à API quando ela está fora do ar | nenhuma | mensal |
 | `obter_comtrade.R` | API do UN Comtrade | `COMTRADE_API_KEY` | semestral |
 | `obter_bndes.R` | CSVs do portal de dados abertos do BNDES | nenhuma | trimestral |
 | `obter_rais.R` | BigQuery (Base dos Dados) + FTP do PDET | `GOOGLE_CLOUD_PROJECT` | anual |

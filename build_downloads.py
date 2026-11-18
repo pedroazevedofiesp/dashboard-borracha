@@ -357,6 +357,19 @@ def build_comex_download(cfg):
         _add_sheet(wb, 'Comtrade por grupo', pd.DataFrame(linhas),
                    title=f'Comércio mundial por grupo de produto — {label}',
                    note=f"Fonte: Comtrade. Elaboração: DECAP/FIESP. Exportações mundiais por grupo do Sistema Harmonizado, {gm['ano']}.")
+    cx = d and d['sectors'].get(cnae, {}).get('comex', {})
+    if cx and cx.get('mensal'):
+        _add_sheet(wb, 'Mensal FOB e CIF', _df(cx['mensal'], ['ano', 'mes', 'exportacao_fob', 'importacao_fob', 'importacao_cif'],
+                   {'ano': 'Ano', 'mes': 'Mês', 'exportacao_fob': 'Exportação FOB (US$)', 'importacao_fob': 'Importação FOB (US$)', 'importacao_cif': 'Importação CIF (US$)'}),
+                   title=f'Comércio exterior mês a mês — {label}',
+                   note='Fonte: Comexstat. Elaboração: DECAP/FIESP. CIF = FOB + frete + seguro.')
+    ext = d and d['shared'].get('comex_externas')
+    if ext:
+        linhas = [{'Cesta (fora do setor)': e['rotulo'], 'Ano': r['ano'], 'Exportação FOB (US$)': r['exp'],
+                   'Importação FOB (US$)': r['imp'], 'Importação CIF (US$)': r['imp_cif']} for e in ext for r in e['serie']]
+        _add_sheet(wb, 'Fora do setor', pd.DataFrame(linhas),
+                   title='Produtos relacionados, fora do setor',
+                   note='Fonte: Comexstat. Elaboração: DECAP/FIESP. Matérias-primas e produtos relacionados que não fazem parte do setor.')
     _save(wb, f'Comercio_Exterior_{cnae}.xlsx')
 
 

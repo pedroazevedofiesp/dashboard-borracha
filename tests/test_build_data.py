@@ -360,3 +360,25 @@ def test_comparativos_e_outros_indicadores(data):
     assert cmp and {'industria_geral', 'industria_transformacao'} <= set(cmp)
     outros = data['shared']['financeiro']['indicadores']['outros']
     assert outros and len(outros['linhas']) >= 5
+
+
+@pytest.mark.parametrize('cnae', CNAES)
+def test_comex_mensal_bate_com_anual(data, cnae):
+    c = data['sectors'][cnae]['comex']
+    if not c.get('mensal'):
+        pytest.skip('sem base bruta do Comex Stat')
+    anual = {r['ano']: r for r in c['yearly']}
+    soma = {}
+    for r in c['mensal']:
+        soma.setdefault(r['ano'], [0.0, 0.0])
+        soma[r['ano']][0] += r['exportacao_fob']
+        soma[r['ano']][1] += r['importacao_fob']
+        assert r['importacao_cif'] >= r['importacao_fob'] - 1
+    for ano in (2015, 2020, 2024):
+        if ano in anual and ano in soma:
+            assert abs(soma[ano][1] - anual[ano]['importacao_usd']) <= max(1.0, 0.001 * anual[ano]['importacao_usd'])
+
+
+def test_comex_externas(data):
+    ext = data['shared']['comex_externas']
+    assert ext and {e['cesta'] for e in ext} >= {'natural', 'pneus_novos'}
