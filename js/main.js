@@ -393,6 +393,7 @@
     'table-mercado-produtos': 'PIA/IBGE e Comexstat',
     'table-decom': 'DECOM/GECEX',
     'ee-chart-exposicao-china': 'Comexstat e RAIS/MTE', 'ee-chart-bndes-percapita': 'BNDES e RAIS/MTE',
+    'cempre-mapa': 'CEMPRE/IBGE', 'cempre-serie': 'CEMPRE/IBGE', 'cempre-sal': 'CEMPRE/IBGE',
     'ee-chart-porte': 'RAIS/MTE', 'ee-chart-export-uf': 'Comexstat',
     'ee-chart-produtividade': 'PIA/IBGE', 'ee-chart-producao-emprego': 'PIM-PF/IBGE e RAIS/MTE',
     'chart-ei-consumo': 'EPE', 'rank-ei-composicao': 'EPE',
@@ -894,12 +895,18 @@
       const real = massa.map(m => m.remuneracao_media_nominal && dez(m.ano) && dez(ab) ? m.remuneracao_media_nominal * dez(ab) / dez(m.ano) : null);
       const rU = real[real.length - 1], rI = real.find(v => v != null);
       const tam = u.estabelecimentos ? u.vinculos / u.estabelecimentos : null, tamI = p.estabelecimentos ? p.vinculos / p.estabelecimentos : null;
+      const ce = s.cempre && s.cempre.brasil;
+      const ceU = ce && ce[ce.length - 1], ceA = ce && ce[ce.length - 2];
+      const ceInd = s.cempre && s.cempre.ind_transformacao_brasil.find(x => ceU && x.ano === ceU.ano);
       preencherSecao('block-emprego', `${nome} · ${p.ano}–${u.ano}`, [
+        ceU && ceU.empresas ? `Segundo o CEMPRE/IBGE, o segmento tinha <strong>${numL(ceU.empresas)} empresas ativas</strong> em ${ceU.ano}, com ${numL(ceU.pessoal_ocupado)} pessoas ocupadas.` : null,
+        ceU && ceInd && ceU.salario_medio_mensal && ceInd.salario_medio_mensal ? `O salário médio do segmento é ${pctL(Math.abs(1 - ceU.salario_medio_mensal / ceInd.salario_medio_mensal) * 100, 0)} ${ceU.salario_medio_mensal < ceInd.salario_medio_mensal ? 'menor' : 'maior'} que o da indústria de transformação.` : null,
         `O segmento tinha <strong>${numL(u.vinculos)}</strong> vínculos formais em ${u.ano}, ${pctL((u.vinculos / p.vinculos - 1) * 100, 1, true)} desde ${p.ano}.`,
         ufU[0] ? `<strong>${ufU[0].nome_uf}</strong> concentra ${pctL(ufU[0].vinculos / totV * 100)} do emprego; os três maiores estados somam ${pctL(ufU.slice(0, 3).reduce((x, y) => x + y.vinculos, 0) / totV * 100)}.` : null,
         tam && tamI ? `O estabelecimento médio tem ${fmt.full1(tam)} empregados (eram ${fmt.full1(tamI)} em ${p.ano}).` : null,
         rU && rI ? `A remuneração média real ${rU >= rI ? 'subiu' : 'caiu'} ${pctL(Math.abs((rU / rI - 1) * 100))} desde ${massa[0].ano}, para R$ ${numL(rU)} por mês (R$ de ${ab}).` : null,
       ], [
+        ceU && ceU.empresas ? cardL({ rotulo: `Empresas ativas · ${ceU.ano}`, valor: numL(ceU.empresas), serie: ce.map(x => x.empresas), delta: ceA && ceA.empresas ? (ceU.empresas / ceA.empresas - 1) * 100 : null, sub: `vs ${ceA ? ceA.ano : ''} · CEMPRE` }) : null,
         cardL({ rotulo: `Vínculos formais · ${u.ano}`, valor: numL(u.vinculos), serie: tot.map(x => x.vinculos), delta: (u.vinculos / a.vinculos - 1) * 100, sub: `vs ${a.ano}` }),
         cardL({ rotulo: `Estabelecimentos · ${u.ano}`, valor: numL(u.estabelecimentos), serie: tot.map(x => x.estabelecimentos), delta: (u.estabelecimentos / a.estabelecimentos - 1) * 100, sub: `vs ${a.ano}` }),
         cardL({ rotulo: 'Empregados por estabelecimento', valor: tam ? fmt.full1(tam) : '-', serie: tot.map(x => x.estabelecimentos ? x.vinculos / x.estabelecimentos : null), sub: `${u.ano}` }),
@@ -1011,9 +1018,97 @@
   }
 
   // ---------------------------------------------------------------------
+  // Empresas ativas (CEMPRE/IBGE): mapa por UF, série e salário médio real
+  // comparado com a indústria de transformação. Clique no estado filtra.
+  // ---------------------------------------------------------------------
+  const UF_GRADE = {
+    RR: [2, 0], AP: [4, 0],
+    AM: [1, 1], PA: [3, 1], MA: [4, 1], CE: [5, 1], RN: [6, 1],
+    AC: [0, 2], RO: [1, 2], MT: [2, 2], TO: [3, 2], PI: [4, 2], PE: [5, 2], PB: [6, 2],
+    GO: [3, 3], DF: [4, 3], BA: [5, 3], AL: [6, 3],
+    MS: [2, 4], SP: [3, 4], MG: [4, 4], ES: [5, 4], SE: [6, 4],
+    PR: [3, 5], RJ: [4, 5],
+    SC: [3, 6],
+    RS: [3, 7],
+  };
+  const NOME_UF = { RO: 'Rondônia', AC: 'Acre', AM: 'Amazonas', RR: 'Roraima', PA: 'Pará', AP: 'Amapá', TO: 'Tocantins', MA: 'Maranhão', PI: 'Piauí', CE: 'Ceará', RN: 'Rio Grande do Norte', PB: 'Paraíba', PE: 'Pernambuco', AL: 'Alagoas', SE: 'Sergipe', BA: 'Bahia', MG: 'Minas Gerais', ES: 'Espírito Santo', RJ: 'Rio de Janeiro', SP: 'São Paulo', PR: 'Paraná', SC: 'Santa Catarina', RS: 'Rio Grande do Sul', MS: 'Mato Grosso do Sul', MT: 'Mato Grosso', GO: 'Goiás', DF: 'Distrito Federal' };
+  const cempreSt = { uf: null };
+
+  function renderCempre() {
+    const bloco = $('#bloco-cempre');
+    const c = csS().cempre;
+    if (!bloco) return;
+    if (!c || !c.brasil || !c.brasil.length) { bloco.style.display = 'none'; return; }
+    bloco.style.display = '';
+    const ab = anoBasePrecos();
+    const dez = ano => { const m = shared().macro.find(x => x.ano === ano && x.mes === 12); return m ? m.ipca : null; };
+    const real = r => r && r.salario_medio_mensal && dez(r.ano) && dez(ab) ? r.salario_medio_mensal * dez(ab) / dez(r.ano) : null;
+    const ufs = c.uf_ultimo_ano;
+    const ano = c.brasil[c.brasil.length - 1].ano;
+    const totEmp = c.brasil[c.brasil.length - 1].empresas;
+    const lider = ufs.filter(x => x.empresas).sort((a, b) => b.empresas - a.empresas)[0];
+    if (cempreSt.uf && !ufs.some(x => x.sigla === cempreSt.uf)) cempreSt.uf = null;
+
+    // mapa
+    const porUf = new Map(ufs.map(x => [x.sigla, x]));
+    const max = Math.max(...ufs.map(x => x.empresas || 0), 1);
+    $('#cempre-mapa-titulo').textContent = lider ? `${NOME_UF[lider.sigla]} concentra ${pctL(lider.empresas / totEmp * 100, 0)} das empresas` : 'Empresas ativas por estado';
+    $('#cempre-mapa').innerHTML = Object.entries(UF_GRADE).map(([uf, [col, lin]]) => {
+      const x = porUf.get(uf), v = x ? x.empresas : null;
+      const t = v ? Math.pow(v / max, 0.45) : 0;
+      const txt = v == null ? (x ? 'sigilo' : '–') : fmt.compact(v);
+      return `<button type="button" class="uf-tile${cempreSt.uf === uf ? ' sel' : ''}${t > 0.55 ? ' claro' : ''}" style="grid-column:${col + 1};grid-row:${lin + 1};--t:${t.toFixed(3)}" data-uf="${uf}" title="${NOME_UF[uf]}: ${v == null ? 'sem dado publicado' : numL(v) + ' empresas'}"><span class="uf-sig">${uf}</span><span class="uf-val">${txt}</span></button>`;
+    }).join('');
+    $('#cempre-mapa-leg').innerHTML = `<span>menos</span><i></i><span>mais empresas (${ano})</span>` + (cempreSt.uf ? '<button type="button" data-uf="">Ver Brasil</button>' : '');
+
+    // série (Brasil ou UF escolhida)
+    const serie = cempreSt.uf ? c.uf_yearly.filter(x => x.sigla === cempreSt.uf) : c.brasil;
+    const nome = cempreSt.uf ? NOME_UF[cempreSt.uf] : 'Brasil';
+    const s0 = serie.find(x => x.empresas != null), s1 = serie[serie.length - 1];
+    $('#cempre-serie-titulo').textContent = s0 && s1 && s1.empresas != null
+      ? `${nome}: ${s1.empresas >= s0.empresas ? 'mais' : 'menos'} empresas que em ${s0.ano} (${pctL((s1.empresas / s0.empresas - 1) * 100, 0, true)})` : nome;
+    barChart($('#cempre-serie'), {
+      categories: serie.map(x => x.ano), formatY: fmt.full, height: 250,
+      series: [{ label: 'Empresas ativas', color: 'var(--accent)', values: serie.map(x => x.empresas) }],
+    });
+
+    // salário médio real: setor x indústria de transformação (Brasil ou UF)
+    const ind = cempreSt.uf
+      ? null
+      : c.ind_transformacao_brasil;
+    const sR = serie.map(real);
+    const iR = ind ? serie.map(r => real(ind.find(x => x.ano === r.ano))) : null;
+    const indUf = cempreSt.uf ? c.ind_transformacao_uf_ultimo_ano.find(x => x.sigla === cempreSt.uf) : null;
+    const sU = sR[sR.length - 1], iU = iR ? iR[iR.length - 1] : real(indUf);
+    $('#cempre-sal-titulo').textContent = sU && iU
+      ? `Salário do setor ${sU < iU ? pctL((1 - sU / iU) * 100, 0) + ' abaixo' : pctL((sU / iU - 1) * 100, 0) + ' acima'} da indústria de transformação`
+      : 'Salário médio mensal real';
+    $('#cempre-sal-sub').textContent = `${nome}, salário médio mensal dos assalariados (13 salários por ano), R$ de ${ab}` + (cempreSt.uf ? `. Indústria de transformação no estado em ${ano}: ${iU ? 'R$ ' + numL(iU) : 'sem dado'}` : '');
+    lineChart($('#cempre-sal'), {
+      categories: serie.map(x => x.ano), formatY: fmt.brl, height: 250,
+      series: [
+        { label: rotuloCnae(state.sector), color: 'var(--accent)', values: sR },
+        iR ? { label: 'Indústria de transformação', color: 'var(--series-2)', values: iR } : null,
+      ].filter(Boolean),
+    });
+  }
+
+  function setupCempre() {
+    const alvo = $('#bloco-cempre');
+    if (!alvo) return;
+    alvo.addEventListener('click', e => {
+      const b = e.target.closest('button[data-uf]');
+      if (!b) return;
+      cempreSt.uf = b.dataset.uf && cempreSt.uf !== b.dataset.uf ? b.dataset.uf : null;
+      renderCempre();
+    });
+  }
+
+  // ---------------------------------------------------------------------
   // 03 — Emprego formal (RAIS)
   // ---------------------------------------------------------------------
   function renderEmprego() {
+    renderCempre();
     const s = csS();
     const bs = blocks.emprego;
 
@@ -3118,6 +3213,7 @@
       initBlocks();
       setupBlockFilters();
       setupTema();
+      setupCempre();
       setupViewTabs();
       renderReferencias(data);
       renderEnergiaIndustrial(data);

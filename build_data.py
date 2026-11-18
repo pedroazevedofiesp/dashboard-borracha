@@ -1140,6 +1140,7 @@ def build_sector(cfg, fator_brl, macro_rows=None):
             'ncm': comex_ncm,
         },
         'comtrade': comtrade,
+        'cempre': build_cempre(codes),
         'mercado': mercado,
         'simulador': build_simulador(mercado, importacao_china_resto_yearly),
         'bndes': {'yearly': bndes_yearly, 'uf_total': bndes_uf_total,
@@ -1148,6 +1149,77 @@ def build_sector(cfg, fator_brl, macro_rows=None):
 
 
 
+
+
+# ---------------------------------------------------------------------------
+# CEMPRE (IBGE): empresas ativas, pessoal ocupado e salários, Brasil e UF
+# ---------------------------------------------------------------------------
+UF_SIGLA_POR_CODIGO = {
+    '11': 'RO', '12': 'AC', '13': 'AM', '14': 'RR', '15': 'PA', '16': 'AP', '17': 'TO', '21': 'MA',
+    '22': 'PI', '23': 'CE', '24': 'RN', '25': 'PB', '26': 'PE', '27': 'AL', '28': 'SE', '29': 'BA',
+    '31': 'MG', '32': 'ES', '33': 'RJ', '35': 'SP', '41': 'PR', '42': 'SC', '43': 'RS', '50': 'MS',
+    '51': 'MT', '52': 'GO', '53': 'DF'}
+
+
+def _cempre_df():
+    arq = SRC_DIR / f'Cempre_{ROTULO_ARQUIVO}.csv'
+    if not arq.exists():
+        return None
+    df = read_csv(arq.name, dtype={'uf': str, 'recorte': str})
+    for c in ('empresas', 'pessoal_ocupado', 'pessoal_assalariado', 'salarios_mil'):
+        df[c] = pd.to_numeric(df[c], errors='coerce')
+    return df
+
+
+CEMPRE_DF = None
+
+
+def build_cempre(codes):
+    """Série do CEMPRE para o recorte (soma das classes em `codes`) e, para
+    comparação, a indústria de transformação. Sigilo ("X") fica nulo; na
+    soma de classes, um componente nulo deixa o total nulo."""
+    global CEMPRE_DF
+    if CEMPRE_DF is None:
+        CEMPRE_DF = _cempre_df()
+    df = CEMPRE_DF
+    if df is None:
+        return None
+    cols = ['empresas', 'pessoal_ocupado', 'pessoal_assalariado', 'salarios_mil']
+
+    def agrega(sub):
+        g = sub.groupby(['ano', 'uf'])
+        out = g[cols].sum(min_count=1)
+        # se algum componente está em sigilo, o total do recorte fica nulo
+        nulos = g[cols].apply(lambda x: x.isna().any())
+        n = g.size()
+        out = out.mask(nulos | (n < len(codes)).values[:, None])
+        return out.reset_index()
+
+    setor_df = agrega(df[df['recorte'].isin(codes)])
+    ind = df[df['recorte'] == 'ind_transformacao']
+
+    def linhas(d):
+        out = []
+        for r in d.itertuples(index=False):
+            assal, sal = to_num(r.pessoal_assalariado), to_num(r.salarios_mil)
+            out.append({
+                'ano': int(r.ano), 'uf': r.uf, 'sigla': UF_SIGLA_POR_CODIGO.get(r.uf, r.uf),
+                'empresas': to_num(r.empresas), 'pessoal_ocupado': to_num(r.pessoal_ocupado),
+                'pessoal_assalariado': assal, 'salarios_mil': sal,
+                # salário médio mensal (13 salários/ano)
+                'salario_medio_mensal': sal * 1000 / assal / 13 if sal and assal else None,
+            })
+        return out
+
+    s_lin, i_lin = linhas(setor_df), linhas(ind)
+    anos = sorted({r['ano'] for r in s_lin})
+    return {
+        'brasil': [r for r in s_lin if r['uf'] == 'BR'],
+        'uf_ultimo_ano': [r for r in s_lin if r['uf'] != 'BR' and r['ano'] == anos[-1]],
+        'uf_yearly': [r for r in s_lin if r['uf'] != 'BR'],
+        'ind_transformacao_brasil': [r for r in i_lin if r['uf'] == 'BR'],
+        'ind_transformacao_uf_ultimo_ano': [r for r in i_lin if r['uf'] != 'BR' and r['ano'] == anos[-1]],
+    }
 
 # ---------------------------------------------------------------------------
 # Simulador de mercado doméstico (projeção do consumo aparente)

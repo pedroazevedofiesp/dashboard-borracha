@@ -813,3 +813,18 @@ table.pdi-table td.mono { font-variant-numeric: tabular-nums; white-space: nowra
 }
 :root[data-theme="dark"] body { background: var(--surface-1); color: var(--text-primary); }
 :root[data-theme="dark"] select, :root[data-theme="dark"] input { background: var(--surface-2); color: var(--text-primary); border-color: var(--border); }
+
+/* CEMPRE: mapa de estados em grade */
+.cempre-bloco { margin-bottom: 8px; }
+.cempre-titulo { font-size: 1.05rem; font-weight: 700; color: var(--text-primary); margin: 8px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+.uf-grade { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); grid-auto-rows: 42px; gap: 4px; max-width: 400px; margin: 6px auto 0; }
+.uf-tile { font: inherit; border: 0; border-radius: 6px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; color: var(--text-primary);
+  background: color-mix(in srgb, var(--accent) calc(var(--t) * 92%), var(--surface-2)); transition: transform .12s; }
+.uf-tile:hover { transform: scale(1.06); }
+.uf-tile.claro { color: #fff; }
+.uf-tile.sel { outline: 3px solid var(--text-primary); outline-offset: 1px; }
+.uf-sig { font-size: .72rem; font-weight: 800; }
+.uf-val { font-size: .6rem; opacity: .85; }
+.uf-leg { display: flex; align-items: center; gap: 8px; justify-content: center; margin-top: 10px; font-size: .7rem; color: var(--text-muted); flex-wrap: wrap; }
+.uf-leg i { width: 110px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, var(--surface-2), var(--accent)); }
+.uf-leg button { font: inherit; font-size: .72rem; margin-left: 8px; border: 1px solid var(--border); background: var(--surface-card); color: var(--text-primary); border-radius: 999px; padding: 3px 10px; cursor: pointer; }
