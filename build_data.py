@@ -1641,7 +1641,7 @@ def build_indicadores_desempenho(macro_rows):
 
     # Último ano da série antiga (comparável com o diagnóstico) e último ano
     # disponível (pode ser da nova série da PIA, a partir de 2024).
-    finais = sorted({a for a in (ULTIMO_ANO_PIA_ANTIGA, a1) if a in anos})
+    finais = [a1]  # só a comparação primeiro ano x último ano (pedido do usuário)
     tabelas = [{'ano_final': af, 'nova_serie': af > ULTIMO_ANO_PIA_ANTIGA, 'linhas': montar_tabela(af)}
                for af in finais]
 
